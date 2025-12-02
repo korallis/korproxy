@@ -150,15 +150,22 @@ export const handleWebhook = internalAction({
     error: v.optional(v.string()),
   }),
   handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
+    console.log("=== Stripe Webhook Received ===");
+    console.log("Signature present:", !!args.signature);
+    console.log("Payload length:", args.payload.length);
+    
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET is not configured!");
       return { success: false, error: "STRIPE_WEBHOOK_SECRET not configured" };
     }
+    console.log("Webhook secret configured:", webhookSecret.substring(0, 10) + "...");
 
     let stripe: Stripe;
     try {
       stripe = getStripeClient();
     } catch (error) {
+      console.error("Failed to initialize Stripe client:", error);
       return { success: false, error: error instanceof Error ? error.message : "Stripe not configured" };
     }
 
@@ -166,12 +173,14 @@ export const handleWebhook = internalAction({
 
     try {
       event = stripe.webhooks.constructEvent(args.payload, args.signature, webhookSecret);
+      console.log("Webhook signature verified successfully");
     } catch (err) {
       console.error("Webhook signature verification failed:", err);
+      console.error("This usually means STRIPE_WEBHOOK_SECRET doesn't match the Stripe dashboard webhook secret");
       return { success: false, error: "Invalid signature" };
     }
 
-    console.log(`Processing Stripe event: ${event.type}`);
+    console.log(`Processing Stripe event: ${event.type}, id: ${event.id}`);
 
     try {
       switch (event.type) {
@@ -293,11 +302,29 @@ async function handleSubscriptionUpdate(
   const customerId = subscription.customer as string;
   
   // Get user by Stripe customer ID
-  const user = await ctx.runQuery(internal.stripe.getUserByCustomer, { stripeCustomerId: customerId });
+  let user = await ctx.runQuery(internal.stripe.getUserByCustomer, { stripeCustomerId: customerId });
+  
+  // Fallback: try to find user by Convex ID from subscription metadata
+  if (!user && subscription.metadata?.convexUserId) {
+    console.log("User not found by customer ID, trying metadata.convexUserId:", subscription.metadata.convexUserId);
+    user = await ctx.runQuery(internal.stripe.getUserById, { userId: subscription.metadata.convexUserId });
+    
+    // If found, update the user's stripeCustomerId
+    if (user) {
+      console.log("Found user by metadata, updating stripeCustomerId");
+      await ctx.runMutation(internal.stripe.setCustomerId, {
+        userId: user.id,
+        stripeCustomerId: customerId,
+      });
+    }
+  }
+  
   if (!user) {
-    console.error("User not found for customer:", customerId);
+    console.error("User not found for customer:", customerId, "metadata:", subscription.metadata);
     return;
   }
+  
+  console.log("Updating subscription for user:", user.email, "status:", subscription.status);
 
   // Determine status
   let status: "trialing" | "active" | "past_due" | "canceled" | "expired";
@@ -397,6 +424,47 @@ async function handlePaymentFailed(
 // ============================================
 // Internal functions (not exposed to clients)
 // ============================================
+
+/**
+ * Get user by Convex user ID (for webhook fallback when customer ID not found)
+ */
+export const getUserById = internalQuery({
+  args: { userId: v.string() },
+  returns: v.union(
+    v.object({
+      id: v.id("users"),
+      email: v.string(),
+      subscriptionStatus: v.string(),
+      subscriptionPlan: v.optional(v.string()),
+      stripeSubscriptionId: v.optional(v.string()),
+      stripePriceId: v.optional(v.string()),
+      trialEnd: v.optional(v.number()),
+      currentPeriodEnd: v.optional(v.number()),
+      cancelAtPeriodEnd: v.optional(v.boolean()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    try {
+      const user = await ctx.db.get(args.userId as Id<"users">);
+      if (!user) return null;
+
+      return {
+        id: user._id,
+        email: user.email,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionPlan: user.subscriptionPlan,
+        stripeSubscriptionId: user.stripeSubscriptionId,
+        stripePriceId: user.stripePriceId,
+        trialEnd: user.trialEnd,
+        currentPeriodEnd: user.currentPeriodEnd,
+        cancelAtPeriodEnd: user.cancelAtPeriodEnd,
+      };
+    } catch {
+      return null;
+    }
+  },
+});
 
 /**
  * Get session user info for checkout
@@ -511,13 +579,23 @@ export const updateUserSubscription = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    console.log("=== updateUserSubscription called ===");
+    console.log("userId:", args.userId, "new status:", args.status, "plan:", args.plan);
+    
     const user = await ctx.db.get(args.userId);
-    if (!user) return null;
+    if (!user) {
+      console.error("User not found for ID:", args.userId);
+      return null;
+    }
 
     // Don't modify lifetime users
-    if (user.subscriptionStatus === "lifetime") return null;
+    if (user.subscriptionStatus === "lifetime") {
+      console.log("Skipping update - user has lifetime status");
+      return null;
+    }
 
     const previousStatus = user.subscriptionStatus;
+    console.log("Updating user:", user.email, "from", previousStatus, "to", args.status);
 
     await ctx.db.patch(args.userId, {
       subscriptionStatus: args.status,
