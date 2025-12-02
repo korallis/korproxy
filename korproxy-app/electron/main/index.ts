@@ -46,7 +46,11 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    // Only open valid http/https URLs externally
+    // Skip about:, javascript:, data:, and other internal protocols
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      shell.openExternal(url)
+    }
     return { action: 'deny' }
   })
 
