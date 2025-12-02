@@ -112,7 +112,7 @@ export function ModelsPreview() {
           className="mt-10 text-center"
         >
           <Link
-            href="/dashboard/guides/models"
+            href="/guides/models"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
           >
             View All Models

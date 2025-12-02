@@ -35,7 +35,7 @@ export function Header() {
               Pricing
             </a>
             <Link
-              href="/dashboard/guides"
+              href="/guides"
               className="text-muted-foreground hover:text-foreground transition-colors duration-200"
             >
               Guides
@@ -83,7 +83,7 @@ export function Header() {
                 Pricing
               </a>
               <Link
-                href="/dashboard/guides"
+                href="/guides"
                 className="text-muted-foreground hover:text-foreground transition-colors duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
