@@ -103,9 +103,11 @@ export default function DashboardPage() {
 
     if (status === "lifetime") {
       return (
-        <div className="bg-primary/10 border border-primary/30 rounded-2xl p-8">
+        <div className="glass-card p-8 border-primary/30 shadow-glow">
           <div className="flex items-center gap-3 mb-4">
-            <Crown className="text-primary" size={32} />
+            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Crown className="text-primary" size={24} />
+            </div>
             <h2 className="text-2xl font-bold">Lifetime Access</h2>
           </div>
           <p className="text-muted-foreground mb-6">
@@ -117,7 +119,7 @@ export default function DashboardPage() {
 
     if (status === "active") {
       return (
-        <div className="bg-card border border-border rounded-2xl p-8">
+        <div className="glass-card p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold mb-2">Your Subscription</h2>
@@ -147,10 +149,12 @@ export default function DashboardPage() {
       const daysLeft = getDaysRemaining(user?.trialEnd);
       return (
         <div className="space-y-8">
-          <div className="bg-[oklch(0.55_0.15_250/0.1)] border border-[oklch(0.55_0.15_250/0.3)] rounded-2xl p-8">
+          <div className="glass-card p-8 border-[oklch(0.55_0.15_250/0.3)]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Clock className="text-[oklch(0.70_0.15_250)]" size={24} />
+                <div className="w-10 h-10 rounded-xl bg-[oklch(0.55_0.15_250/0.2)] flex items-center justify-center">
+                  <Clock className="text-[oklch(0.70_0.15_250)]" size={20} />
+                </div>
                 <h2 className="text-2xl font-bold">Free Trial</h2>
               </div>
               {renderStatusBadge()}
@@ -170,9 +174,11 @@ export default function DashboardPage() {
     if (status === "past_due") {
       return (
         <div className="space-y-8">
-          <div className="bg-[oklch(0.80_0.16_85/0.1)] border border-[oklch(0.80_0.16_85/0.3)] rounded-2xl p-8">
+          <div className="glass-card p-8 border-[oklch(0.80_0.16_85/0.3)]">
             <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="text-[oklch(0.80_0.16_85)]" size={24} />
+              <div className="w-10 h-10 rounded-xl bg-[oklch(0.80_0.16_85/0.2)] flex items-center justify-center">
+                <AlertCircle className="text-[oklch(0.80_0.16_85)]" size={20} />
+              </div>
               <h2 className="text-2xl font-bold">Payment Issue</h2>
             </div>
             <p className="text-muted-foreground mb-6">
@@ -194,9 +200,11 @@ export default function DashboardPage() {
     if (status === "canceled" || status === "expired") {
       return (
         <div className="space-y-8">
-          <div className="bg-card border border-border rounded-2xl p-8">
+          <div className="glass-card p-8">
             <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="text-muted-foreground" size={24} />
+              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                <AlertCircle className="text-muted-foreground" size={20} />
+              </div>
               <h2 className="text-2xl font-bold">
                 {status === "canceled" ? "Subscription Canceled" : "Subscription Expired"}
               </h2>
@@ -213,7 +221,7 @@ export default function DashboardPage() {
     // No subscription
     return (
       <div className="space-y-8">
-        <div className="bg-card border border-border rounded-2xl p-8 text-center">
+        <div className="glass-card p-8 text-center">
           <h2 className="text-2xl font-bold mb-4">Start Your Free Trial</h2>
           <p className="text-muted-foreground mb-2">
             Get full access to KorProxy for 7 days, no credit card required.
@@ -230,7 +238,7 @@ export default function DashboardPage() {
   const renderPricingCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Monthly Plan */}
-      <div className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all">
+      <div className="glass-card p-6 hover:border-primary/50 transition-all">
         <h3 className="text-xl font-semibold mb-2">Monthly</h3>
         <div className="mb-4">
           <span className="text-3xl font-bold">£14.99</span>
@@ -255,7 +263,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Yearly Plan */}
-      <div className="p-6 rounded-2xl bg-primary/10 border border-primary/30 relative">
+      <div className="glass-card p-6 border-primary/30 shadow-glow relative">
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-semibold">
           Save 33%
         </div>
@@ -275,7 +283,7 @@ export default function DashboardPage() {
         <button
           onClick={() => handleSubscribe("yearly")}
           disabled={loadingPlan !== null}
-          className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loadingPlan === "yearly" && <Loader2 size={20} className="animate-spin" />}
           {user?.subscriptionStatus === "none" ? "Start Free Trial" : "Subscribe Yearly"}

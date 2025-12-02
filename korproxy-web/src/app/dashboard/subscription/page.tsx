@@ -92,7 +92,7 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Current Status */}
-      <div className="bg-card rounded-xl border border-border p-6">
+      <div className="glass-card p-6">
         <h2 className="text-lg font-semibold mb-4">Current Plan</h2>
         <div className="flex items-center justify-between">
           <div className="space-y-2">
@@ -123,7 +123,7 @@ export default function SubscriptionPage() {
           {hasActiveSubscription && user?.subscriptionStatus !== "lifetime" && (
             <button
               onClick={handleManageSubscription}
-              className="px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-muted transition-all"
+              className="px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-muted/50 transition-all"
             >
               Manage Subscription
             </button>
@@ -137,7 +137,7 @@ export default function SubscriptionPage() {
           <h2 className="text-lg font-semibold">Choose a Plan</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Monthly */}
-            <div className="bg-card rounded-xl border border-border p-6 hover:border-primary/50 transition-all">
+            <div className="glass-card p-6 hover:border-primary/50 transition-all">
               <h3 className="text-xl font-semibold mb-2">Monthly</h3>
               <div className="mb-4">
                 <span className="text-3xl font-bold">£14.99</span>
@@ -166,7 +166,7 @@ export default function SubscriptionPage() {
             </div>
 
             {/* Yearly */}
-            <div className="bg-primary/10 rounded-xl border border-primary/30 p-6 relative">
+            <div className="glass-card p-6 border-primary/30 shadow-glow relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-semibold">
                 Save 33%
               </div>
@@ -191,7 +191,7 @@ export default function SubscriptionPage() {
               </ul>
               <button
                 onClick={() => handleSubscribe("yearly")}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all"
+                className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 shadow-glow transition-all"
               >
                 Start Free Trial
               </button>
@@ -202,9 +202,11 @@ export default function SubscriptionPage() {
 
       {/* Lifetime Status */}
       {user?.subscriptionStatus === "lifetime" && (
-        <div className="bg-primary/10 rounded-xl border border-primary/30 p-6">
+        <div className="glass-card p-6 border-primary/30 shadow-glow">
           <div className="flex items-center gap-3 mb-2">
-            <Crown className="text-primary" size={24} />
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Crown className="text-primary" size={20} />
+            </div>
             <h2 className="text-lg font-semibold text-primary">Lifetime Access</h2>
           </div>
           <p className="text-muted-foreground">

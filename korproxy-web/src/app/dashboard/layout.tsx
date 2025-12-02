@@ -11,6 +11,7 @@ import {
   BookOpen,
   ShieldCheck,
   LogOut,
+  Zap,
 } from "lucide-react";
 
 const navItems = [
@@ -55,14 +56,17 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col">
+      <aside className="w-64 border-r border-border/50 bg-card/80 backdrop-blur-xl flex flex-col">
         {/* Logo */}
-        <div className="p-6 border-b border-border">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-sm text-primary-foreground">
-              K
+        <div className="p-6 border-b border-border/50">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 backdrop-blur-sm flex items-center justify-center shadow-glow">
+              <Zap className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-semibold text-lg">KorProxy</span>
+            <div>
+              <span className="font-bold text-lg">KorProxy</span>
+              <p className="text-xs text-muted-foreground">AI Gateway</p>
+            </div>
           </Link>
         </div>
 
@@ -74,14 +78,14 @@ export default function DashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? "bg-primary/20 text-primary border border-primary/30"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-primary text-primary-foreground shadow-glow"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
                 <item.icon size={20} />
-                <span>{item.label}</span>
+                <span className="font-medium">{item.label}</span>
               </Link>
             );
           })}
@@ -91,19 +95,19 @@ export default function DashboardLayout({
               href="/dashboard/admin"
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 pathname.startsWith("/dashboard/admin")
-                  ? "bg-primary/20 text-primary border border-primary/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary text-primary-foreground shadow-glow"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
               <ShieldCheck size={20} />
-              <span>Admin</span>
+              <span className="font-medium">Admin</span>
             </Link>
           )}
         </nav>
 
         {/* User Info & Logout */}
-        <div className="p-4 border-t border-border">
-          <div className="mb-4 px-4">
+        <div className="p-4 border-t border-border/50 space-y-3">
+          <div className="glass-card px-4 py-3">
             <p className="text-sm font-medium text-foreground truncate">
               {user?.name || "User"}
             </p>
@@ -111,7 +115,7 @@ export default function DashboardLayout({
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-red-500/10 hover:text-red-400 transition-all"
           >
             <LogOut size={20} />
             <span>Logout</span>
