@@ -25,6 +25,7 @@ const IPC_CHANNELS = {
   UPDATER_STATUS: 'updater:status',
   APP_GET_VERSION: 'app:get-version',
   PROXY_STATS: 'proxy:stats',
+  SUBSCRIPTION_SET: 'subscription:set',
 }
 
 const korproxyAPI = {
@@ -83,6 +84,9 @@ const korproxyAPI = {
       ipcRenderer.on(IPC_CHANNELS.UPDATER_STATUS, handler)
       return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATER_STATUS, handler)
     },
+  },
+  subscription: {
+    setStatus: (info) => ipcRenderer.invoke(IPC_CHANNELS.SUBSCRIPTION_SET, info),
   },
 }
 

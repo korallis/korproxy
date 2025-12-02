@@ -25,6 +25,7 @@ export const IPC_CHANNELS = {
   UPDATER_STATUS: 'updater:status',
   APP_GET_VERSION: 'app:get-version',
   PROXY_STATS: 'proxy:stats',
+  SUBSCRIPTION_SET: 'subscription:set',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -97,4 +98,9 @@ export interface ProxyStats {
   totalTokens: number
   requestsByHour: Record<string, number>
   requestsByDay: Record<string, number>
+}
+
+export interface SubscriptionInfo {
+  isValid: boolean
+  expiresAt?: number
 }

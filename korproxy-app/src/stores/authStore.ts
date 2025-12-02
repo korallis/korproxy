@@ -167,3 +167,19 @@ export function hasActiveSubscription(info: SubscriptionInfo | null): boolean {
   if (!info) return false
   return info.isActive
 }
+
+// Sync subscription status to main process for enforcement
+function syncSubscriptionToMain(info: SubscriptionInfo | null): void {
+  if (typeof window !== 'undefined' && window.korproxy?.subscription) {
+    const isValid = info?.isActive ?? false
+    const expiresAt = info?.currentPeriodEnd || info?.trialEnd
+    window.korproxy.subscription.setStatus({ isValid, expiresAt })
+  }
+}
+
+// Subscribe to store changes and sync to main process
+useAuthStore.subscribe((state, prevState) => {
+  if (state.subscriptionInfo !== prevState.subscriptionInfo) {
+    syncSubscriptionToMain(state.subscriptionInfo)
+  }
+})

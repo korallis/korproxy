@@ -70,6 +70,9 @@ export interface KorProxyAPI {
     getStatus: () => Promise<UpdateStatus>
     onStatus: (callback: (status: UpdateStatus) => void) => () => void
   }
+  subscription: {
+    setStatus: (info: { isValid: boolean; expiresAt?: number }) => Promise<{ success: boolean }>
+  }
 }
 
 export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider, ProxyStats }

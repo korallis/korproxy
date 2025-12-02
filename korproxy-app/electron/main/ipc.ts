@@ -22,6 +22,10 @@ export interface ProxyStatus {
   port: number
 }
 
+// Subscription state managed by main process
+let subscriptionValid = false
+let subscriptionExpiry: number | null = null
+
 function createErrorResponse(error: unknown): { success: false; error: string } {
   if (error instanceof IpcValidationError) {
     return { success: false, error: `Validation error: ${error.message}` }
@@ -78,6 +82,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   ipcMain.handle(IPC_CHANNELS.PROXY_START, async (): Promise<{ success: boolean; error?: string }> => {
+    // Check subscription is valid before starting proxy
+    if (!subscriptionValid) {
+      return { success: false, error: 'Active subscription required to start proxy' }
+    }
+    
+    // Check subscription hasn't expired
+    if (subscriptionExpiry && subscriptionExpiry < Date.now()) {
+      subscriptionValid = false
+      return { success: false, error: 'Subscription has expired' }
+    }
+    
     try {
       await proxySidecar.start()
       return { success: true }
@@ -249,4 +264,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       req.end()
     })
   })
+
+  // Subscription validation - set from renderer when auth state changes
+  ipcMain.handle(
+    IPC_CHANNELS.SUBSCRIPTION_SET,
+    (_, info: { isValid: boolean; expiresAt?: number }): { success: boolean } => {
+      subscriptionValid = info.isValid
+      subscriptionExpiry = info.expiresAt || null
+      return { success: true }
+    }
+  )
 }
