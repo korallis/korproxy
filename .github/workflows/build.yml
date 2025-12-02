@@ -114,6 +114,11 @@ jobs:
           mkdir -p ../korproxy-app/resources/binaries/win32-x64
           GOOS=windows GOARCH=amd64 go build -o ../korproxy-app/resources/binaries/win32-x64/cliproxy.exe ./cmd/server
 
+      - name: Get version from package.json
+        id: version
+        shell: bash
+        run: echo "VERSION=$(node -p "require('./korproxy-app/package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Build & Package Windows
         working-directory: korproxy-app
         env:
@@ -121,14 +126,16 @@ jobs:
         run: npm run package:win
 
       - name: Sign Windows executable with SSL.com eSigner
-        uses: sslcom/esigner-codesign@develop
+        uses: sslcom/esigner-codesign@v1.3.0
+        timeout-minutes: 10
+        continue-on-error: true
         with:
           command: sign
           username: ${{ secrets.ES_USERNAME }}
           password: ${{ secrets.ES_PASSWORD }}
           credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-          file_path: korproxy-app/release/KorProxy-${{ github.ref_name }}-setup.exe
+          file_path: korproxy-app/release/KorProxy-${{ steps.version.outputs.VERSION }}-setup.exe
           malware_block: false
           environment_name: PROD
 
