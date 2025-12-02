@@ -164,12 +164,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Build and publish (Windows)
+      - name: Build Windows (unsigned)
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      
+      - name: Sign Windows executable with SSL.com eSigner
+        uses: sslcom/esigner-codesign@develop
+        with:
+          command: sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: korproxy-app/release/KorProxy-${{ github.ref_name }}-setup.exe
+          malware_block: false
+          environment_name: PROD
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
