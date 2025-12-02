@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Crown,
   Loader2,
+  Lock,
 } from "lucide-react";
 
 const pricingFeatures = [
@@ -303,6 +304,46 @@ export default function DashboardPage() {
       {renderContent()}
 
       {/* Download Section */}
+      {renderDownloadSection()}
+    </div>
+  );
+
+  function renderDownloadSection() {
+    const hasAccess = ["lifetime", "active", "trialing"].includes(user?.subscriptionStatus || "");
+
+    if (!hasAccess) {
+      return (
+        <div className="bg-card border border-border rounded-2xl p-8 opacity-75">
+          <div className="flex items-center gap-3 mb-4">
+            <Lock className="text-muted-foreground" size={24} />
+            <h2 className="text-2xl font-bold text-muted-foreground">Download KorProxy</h2>
+          </div>
+          <p className="text-muted-foreground mb-6">
+            Subscribe to download and use the KorProxy desktop app.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
+              <Lock size={20} />
+              macOS (Apple Silicon)
+            </span>
+            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
+              <Lock size={20} />
+              macOS (Intel)
+            </span>
+            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
+              <Lock size={20} />
+              Windows
+            </span>
+            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
+              <Lock size={20} />
+              Linux
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
       <div className="bg-card border border-border rounded-2xl p-8">
         <div className="flex items-center gap-3 mb-4">
           <Download className="text-primary" size={24} />
@@ -347,6 +388,6 @@ export default function DashboardPage() {
           </a>
         </p>
       </div>
-    </div>
-  );
+    );
+  }
 }

@@ -37,9 +37,9 @@ mac:
       filter:
         - "**/*"
   # Built-in notarization (electron-builder 24.x+)
-  # Uses APPLE_ID and APPLE_APP_SPECIFIC_PASSWORD env vars automatically
-  notarize:
-    teamId: PJATAD3RS8
+  # Uses APPLE_ID and APPLE_APP_SPECIFIC_PASSWORD env vars
+  # Set notarize: false locally if you don't have credentials
+  notarize: true
 
   target:
     - target: dmg

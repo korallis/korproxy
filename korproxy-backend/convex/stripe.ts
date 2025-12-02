@@ -175,6 +175,12 @@ export const handleWebhook = internalAction({
 
     try {
       switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object as Stripe.Checkout.Session;
+          await handleCheckoutCompleted(ctx, stripe, session);
+          break;
+        }
+
         case "customer.subscription.created":
         case "customer.subscription.updated": {
           const subscription = event.data.object as Stripe.Subscription;
@@ -206,7 +212,6 @@ export const handleWebhook = internalAction({
         }
 
         case "customer.subscription.trial_will_end": {
-          // Could send email reminder here
           console.log("Trial ending soon for subscription:", (event.data.object as Stripe.Subscription).id);
           break;
         }
@@ -226,6 +231,56 @@ export const handleWebhook = internalAction({
 // Helper type for context
 import type { ActionCtx } from "./_generated/server";
 type ActionContext = ActionCtx;
+
+/**
+ * Handle checkout.session.completed - this fires when checkout is complete
+ * The subscription may or may not be active yet (especially with trials)
+ */
+async function handleCheckoutCompleted(
+  ctx: ActionContext,
+  stripe: Stripe,
+  session: Stripe.Checkout.Session
+): Promise<void> {
+  console.log("Handling checkout.session.completed:", session.id);
+  
+  // Get customer ID
+  const customerId = session.customer as string;
+  if (!customerId) {
+    console.error("No customer ID in checkout session");
+    return;
+  }
+
+  // Try to get user by customer ID first
+  let user = await ctx.runQuery(internal.stripe.getUserByCustomer, { stripeCustomerId: customerId });
+  
+  // If not found, try to get user from session metadata
+  if (!user && session.metadata?.convexUserId) {
+    const userId = session.metadata.convexUserId as Id<"users">;
+    // Set the customer ID for this user
+    await ctx.runMutation(internal.stripe.setCustomerId, {
+      userId,
+      stripeCustomerId: customerId,
+    });
+    user = await ctx.runQuery(internal.stripe.getUserByCustomer, { stripeCustomerId: customerId });
+  }
+
+  if (!user) {
+    console.error("User not found for checkout session:", session.id);
+    return;
+  }
+
+  // If there's a subscription, fetch it and update the user
+  if (session.subscription) {
+    const subscriptionId = typeof session.subscription === 'string' 
+      ? session.subscription 
+      : session.subscription.id;
+    
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    await handleSubscriptionUpdate(ctx, stripe, subscription);
+  } else {
+    console.log("No subscription in checkout session - may be a one-time payment");
+  }
+}
 
 /**
  * Handle subscription creation/update

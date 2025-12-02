@@ -17,13 +17,24 @@ macOS builds require code signing and notarization for distribution outside the 
 
 **Required GitHub Secrets:**
 
-| Secret | Description |
-|--------|-------------|
-| `APPLE_ID` | Apple Developer account email (leebarry84@icloud.com) |
-| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password from appleid.apple.com |
-| `APPLE_TEAM_ID` | Apple Developer Team ID (PJATAD3RS8) |
-| `CSC_LINK` | Base64-encoded Developer ID Application certificate (.p12) |
-| `CSC_KEY_PASSWORD` | Password for the certificate |
+| Secret | Description | Value |
+|--------|-------------|-------|
+| `APPLE_ID` | Apple Developer account email | `leebarry84@icloud.com` |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password from appleid.apple.com | Create at appleid.apple.com → Security → App-Specific Passwords |
+| `APPLE_TEAM_ID` | Apple Developer Team ID | `PJATAD3RS8` |
+| `CSC_LINK` | Base64-encoded Developer ID Application certificate (.p12) | See export instructions below |
+| `CSC_KEY_PASSWORD` | Password for the certificate | Password used when exporting .p12 |
+
+**Export Certificate for GitHub Actions:**
+
+```bash
+# Export the Developer ID certificate from Keychain to .p12
+# Keychain Access → My Certificates → Developer ID Application → Export as .p12
+
+# Convert to base64 for GitHub secret
+base64 -i developerID_application.p12 | pbcopy
+# This copies the base64 string to clipboard - paste as CSC_LINK secret
+```
 
 **Local Build with Signing:**
 

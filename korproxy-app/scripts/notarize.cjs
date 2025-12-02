@@ -23,9 +23,10 @@ exports.default = async function notarizing(context) {
   }
 
   // Skip in development/local builds without credentials
-  if (!process.env.APPLE_ID || !process.env.APPLE_APP_SPECIFIC_PASSWORD) {
+  const applePassword = process.env.APPLE_APP_SPECIFIC_PASSWORD || process.env.APPLE_ID_PASSWORD
+  if (!process.env.APPLE_ID || !applePassword) {
     console.log('Skipping notarization - missing Apple credentials')
-    console.log('Set APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID env vars for notarization')
+    console.log('Set APPLE_ID and APPLE_APP_SPECIFIC_PASSWORD env vars for notarization')
     return
   }
 
@@ -39,7 +40,7 @@ exports.default = async function notarizing(context) {
       tool: 'notarytool',
       appPath,
       appleId: process.env.APPLE_ID,
-      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+      appleIdPassword: applePassword,
       teamId: process.env.APPLE_TEAM_ID || 'PJATAD3RS8',
     })
     console.log('Notarization complete!')
