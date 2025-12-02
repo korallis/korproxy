@@ -75,6 +75,8 @@ dmg:
 # See: https://www.electron.build/code-signing
 win:
   icon: build/icon.ico
+  # Use custom sign script for SSL.com eSigner EV certificate
+  sign: scripts/windows-sign.js
   # Sign all executables
   signingHashAlgorithms:
     - sha256

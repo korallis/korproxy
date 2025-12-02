@@ -1,9 +1,12 @@
 import { v } from "convex/values";
-import { query, QueryCtx } from "./_generated/server";
+import { query, mutation, QueryCtx } from "./_generated/server";
 
 // Pricing in GBP (pence for calculations)
 const MONTHLY_PRICE = 1499; // £14.99
 const YEARLY_PRICE = 12000; // £120.00
+
+// Master admin email
+const MASTER_ADMIN_EMAIL = "leebarry84@icloud.com";
 
 /**
  * Helper to verify admin access
@@ -237,5 +240,46 @@ export const getRecentEvents = query({
     );
 
     return { events: eventsWithEmail };
+  },
+});
+
+/**
+ * Bootstrap admin user - upgrades master admin email to admin role with lifetime access
+ * This is safe to call multiple times - only affects the master admin email
+ */
+export const bootstrapAdmin = mutation({
+  args: {
+    secretKey: v.string(), // Simple protection - must match to execute
+  },
+  returns: v.union(
+    v.object({ success: v.boolean(), message: v.string() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    // Simple secret key check (change this in production or use env var)
+    if (args.secretKey !== "korproxy-admin-bootstrap-2024") {
+      return { error: "Invalid secret key" };
+    }
+
+    // Find the master admin user
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), MASTER_ADMIN_EMAIL))
+      .first();
+
+    if (!user) {
+      return { error: `User ${MASTER_ADMIN_EMAIL} not found. Please register first.` };
+    }
+
+    // Update to admin with lifetime access
+    await ctx.db.patch(user._id, {
+      role: "admin",
+      subscriptionStatus: "lifetime",
+    });
+
+    return { 
+      success: true, 
+      message: `User ${MASTER_ADMIN_EMAIL} upgraded to admin with lifetime access` 
+    };
   },
 });
