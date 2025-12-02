@@ -313,14 +313,14 @@ export default function DashboardPage() {
         </p>
         <div className="flex flex-wrap gap-4">
           <a
-            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-mac-arm64.dmg"
+            href="https://github.com/korallis/korproxy/releases/download/v1.0.0/KorProxy-1.0.0-mac-arm64.dmg"
             className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Download size={20} />
             macOS (Apple Silicon)
           </a>
           <a
-            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-mac-x64.dmg"
+            href="https://github.com/korallis/korproxy/releases/download/v1.0.0/KorProxy-1.0.0-mac-x64.dmg"
             className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Download size={20} />
