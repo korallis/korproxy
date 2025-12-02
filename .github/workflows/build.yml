@@ -76,7 +76,7 @@ jobs:
           path: |
             korproxy-app/release/*.dmg
             korproxy-app/release/*.zip
-            korproxy-app/release/*.yml
+            korproxy-app/release/latest*.yml
             korproxy-app/release/*.blockmap
           retention-days: 5
 
@@ -149,7 +149,7 @@ jobs:
           path: |
             korproxy-app/release/*.exe
             korproxy-app/release/*.zip
-            korproxy-app/release/*.yml
+            korproxy-app/release/latest*.yml
             korproxy-app/release/*.blockmap
           retention-days: 5
 
@@ -205,7 +205,7 @@ jobs:
           path: |
             korproxy-app/release/*.AppImage
             korproxy-app/release/*.deb
-            korproxy-app/release/*.yml
+            korproxy-app/release/latest*.yml
           retention-days: 5
 
   release:
