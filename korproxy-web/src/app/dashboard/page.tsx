@@ -313,33 +313,33 @@ export default function DashboardPage() {
         </p>
         <div className="flex flex-wrap gap-4">
           <a
-            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-darwin-arm64.dmg"
+            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-mac-arm64.dmg"
             className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Download size={20} />
             macOS (Apple Silicon)
           </a>
           <a
-            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-darwin-x64.dmg"
+            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-mac-x64.dmg"
             className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Download size={20} />
             macOS (Intel)
           </a>
-          <a
-            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-setup.exe"
-            className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
+          <span
+            className="px-6 py-3 bg-muted/50 rounded-xl font-semibold transition-all flex items-center gap-2 cursor-not-allowed opacity-60"
+            title="Coming soon"
           >
             <Download size={20} />
-            Windows
-          </a>
-          <a
-            href="https://github.com/korallis/korproxy/releases/latest/download/KorProxy-1.0.0-linux-x64.AppImage"
-            className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
+            Windows (Coming Soon)
+          </span>
+          <span
+            className="px-6 py-3 bg-muted/50 rounded-xl font-semibold transition-all flex items-center gap-2 cursor-not-allowed opacity-60"
+            title="Coming soon"
           >
             <Download size={20} />
-            Linux
-          </a>
+            Linux (Coming Soon)
+          </span>
         </div>
         <p className="text-xs text-muted-foreground mt-4">
           <a href="https://github.com/korallis/korproxy/releases" className="hover:underline" target="_blank" rel="noopener noreferrer">
