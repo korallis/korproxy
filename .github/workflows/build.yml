@@ -129,7 +129,7 @@ jobs:
 
       - name: Sign Windows executable with SSL.com eSigner
         uses: sslcom/esigner-codesign@v1.3.0
-        timeout-minutes: 10
+        timeout-minutes: 15
         continue-on-error: true
         with:
           command: sign
@@ -138,6 +138,7 @@ jobs:
           credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
           file_path: korproxy-app/release/KorProxy-${{ steps.version.outputs.VERSION }}-setup.exe
+          output_dir_path: korproxy-app/release
           malware_block: false
           environment_name: PROD
 
