@@ -56,15 +56,15 @@ export async function getLatestRelease(): Promise<ReleaseInfo | null> {
         browser_download_url: asset.browser_download_url,
       };
       
-      if (name.includes("darwin-arm64") && name.endsWith(".dmg")) {
+      if (name.includes("mac-arm64") && name.endsWith(".dmg")) {
         assets.macArm64 = assetInfo;
-      } else if (name.includes("darwin-x64") && name.endsWith(".dmg")) {
+      } else if (name.includes("mac-x64") && name.endsWith(".dmg")) {
         assets.macX64 = assetInfo;
-      } else if (name.includes("win32") && name.endsWith(".exe")) {
+      } else if (name.endsWith("-setup.exe")) {
         assets.windows = assetInfo;
-      } else if (name.includes("linux") && name.endsWith(".AppImage")) {
+      } else if (name.endsWith(".AppImage")) {
         assets.linuxAppImage = assetInfo;
-      } else if (name.includes("linux") && name.endsWith(".deb")) {
+      } else if (name.endsWith(".deb")) {
         assets.linuxDeb = assetInfo;
       }
     }
