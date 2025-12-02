@@ -189,7 +189,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
           return { success: false, error: `Unknown setting key: ${validKey}` }
         }
 
-        const validValue = validateIpcPayload(IPC_CHANNELS.APP_SET_SETTING, valueSchema, value)
+        const validValue = validateIpcPayload(IPC_CHANNELS.APP_SET_SETTING, valueSchema, value) as Settings[keyof Settings]
         settingsStore.set(validKey as keyof Settings, validValue)
         
         if (validKey === 'port' && typeof validValue === 'number') {
