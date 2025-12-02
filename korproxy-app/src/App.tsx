@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from './components/layout/AppShell'
 import { ToastContainer } from './components/shared/Toast'
@@ -36,7 +36,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <BrowserRouter>
+        <HashRouter>
           <ErrorBoundary>
             <Routes>
               <Route element={<AppShell />}>
@@ -48,7 +48,7 @@ export default function App() {
               </Route>
             </Routes>
           </ErrorBoundary>
-        </BrowserRouter>
+        </HashRouter>
         <ToastContainer />
       </ThemeProvider>
     </QueryClientProvider>
