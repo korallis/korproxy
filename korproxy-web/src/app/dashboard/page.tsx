@@ -4,14 +4,13 @@ import { useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import {
   Check,
-  Download,
   Clock,
   CreditCard,
   AlertCircle,
   Crown,
   Loader2,
-  Lock,
 } from "lucide-react";
+import { DownloadSectionWrapper } from "./DownloadSectionWrapper";
 
 const pricingFeatures = [
   "All AI providers supported",
@@ -304,90 +303,9 @@ export default function DashboardPage() {
       {renderContent()}
 
       {/* Download Section */}
-      {renderDownloadSection()}
+      <DownloadSectionWrapper 
+        hasAccess={["lifetime", "active", "trialing"].includes(user?.subscriptionStatus || "")} 
+      />
     </div>
   );
-
-  function renderDownloadSection() {
-    const hasAccess = ["lifetime", "active", "trialing"].includes(user?.subscriptionStatus || "");
-
-    if (!hasAccess) {
-      return (
-        <div className="bg-card border border-border rounded-2xl p-8 opacity-75">
-          <div className="flex items-center gap-3 mb-4">
-            <Lock className="text-muted-foreground" size={24} />
-            <h2 className="text-2xl font-bold text-muted-foreground">Download KorProxy</h2>
-          </div>
-          <p className="text-muted-foreground mb-6">
-            Subscribe to download and use the KorProxy desktop app.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
-              <Lock size={20} />
-              macOS (Apple Silicon)
-            </span>
-            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
-              <Lock size={20} />
-              macOS (Intel)
-            </span>
-            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
-              <Lock size={20} />
-              Windows
-            </span>
-            <span className="px-6 py-3 bg-muted/50 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60">
-              <Lock size={20} />
-              Linux
-            </span>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-card border border-border rounded-2xl p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Download className="text-primary" size={24} />
-          <h2 className="text-2xl font-bold">Download KorProxy</h2>
-        </div>
-        <p className="text-muted-foreground mb-6">
-          Get the KorProxy desktop app to start using your AI subscriptions with any coding tool.
-        </p>
-        <div className="flex flex-wrap gap-4">
-          <a
-            href="https://github.com/korallis/korproxy/releases/download/v1.0.0/KorProxy-1.0.0-mac-arm64.dmg"
-            className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
-          >
-            <Download size={20} />
-            macOS (Apple Silicon)
-          </a>
-          <a
-            href="https://github.com/korallis/korproxy/releases/download/v1.0.0/KorProxy-1.0.0-mac-x64.dmg"
-            className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
-          >
-            <Download size={20} />
-            macOS (Intel)
-          </a>
-          <span
-            className="px-6 py-3 bg-muted/50 rounded-xl font-semibold transition-all flex items-center gap-2 cursor-not-allowed opacity-60"
-            title="Coming soon"
-          >
-            <Download size={20} />
-            Windows (Coming Soon)
-          </span>
-          <span
-            className="px-6 py-3 bg-muted/50 rounded-xl font-semibold transition-all flex items-center gap-2 cursor-not-allowed opacity-60"
-            title="Coming soon"
-          >
-            <Download size={20} />
-            Linux (Coming Soon)
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground mt-4">
-          <a href="https://github.com/korallis/korproxy/releases" className="hover:underline" target="_blank" rel="noopener noreferrer">
-            View all releases →
-          </a>
-        </p>
-      </div>
-    );
-  }
 }
