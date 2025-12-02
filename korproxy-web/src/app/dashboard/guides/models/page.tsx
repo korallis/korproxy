@@ -470,7 +470,7 @@ export default function ModelsGuidePage() {
             </p>
             <div className="bg-muted p-3 rounded-lg font-mono text-xs">
               <div className="text-muted-foreground mb-1"># Example configuration</div>
-              <div><span className="text-blue-400">model:</span> <span className="text-green-400">claude-opus-4-5-thinking</span></div>
+              <div><span className="text-blue-400">model:</span> <span className="text-green-400">claude-sonnet-4-5-20250929</span></div>
               <div><span className="text-blue-400">baseUrl:</span> <span className="text-green-400">http://localhost:1337/v1</span></div>
             </div>
             <div className="flex items-start gap-2 mt-4">
