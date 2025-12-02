@@ -124,21 +124,21 @@ export OPENAI_API_KEY=korproxy`}</code>
               <code className="text-foreground">{`{
   "models": [
     {
-      "title": "Claude Opus 4.5 Thinking High",
+      "title": "Claude Opus 4.5 Thinking High [KorProxy]",
       "provider": "openai",
       "model": "claude-opus-4-5-thinking-high",
       "apiBase": "http://localhost:1337/v1",
       "apiKey": "korproxy"
     },
     {
-      "title": "GPT 5.1 Codex Max XHigh",
+      "title": "GPT 5.1 Codex Max XHigh [KorProxy]",
       "provider": "openai",
       "model": "gpt-5.1-codex-max-xhigh",
       "apiBase": "http://localhost:1337/v1",
       "apiKey": "korproxy"
     },
     {
-      "title": "Gemini 3 Pro Image",
+      "title": "Gemini 3 Pro Image [KorProxy]",
       "provider": "openai",
       "model": "gemini-3-pro-image-preview",
       "apiBase": "http://localhost:1337/v1",

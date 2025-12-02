@@ -65,28 +65,28 @@ export default function ContinueGuidePage() {
               <pre className="text-foreground">{`{
   "models": [
     {
-      "title": "Claude Opus 4.5 Thinking High via KorProxy",
+      "title": "Claude Opus 4.5 Thinking High [KorProxy]",
       "provider": "openai",
       "model": "claude-opus-4-5-thinking-high",
       "apiBase": "http://localhost:1337/v1",
       "apiKey": "korproxy"
     },
     {
-      "title": "Claude Sonnet 4.5 Thinking via KorProxy",
+      "title": "Claude Sonnet 4.5 Thinking [KorProxy]",
       "provider": "openai",
       "model": "claude-sonnet-4-5-thinking",
       "apiBase": "http://localhost:1337/v1",
       "apiKey": "korproxy"
     },
     {
-      "title": "GPT 5.1 Codex Max XHigh via KorProxy",
+      "title": "GPT 5.1 Codex Max XHigh [KorProxy]",
       "provider": "openai",
       "model": "gpt-5.1-codex-max-xhigh",
       "apiBase": "http://localhost:1337/v1",
       "apiKey": "korproxy"
     },
     {
-      "title": "Gemini 3 Pro Image via KorProxy",
+      "title": "Gemini 3 Pro Image [KorProxy]",
       "provider": "openai",
       "model": "gemini-3-pro-image-preview",
       "apiBase": "http://localhost:1337/v1",
