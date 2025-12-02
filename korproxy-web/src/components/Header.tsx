@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Zap } from "lucide-react";
 import { useState } from "react";
 
 export function Header() {
@@ -11,11 +11,14 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-500 rounded-lg" />
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
-              KorProxy
-            </span>
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 backdrop-blur-sm flex items-center justify-center shadow-glow">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <span className="text-xl font-bold">KorProxy</span>
+              <p className="text-xs text-muted-foreground">AI Gateway</p>
+            </div>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -31,6 +34,12 @@ export function Header() {
             >
               Pricing
             </a>
+            <Link
+              href="/dashboard/guides"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+            >
+              Guides
+            </Link>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -73,6 +82,13 @@ export function Header() {
               >
                 Pricing
               </a>
+              <Link
+                href="/dashboard/guides"
+                className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Guides
+              </Link>
               <hr className="border-border" />
               <Link
                 href="/login"

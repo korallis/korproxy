@@ -77,16 +77,16 @@ export default function GuidesPage() {
           <Link
             key={guide.href}
             href={guide.href}
-            className={`group p-6 bg-card border rounded-lg hover:border-primary/50 hover:bg-card/80 transition-all ${
+            className={`group glass-card p-6 hover:border-primary/50 transition-all ${
               'featured' in guide && guide.featured
-                ? "border-primary/30 md:col-span-2"
-                : "border-border"
+                ? "border-primary/30 md:col-span-2 shadow-glow"
+                : ""
             }`}
           >
             <div className="flex items-start gap-4">
-              <div className={`p-3 rounded-lg group-hover:bg-primary/20 transition-colors ${
+              <div className={`p-3 rounded-xl group-hover:scale-110 transition-all ${
                 'featured' in guide && guide.featured
-                  ? "bg-primary/20 text-primary"
+                  ? "bg-primary/20 text-primary shadow-glow"
                   : "bg-primary/10 text-primary"
               }`}>
                 <guide.icon size={24} />

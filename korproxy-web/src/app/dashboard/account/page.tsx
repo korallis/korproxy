@@ -14,14 +14,14 @@ export default function AccountPage() {
       </div>
 
       {/* Profile Info */}
-      <div className="bg-card border border-border rounded-2xl p-8">
+      <div className="glass-card p-8">
         <h2 className="text-xl font-semibold mb-6">Profile Information</h2>
 
         <div className="space-y-6">
           {/* Name */}
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-              <User size={20} className="text-muted-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <User size={20} className="text-primary" />
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -33,8 +33,8 @@ export default function AccountPage() {
 
           {/* Email */}
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-              <Mail size={20} className="text-muted-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+              <Mail size={20} className="text-blue-500" />
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -49,8 +49,8 @@ export default function AccountPage() {
 
           {/* Role */}
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-              <Shield size={20} className="text-muted-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+              <Shield size={20} className="text-green-500" />
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -63,12 +63,12 @@ export default function AccountPage() {
       </div>
 
       {/* Account ID */}
-      <div className="bg-card border border-border rounded-2xl p-8">
+      <div className="glass-card p-8">
         <h2 className="text-xl font-semibold mb-4">Account ID</h2>
         <p className="text-muted-foreground text-sm mb-2">
           Your unique account identifier for support purposes
         </p>
-        <code className="block bg-input px-4 py-3 rounded-lg text-sm text-muted-foreground font-mono">
+        <code className="block bg-muted/50 px-4 py-3 rounded-lg text-sm text-muted-foreground font-mono">
           {user?.id || "N/A"}
         </code>
       </div>

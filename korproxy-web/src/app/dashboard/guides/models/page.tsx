@@ -1,7 +1,8 @@
 "use client";
 
-import { Cpu, Sparkles, Bot, Brain, Zap, Globe, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { Cpu, Sparkles, Bot, Brain, Zap, Globe, Copy, Check, Search } from "lucide-react";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ModelInfo {
   id: string;
@@ -445,7 +446,38 @@ function ProviderSection({
   );
 }
 
+const providers = [
+  { id: "all", name: "All", icon: Cpu, color: "text-primary", bgColor: "bg-primary/10" },
+  { id: "gemini", name: "Gemini", icon: Sparkles, color: "text-blue-500", bgColor: "bg-blue-500/10" },
+  { id: "claude", name: "Claude", icon: Bot, color: "text-orange-500", bgColor: "bg-orange-500/10" },
+  { id: "codex", name: "Codex", icon: Brain, color: "text-green-500", bgColor: "bg-green-500/10" },
+  { id: "qwen", name: "Qwen", icon: Cpu, color: "text-purple-500", bgColor: "bg-purple-500/10" },
+  { id: "iflow", name: "iFlow", icon: Globe, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },
+];
+
+const allModels = [
+  ...geminiModels.map(m => ({ ...m, provider: "gemini" })),
+  ...claudeModels.map(m => ({ ...m, provider: "claude" })),
+  ...codexModels.map(m => ({ ...m, provider: "codex" })),
+  ...qwenModels.map(m => ({ ...m, provider: "qwen" })),
+  ...iflowModels.map(m => ({ ...m, provider: "iflow" })),
+];
+
 export default function ModelsGuidePage() {
+  const [activeProvider, setActiveProvider] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredModels = useMemo(() => {
+    return allModels.filter(model => {
+      const matchesProvider = activeProvider === "all" || model.provider === activeProvider;
+      const matchesSearch = searchQuery === "" || 
+        model.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        model.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        model.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesProvider && matchesSearch;
+    });
+  }, [activeProvider, searchQuery]);
+
   return (
     <div className="max-w-4xl">
       <div className="mb-8">
@@ -457,6 +489,53 @@ export default function ModelsGuidePage() {
         </div>
         <p className="text-muted-foreground text-lg">
           KorProxy supports all CLIProxyAPI models. Click the copy button to copy model IDs for use in Cline, Cursor, Windsurf, or any OpenAI-compatible tool.
+        </p>
+      </div>
+
+      {/* Search and Filter */}
+      <div className="mb-8 space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search models..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+
+        {/* Provider Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {providers.map((provider) => {
+            const Icon = provider.icon;
+            const isActive = activeProvider === provider.id;
+            return (
+              <button
+                key={provider.id}
+                onClick={() => setActiveProvider(provider.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  isActive
+                    ? `${provider.bgColor} ${provider.color}`
+                    : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {provider.name}
+                {provider.id !== "all" && (
+                  <span className="text-xs opacity-70">
+                    ({allModels.filter(m => m.provider === provider.id).length})
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Results count */}
+        <p className="text-sm text-muted-foreground">
+          Showing {filteredModels.length} of {allModels.length} models
         </p>
       </div>
 
@@ -483,51 +562,33 @@ export default function ModelsGuidePage() {
         </div>
       </section>
 
-      {/* Provider Sections */}
-      <ProviderSection
-        title="Google Gemini"
-        icon={Sparkles}
-        iconColor="text-blue-500"
-        bgColor="bg-blue-500/10"
-        models={geminiModels}
-        authCommand="KorProxy → Providers → Google"
-      />
-
-      <ProviderSection
-        title="Anthropic Claude"
-        icon={Bot}
-        iconColor="text-orange-500"
-        bgColor="bg-orange-500/10"
-        models={claudeModels}
-        authCommand="KorProxy → Providers → Claude"
-      />
-
-      <ProviderSection
-        title="OpenAI Codex"
-        icon={Brain}
-        iconColor="text-green-500"
-        bgColor="bg-green-500/10"
-        models={codexModels}
-        authCommand="KorProxy → Providers → Codex"
-      />
-
-      <ProviderSection
-        title="Qwen"
-        icon={Cpu}
-        iconColor="text-purple-500"
-        bgColor="bg-purple-500/10"
-        models={qwenModels}
-        authCommand="KorProxy → Providers → Qwen"
-      />
-
-      <ProviderSection
-        title="iFlow (Multi-Provider)"
-        icon={Globe}
-        iconColor="text-cyan-500"
-        bgColor="bg-cyan-500/10"
-        models={iflowModels}
-        authCommand="KorProxy → Providers → iFlow"
-      />
+      {/* Filtered Models Grid */}
+      <section className="mb-8">
+        <AnimatePresence mode="popLayout">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            layout
+          >
+            {filteredModels.map((model) => (
+              <motion.div
+                key={model.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ModelCard model={model} />
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+        {filteredModels.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No models found matching your search.</p>
+          </div>
+        )}
+      </section>
 
       {/* API Compatibility */}
       <section className="mb-8">
