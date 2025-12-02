@@ -24,6 +24,7 @@ const IPC_CHANNELS = {
   UPDATER_INSTALL: 'updater:install',
   UPDATER_STATUS: 'updater:status',
   APP_GET_VERSION: 'app:get-version',
+  PROXY_STATS: 'proxy:stats',
 }
 
 const korproxyAPI = {
@@ -49,6 +50,7 @@ const korproxyAPI = {
       }, 1000)
       return () => clearInterval(pollInterval)
     },
+    getStats: () => ipcRenderer.invoke(IPC_CHANNELS.PROXY_STATS),
   },
   config: {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),

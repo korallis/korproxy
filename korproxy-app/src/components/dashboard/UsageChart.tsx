@@ -1,23 +1,64 @@
+import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Activity } from 'lucide-react'
-
-function generateMockData(): number[] {
-  const hours = 24
-  const data: number[] = []
-  for (let i = 0; i < hours; i++) {
-    const base = Math.sin((i / hours) * Math.PI) * 30
-    const noise = Math.random() * 15
-    data.push(Math.max(0, Math.floor(base + noise)))
-  }
-  return data
-}
-
-const mockData = generateMockData()
-const maxValue = Math.max(...mockData, 1)
-const totalRequests = mockData.reduce((a, b) => a + b, 0)
+import { Activity, BarChart3 } from 'lucide-react'
+import { useProxyStatus } from '../../hooks/useProxyStatus'
+import type { ProxyStats } from '../../../electron/common/ipc-types'
 
 export function UsageChart() {
+  const { isRunning } = useProxyStatus()
+  const [stats, setStats] = useState<ProxyStats | null>(null)
   const currentHour = new Date().getHours()
+
+  const effectiveStats = useMemo(() => (isRunning ? stats : null), [isRunning, stats])
+
+  useEffect(() => {
+    if (!isRunning) {
+      return
+    }
+
+    const fetchStats = async () => {
+      const data = await window.korproxy.proxy.getStats()
+      setStats(data)
+    }
+
+    fetchStats()
+    const interval = setInterval(fetchStats, 5000)
+    return () => clearInterval(interval)
+  }, [isRunning])
+
+  const hourlyData = Array.from({ length: 24 }, (_, i) => {
+    const hourKey = i.toString().padStart(2, '0')
+    return effectiveStats?.requestsByHour?.[hourKey] || 0
+  })
+
+  const maxValue = Math.max(...hourlyData, 1)
+  const totalRequests = effectiveStats?.totalRequests || 0
+
+  if (!isRunning) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="glass-card p-5 mb-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <BarChart3 className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Request Activity</h3>
+              <p className="text-xs text-muted-foreground">Last 24 hours</p>
+            </div>
+          </div>
+        </div>
+        <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
+          Start the proxy to see request metrics
+        </div>
+      </motion.div>
+    )
+  }
 
   return (
     <motion.div
@@ -59,7 +100,7 @@ export function UsageChart() {
             </linearGradient>
           </defs>
 
-          {mockData.map((value, index) => {
+          {hourlyData.map((value, index) => {
             const barWidth = 16
             const gap = 4
             const x = index * (barWidth + gap)
@@ -92,15 +133,11 @@ export function UsageChart() {
         </svg>
 
         <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-muted-foreground pt-1">
-          <span>24h ago</span>
-          <span>12h ago</span>
+          <span>00:00</span>
+          <span>12:00</span>
           <span>Now</span>
         </div>
       </div>
-
-      <p className="text-xs text-muted-foreground text-center mt-3 opacity-60">
-        Demo data — real metrics coming soon
-      </p>
     </motion.div>
   )
 }

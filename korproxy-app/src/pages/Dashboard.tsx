@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useProxyStatus } from '../hooks/useProxyStatus'
 import { useAccounts } from '../hooks/useAccounts'
 import { useProxy } from '../hooks/useProxy'
+import { useProxyStats } from '../hooks/useProxyStats'
 import { useAuthStore, hasActiveSubscription } from '../stores/authStore'
 import { CardSkeleton } from '../components/shared/LoadingSkeleton'
 import { UpgradePrompt } from '../components/auth/UpgradePrompt'
@@ -92,6 +93,7 @@ export default function Dashboard() {
   const { accounts, isLoading: accountsLoading } = useAccounts()
   const { start, stop, running } = useProxy()
   const { user, subscriptionInfo, isLoading: authLoading } = useAuthStore()
+  const { requestsToday, failureCount } = useProxyStats()
 
   const isSubscribed = hasActiveSubscription(subscriptionInfo)
 
@@ -106,7 +108,6 @@ export default function Dashboard() {
 
   const totalAccounts = accounts.length
   const activeProviders = Object.keys(accountsByProvider).length
-  const requestsToday = 0
 
   const handleToggleProxy = async () => {
     if (running) {
@@ -224,7 +225,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="Errors"
-          value={0}
+          value={failureCount}
           icon={<AlertCircle className="w-4 h-4 text-red-500" />}
           color="bg-red-500/10"
           loading={false}

@@ -24,6 +24,7 @@ export const IPC_CHANNELS = {
   UPDATER_INSTALL: 'updater:install',
   UPDATER_STATUS: 'updater:status',
   APP_GET_VERSION: 'app:get-version',
+  PROXY_STATS: 'proxy:stats',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -87,4 +88,13 @@ export interface UpdateStatus {
   version?: string
   progress?: number
   error?: string
+}
+
+export interface ProxyStats {
+  totalRequests: number
+  successCount: number
+  failureCount: number
+  totalTokens: number
+  requestsByHour: Record<string, number>
+  requestsByDay: Record<string, number>
 }

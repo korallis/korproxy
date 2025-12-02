@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { query, QueryCtx, internalQuery, internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { query, QueryCtx } from "./_generated/server";
 
 // Pricing in GBP (pence for calculations)
 const MONTHLY_PRICE = 1499; // £14.99

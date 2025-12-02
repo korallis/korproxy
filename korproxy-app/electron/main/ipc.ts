@@ -2,9 +2,10 @@ import { ipcMain, BrowserWindow, app } from 'electron'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
 import { z } from 'zod'
+import http from 'http'
 import { proxySidecar } from './sidecar'
 import { settingsStore, Settings } from './store'
-import { IPC_CHANNELS, LogData } from '../common/ipc-types'
+import { IPC_CHANNELS, LogData, ProxyStats } from '../common/ipc-types'
 import {
   ProxyStatusSchema,
   ConfigContentSchema,
@@ -201,4 +202,51 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       }
     }
   )
+
+  ipcMain.handle(IPC_CHANNELS.PROXY_STATS, async (): Promise<ProxyStats | null> => {
+    if (!proxySidecar.isRunning()) {
+      return null
+    }
+
+    const port = proxySidecar.getPort()
+    
+    return new Promise((resolve) => {
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port,
+          path: '/mgmt/usage',
+          method: 'GET',
+          timeout: 2000,
+        },
+        (res) => {
+          let data = ''
+          res.on('data', (chunk) => (data += chunk))
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data)
+              const usage = json.usage || {}
+              resolve({
+                totalRequests: usage.total_requests || 0,
+                successCount: usage.success_count || 0,
+                failureCount: usage.failure_count || json.failed_requests || 0,
+                totalTokens: usage.total_tokens || 0,
+                requestsByHour: usage.requests_by_hour || {},
+                requestsByDay: usage.requests_by_day || {},
+              })
+            } catch {
+              resolve(null)
+            }
+          })
+        }
+      )
+
+      req.on('error', () => resolve(null))
+      req.on('timeout', () => {
+        req.destroy()
+        resolve(null)
+      })
+      req.end()
+    })
+  })
 }

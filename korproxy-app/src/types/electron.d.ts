@@ -7,6 +7,7 @@ import type {
   TokenData,
   UpdateStatus,
   Provider,
+  ProxyStats,
 } from '../../electron/common/ipc-types'
 
 export interface ProxyLog {
@@ -27,6 +28,7 @@ export interface KorProxyAPI {
     restart: () => Promise<{ success: boolean; error?: string }>
     onLog: (callback: (data: LogData) => void) => () => void
     onStatusChange: (callback: (status: ProxyStatus) => void) => () => void
+    getStats: () => Promise<ProxyStats | null>
   }
   config: {
     get: () => Promise<{ success: boolean; content?: string; error?: string }>
@@ -70,7 +72,7 @@ export interface KorProxyAPI {
   }
 }
 
-export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider }
+export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider, ProxyStats }
 
 declare global {
   interface Window {
