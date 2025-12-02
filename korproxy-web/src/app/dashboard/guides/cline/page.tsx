@@ -101,10 +101,15 @@ export default function ClineGuidePage() {
               <Code size={18} className="text-primary" />
               Step 3: Select Model
             </h3>
-            <ul className="space-y-2 text-muted-foreground ml-6">
-              <li>• Enter model name (e.g., <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">claude-sonnet-4-5-20250929</code>, <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">gemini-3-pro-preview</code>)</li>
-              <li>• KorProxy routes based on model name</li>
-            </ul>
+            <p className="text-muted-foreground mb-3 ml-6">Enter a model name - KorProxy routes based on the model name:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-6">
+              <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">claude-opus-4-5-thinking-high</code>
+              <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">claude-sonnet-4-5-thinking</code>
+              <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">claude-haiku-4-5-20251001</code>
+              <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">gpt-5.1-codex-max-xhigh</code>
+              <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">gpt-5.1-codex-high</code>
+              <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">gemini-3-pro-image-preview</code>
+            </div>
           </div>
 
           {/* Anthropic Direct */}

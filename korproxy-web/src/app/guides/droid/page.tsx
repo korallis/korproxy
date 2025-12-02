@@ -79,16 +79,24 @@ export default function DroidGuidePage() {
               <pre className="text-foreground">{`{
   "custom_models": [
     {
-      "model_display_name": "Claude Opus 4.5 [KorProxy]",
-      "model": "claude-opus-4-5-20251101",
+      "model_display_name": "Claude Opus 4.5 Thinking High [KorProxy]",
+      "model": "claude-opus-4-5-thinking-high",
       "base_url": "http://localhost:1337",
       "api_key": "not-needed",
       "provider": "anthropic",
-      "max_tokens": 8192
+      "max_tokens": 16384
     },
     {
-      "model_display_name": "Claude Sonnet 4.5 [KorProxy]",
-      "model": "claude-sonnet-4-5-20250929",
+      "model_display_name": "Claude Sonnet 4.5 Thinking [KorProxy]",
+      "model": "claude-sonnet-4-5-thinking",
+      "base_url": "http://localhost:1337",
+      "api_key": "not-needed",
+      "provider": "anthropic",
+      "max_tokens": 16384
+    },
+    {
+      "model_display_name": "Claude Haiku 4.5 [KorProxy]",
+      "model": "claude-haiku-4-5-20251001",
       "base_url": "http://localhost:1337",
       "api_key": "not-needed",
       "provider": "anthropic",
@@ -109,20 +117,28 @@ export default function DroidGuidePage() {
               <pre className="text-foreground">{`{
   "custom_models": [
     {
-      "model_display_name": "GPT-5 Codex [KorProxy]",
-      "model": "gpt-5-codex",
+      "model_display_name": "GPT 5.1 Codex Max XHigh [KorProxy]",
+      "model": "gpt-5.1-codex-max-xhigh",
       "base_url": "http://localhost:1337/v1",
       "api_key": "not-needed",
       "provider": "openai",
-      "max_tokens": 16384
+      "max_tokens": 128000
     },
     {
-      "model_display_name": "GPT-5 [KorProxy]",
-      "model": "gpt-5",
+      "model_display_name": "GPT 5.1 Codex High [KorProxy]",
+      "model": "gpt-5.1-codex-high",
       "base_url": "http://localhost:1337/v1",
       "api_key": "not-needed",
       "provider": "openai",
-      "max_tokens": 16384
+      "max_tokens": 128000
+    },
+    {
+      "model_display_name": "GPT 5.1 Codex [KorProxy]",
+      "model": "gpt-5.1-codex",
+      "base_url": "http://localhost:1337/v1",
+      "api_key": "not-needed",
+      "provider": "openai",
+      "max_tokens": 128000
     }
   ]
 }`}</pre>
@@ -138,6 +154,14 @@ export default function DroidGuidePage() {
             <div className="bg-card border border-border rounded-lg p-4 font-mono text-sm overflow-x-auto">
               <pre className="text-foreground">{`{
   "custom_models": [
+    {
+      "model_display_name": "Gemini 3 Pro Image [KorProxy]",
+      "model": "gemini-3-pro-image-preview",
+      "base_url": "http://localhost:1337/v1",
+      "api_key": "not-needed",
+      "provider": "generic-chat-completion-api",
+      "max_tokens": 8192
+    },
     {
       "model_display_name": "Gemini 3 Pro [KorProxy]",
       "model": "gemini-3-pro-preview",
@@ -165,28 +189,52 @@ export default function DroidGuidePage() {
               <FileJson size={18} className="text-primary" />
               <h3 className="font-semibold text-foreground">Complete Example (All Providers)</h3>
             </div>
-            <div className="bg-card border border-border rounded-lg p-4 font-mono text-sm overflow-x-auto max-h-96">
+            <div className="bg-card border border-border rounded-lg p-4 font-mono text-sm overflow-x-auto max-h-[600px]">
               <pre className="text-foreground">{`{
   "custom_models": [
     {
-      "model_display_name": "Claude Opus 4.5 [KorProxy]",
-      "model": "claude-opus-4-5-20251101",
+      "model_display_name": "Claude Opus 4.5 Thinking High [KorProxy]",
+      "model": "claude-opus-4-5-thinking-high",
+      "base_url": "http://localhost:1337",
+      "api_key": "not-needed",
+      "provider": "anthropic",
+      "max_tokens": 16384
+    },
+    {
+      "model_display_name": "Claude Sonnet 4.5 Thinking [KorProxy]",
+      "model": "claude-sonnet-4-5-thinking",
+      "base_url": "http://localhost:1337",
+      "api_key": "not-needed",
+      "provider": "anthropic",
+      "max_tokens": 16384
+    },
+    {
+      "model_display_name": "Claude Haiku 4.5 [KorProxy]",
+      "model": "claude-haiku-4-5-20251001",
       "base_url": "http://localhost:1337",
       "api_key": "not-needed",
       "provider": "anthropic",
       "max_tokens": 8192
     },
     {
-      "model_display_name": "GPT-5 Codex [KorProxy]",
-      "model": "gpt-5-codex",
+      "model_display_name": "GPT 5.1 Codex Max XHigh [KorProxy]",
+      "model": "gpt-5.1-codex-max-xhigh",
       "base_url": "http://localhost:1337/v1",
       "api_key": "not-needed",
       "provider": "openai",
-      "max_tokens": 16384
+      "max_tokens": 128000
     },
     {
-      "model_display_name": "Gemini 3 Pro [KorProxy]",
-      "model": "gemini-3-pro-preview",
+      "model_display_name": "GPT 5.1 Codex High [KorProxy]",
+      "model": "gpt-5.1-codex-high",
+      "base_url": "http://localhost:1337/v1",
+      "api_key": "not-needed",
+      "provider": "openai",
+      "max_tokens": 128000
+    },
+    {
+      "model_display_name": "Gemini 3 Pro Image [KorProxy]",
+      "model": "gemini-3-pro-image-preview",
       "base_url": "http://localhost:1337/v1",
       "api_key": "not-needed",
       "provider": "generic-chat-completion-api",

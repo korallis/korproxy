@@ -139,18 +139,22 @@ export OPENAI_API_KEY=korproxy`}</code>
           <p className="text-muted-foreground mb-4">
             Use model names directly—KorProxy routes requests to the appropriate provider based on the model name:
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3 bg-muted rounded-lg text-center">
-              <code className="font-mono text-sm text-foreground">gemini-3-pro-preview</code>
-              <p className="text-xs text-muted-foreground mt-1">Google</p>
+              <code className="font-mono text-sm text-foreground">claude-opus-4-5-thinking-high</code>
+              <p className="text-xs text-muted-foreground mt-1">Anthropic (premium)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg text-center">
-              <code className="font-mono text-sm text-foreground">claude-sonnet-4-5-20250929</code>
-              <p className="text-xs text-muted-foreground mt-1">Anthropic</p>
+              <code className="font-mono text-sm text-foreground">claude-sonnet-4-5-thinking</code>
+              <p className="text-xs text-muted-foreground mt-1">Anthropic (balanced)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg text-center">
-              <code className="font-mono text-sm text-foreground">gpt-5-codex</code>
-              <p className="text-xs text-muted-foreground mt-1">OpenAI</p>
+              <code className="font-mono text-sm text-foreground">gpt-5.1-codex-max-xhigh</code>
+              <p className="text-xs text-muted-foreground mt-1">OpenAI (max reasoning)</p>
+            </div>
+            <div className="p-3 bg-muted rounded-lg text-center">
+              <code className="font-mono text-sm text-foreground">gemini-3-pro-image-preview</code>
+              <p className="text-xs text-muted-foreground mt-1">Google (with image gen)</p>
             </div>
           </div>
         </div>

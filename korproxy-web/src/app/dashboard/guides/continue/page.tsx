@@ -65,16 +65,30 @@ export default function ContinueGuidePage() {
               <pre className="text-foreground">{`{
   "models": [
     {
-      "title": "Gemini 3 Pro via KorProxy",
+      "title": "Claude Opus 4.5 Thinking High via KorProxy",
       "provider": "openai",
-      "model": "gemini-3-pro-preview",
+      "model": "claude-opus-4-5-thinking-high",
       "apiBase": "http://localhost:1337/v1",
       "apiKey": "korproxy"
     },
     {
-      "title": "Claude Sonnet 4.5 via KorProxy",
+      "title": "Claude Sonnet 4.5 Thinking via KorProxy",
       "provider": "openai",
-      "model": "claude-sonnet-4-5-20250929",
+      "model": "claude-sonnet-4-5-thinking",
+      "apiBase": "http://localhost:1337/v1",
+      "apiKey": "korproxy"
+    },
+    {
+      "title": "GPT 5.1 Codex Max XHigh via KorProxy",
+      "provider": "openai",
+      "model": "gpt-5.1-codex-max-xhigh",
+      "apiBase": "http://localhost:1337/v1",
+      "apiKey": "korproxy"
+    },
+    {
+      "title": "Gemini 3 Pro Image via KorProxy",
+      "provider": "openai",
+      "model": "gemini-3-pro-image-preview",
       "apiBase": "http://localhost:1337/v1",
       "apiKey": "korproxy"
     }
@@ -109,28 +123,28 @@ export default function ContinueGuidePage() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3 bg-muted rounded-lg">
-              <code className="font-mono text-sm text-foreground">gemini-3-pro-preview</code>
-              <p className="text-xs text-muted-foreground mt-1">Google Gemini (latest)</p>
+              <code className="font-mono text-sm text-foreground">claude-opus-4-5-thinking-high</code>
+              <p className="text-xs text-muted-foreground mt-1">Claude Opus 4.5 with high thinking</p>
             </div>
             <div className="p-3 bg-muted rounded-lg">
-              <code className="font-mono text-sm text-foreground">gemini-2.5-pro</code>
-              <p className="text-xs text-muted-foreground mt-1">Google Gemini</p>
+              <code className="font-mono text-sm text-foreground">claude-sonnet-4-5-thinking</code>
+              <p className="text-xs text-muted-foreground mt-1">Claude Sonnet 4.5 with thinking</p>
             </div>
             <div className="p-3 bg-muted rounded-lg">
-              <code className="font-mono text-sm text-foreground">claude-sonnet-4-5-20250929</code>
-              <p className="text-xs text-muted-foreground mt-1">Claude Sonnet 4.5</p>
+              <code className="font-mono text-sm text-foreground">claude-haiku-4-5-20251001</code>
+              <p className="text-xs text-muted-foreground mt-1">Claude Haiku 4.5 (fast)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg">
-              <code className="font-mono text-sm text-foreground">claude-opus-4-5-20251101</code>
-              <p className="text-xs text-muted-foreground mt-1">Claude Opus 4.5</p>
+              <code className="font-mono text-sm text-foreground">gpt-5.1-codex-max-xhigh</code>
+              <p className="text-xs text-muted-foreground mt-1">GPT 5.1 Codex Max (premium)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg">
-              <code className="font-mono text-sm text-foreground">gpt-5</code>
-              <p className="text-xs text-muted-foreground mt-1">OpenAI GPT-5</p>
+              <code className="font-mono text-sm text-foreground">gpt-5.1-codex-high</code>
+              <p className="text-xs text-muted-foreground mt-1">GPT 5.1 Codex High</p>
             </div>
             <div className="p-3 bg-muted rounded-lg">
-              <code className="font-mono text-sm text-foreground">gpt-5-codex</code>
-              <p className="text-xs text-muted-foreground mt-1">OpenAI Codex</p>
+              <code className="font-mono text-sm text-foreground">gemini-3-pro-image-preview</code>
+              <p className="text-xs text-muted-foreground mt-1">Gemini 3 Pro with image gen</p>
             </div>
           </div>
         </div>
