@@ -24,6 +24,10 @@ jobs:
         working-directory: korproxy-app
         run: npm ci
 
+      - name: Install backend dependencies (for TypeScript types)
+        working-directory: korproxy-backend
+        run: npm ci
+
       - name: Build & Package macOS (arm64)
         working-directory: korproxy-app
         env:
@@ -72,6 +76,10 @@ jobs:
         working-directory: korproxy-app
         run: npm ci
 
+      - name: Install backend dependencies (for TypeScript types)
+        working-directory: korproxy-backend
+        run: npm ci
+
       - name: Build & Package Windows
         working-directory: korproxy-app
         env:
@@ -104,6 +112,10 @@ jobs:
 
       - name: Install dependencies
         working-directory: korproxy-app
+        run: npm ci
+
+      - name: Install backend dependencies (for TypeScript types)
+        working-directory: korproxy-backend
         run: npm ci
 
       - name: Build & Package Linux
