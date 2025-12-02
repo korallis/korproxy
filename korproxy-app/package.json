@@ -14,83 +14,74 @@
     "preview": "vite preview",
     "electron:dev": "vite --mode electron",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint .",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:electron": "npm run build:vite && playwright test --config playwright.electron.config.ts",
     "package:mac": "npm run build:vite && electron-builder --mac",
     "package:win": "npm run build:vite && electron-builder --win",
-    "package:all": "npm run build:vite && electron-builder --mac --win"
+    "package:all": "npm run build:vite && electron-builder --mac --win",
+    "dist": "npm run build:vite && electron-builder --publish always"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.1",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-dropdown-menu": "^2.1.2",
+    "@radix-ui/react-scroll-area": "^1.2.1",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.1.1",
+    "@radix-ui/react-tabs": "^1.1.1",
+    "@radix-ui/react-tooltip": "^1.1.4",
+    "@tanstack/react-query": "^5.60.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "convex": "^1.29.3",
+    "electron-updater": "^6.6.2",
+    "framer-motion": "^11.12.0",
+    "keytar": "^7.9.0",
+    "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.0.1",
-    "framer-motion": "^11.12.0",
-    "@tanstack/react-query": "^5.60.5",
-    "zustand": "^5.0.1",
-    "lucide-react": "^0.460.0",
-    "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.5",
-    "class-variance-authority": "^0.7.1",
-    "@radix-ui/react-slot": "^1.1.0",
-    "@radix-ui/react-dialog": "^1.1.2",
-    "@radix-ui/react-dropdown-menu": "^2.1.2",
-    "@radix-ui/react-tooltip": "^1.1.4",
-    "@radix-ui/react-switch": "^1.1.1",
-    "@radix-ui/react-tabs": "^1.1.1",
-    "@radix-ui/react-scroll-area": "^1.2.1",
-    "@radix-ui/react-separator": "^1.1.0",
-    "@radix-ui/react-avatar": "^1.1.1"
+    "zod": "^4.1.13",
+    "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.57.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@types/node": "^22.9.0",
     "@vitejs/plugin-react": "^4.3.3",
+    "@vitest/ui": "^4.0.14",
     "autoprefixer": "^10.4.20",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "jsdom": "^27.2.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.48.0",
     "vite": "^6.0.1",
     "vite-plugin-electron": "^0.28.8",
-    "vite-plugin-electron-renderer": "^0.14.6"
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^4.0.14"
   },
   "build": {
-    "appId": "com.korproxy.app",
-    "productName": "KorProxy",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "resources/binaries/${platform}-${arch}/",
-        "to": "binaries/",
-        "filter": ["**/*"]
-      }
-    ],
-    "mac": {
-      "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] },
-        { "target": "zip", "arch": ["arm64", "x64"] }
-      ],
-      "category": "public.app-category.developer-tools",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "icon": "resources/icons/icon.icns"
-    },
-    "win": {
-      "target": [
-        { "target": "nsis", "arch": ["x64"] }
-      ],
-      "icon": "resources/icons/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+    "extends": "electron-builder.yml"
   }
 }

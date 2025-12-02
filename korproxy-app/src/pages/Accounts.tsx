@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RefreshCw, Trash2, User, Clock, AlertCircle } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAccounts } from '../hooks/useAccounts'
 import { AccountListSkeleton } from '../components/shared/LoadingSkeleton'
-import type { Account } from '../lib/api'
+import type { Account } from '@/types/electron'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -75,11 +76,12 @@ function StatusBadge({ status, disabled }: { status?: string; disabled?: boolean
 }
 
 function EmptyState() {
+  const navigate = useNavigate()
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-card border border-border rounded-xl p-12 text-center"
+      className="glass-card p-12 text-center"
     >
       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
         <User className="w-8 h-8 text-muted-foreground" />
@@ -91,7 +93,7 @@ function EmptyState() {
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => (window.location.href = '/providers')}
+        onClick={() => navigate('/providers')}
         className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium"
       >
         Connect Account
@@ -105,7 +107,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-card border border-red-500/20 rounded-xl p-12 text-center"
+      className="glass-card border-red-500/20 p-12 text-center"
     >
       <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
         <AlertCircle className="w-8 h-8 text-red-500" />
@@ -125,12 +127,13 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
 }
 
 export default function Accounts() {
+  const navigate = useNavigate()
   const { accounts, isLoading, error, refetch, deleteAccount, isDeleting } = useAccounts()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const groupedAccounts = accounts.reduce(
     (acc, account) => {
-      const provider = account.provider?.toLowerCase() || account.type?.toLowerCase() || 'unknown'
+      const provider = account.provider?.toLowerCase() || 'unknown'
       if (!acc[provider]) {
         acc[provider] = []
       }
@@ -141,10 +144,10 @@ export default function Accounts() {
   )
 
   const handleDelete = async (account: Account) => {
-    if (!account.name) return
+    if (!account.id) return
     setDeletingId(account.id)
     try {
-      await deleteAccount(account.name)
+      await deleteAccount(account.id)
     } finally {
       setDeletingId(null)
     }
@@ -198,7 +201,7 @@ export default function Accounts() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => (window.location.href = '/providers')}
+              onClick={() => navigate('/providers')}
               className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium"
             >
               Add Account
@@ -229,7 +232,7 @@ export default function Accounts() {
                 key={provider}
                 variants={itemVariants}
                 layout
-                className="bg-card border border-border rounded-xl overflow-hidden"
+                className="glass-card overflow-hidden"
               >
                 <div className="px-5 py-3 border-b border-border bg-muted/30">
                   <h2 className="font-semibold text-sm">{getProviderName(provider)}</h2>
@@ -253,13 +256,13 @@ export default function Accounts() {
                         </div>
                         <div>
                           <p className="font-medium">
-                            {account.email || account.label || account.name}
+                            {account.email || account.name}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <StatusBadge status={account.status} disabled={account.disabled} />
+                            <StatusBadge status={account.enabled ? 'active' : 'disabled'} disabled={!account.enabled} />
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {formatDate(account.modtime || account.created_at)}
+                              {formatDate(account.createdAt)}
                             </span>
                           </div>
                         </div>

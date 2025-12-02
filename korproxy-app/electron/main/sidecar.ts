@@ -1,8 +1,7 @@
 import { spawn, ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
-import { app } from 'electron'
-import { join } from 'path'
 import { existsSync } from 'fs'
+import { getBinaryPath, getConfigPath, ensureConfigExists } from './config'
 
 export interface SidecarEvents {
   log: (data: { type: 'stdout' | 'stderr'; message: string }) => void
@@ -18,33 +17,20 @@ export class ProxySidecar extends EventEmitter {
   private maxRestartAttempts: number = 3
   private port: number = 1337
 
+  setPort(port: number): void {
+    this.port = port
+  }
+
   getBinaryPath(): string {
-    const platform = process.platform
-    const arch = process.arch
-
-    let binaryName = 'korproxy'
-    if (platform === 'win32') {
-      binaryName = 'korproxy.exe'
-    }
-
-    let platformArch: string
-    if (platform === 'darwin') {
-      platformArch = arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64'
-    } else if (platform === 'win32') {
-      platformArch = 'win32-x64'
-    } else {
-      platformArch = `${platform}-${arch}`
-    }
-
-    if (app.isPackaged) {
-      return join(process.resourcesPath, 'binaries', binaryName)
-    }
-
-    return join(app.getAppPath(), 'resources', 'binaries', platformArch, binaryName)
+    return getBinaryPath()
   }
 
   getConfigPath(): string {
-    return join(app.getPath('userData'), 'config.yaml')
+    return getConfigPath()
+  }
+
+  ensureConfigExists(): void {
+    ensureConfigExists(this.port)
   }
 
   isRunning(): boolean {
@@ -68,8 +54,9 @@ export class ProxySidecar extends EventEmitter {
       throw error
     }
 
+    this.ensureConfigExists()
     const configPath = this.getConfigPath()
-    const args = ['--config', configPath, '--port', String(this.port)]
+    const args = ['-config', configPath]
 
     try {
       this.process = spawn(binaryPath, args, {

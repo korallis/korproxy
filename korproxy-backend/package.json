@@ -1,0 +1,20 @@
+{
+  "name": "korproxy-backend",
+  "version": "1.0.0",
+  "description": "Convex backend for KorProxy authentication and subscriptions",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "codegen": "convex codegen"
+  },
+  "dependencies": {
+    "convex": "^1.29.3",
+    "stripe": "^17.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3"
+  }
+}

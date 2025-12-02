@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion'
-import { Moon, Sun, Github, ExternalLink, RefreshCw, Heart } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Github, ExternalLink, RefreshCw, Heart, Download, Check, AlertCircle } from 'lucide-react'
 import * as Tabs from '@radix-ui/react-tabs'
 import * as Switch from '@radix-ui/react-switch'
 import { cn } from '../lib/utils'
@@ -7,6 +8,9 @@ import { useAppStore } from '../stores/appStore'
 import { useProxyStore } from '../hooks/useProxy'
 import { useToast } from '../hooks/useToast'
 import { StatusIndicator } from '../components/shared/StatusIndicator'
+import { ThemeToggle } from '../components/shared/ThemeToggle'
+import { ConfigEditor } from '../components/settings/ConfigEditor'
+import type { UpdateStatus } from '../types/electron'
 
 function SettingRow({
   label,
@@ -71,20 +75,66 @@ function SwitchControl({
 export default function Settings() {
   const { toast } = useToast()
   const {
-    theme,
-    setTheme,
     minimizeToTray,
     setMinimizeToTray,
     port,
     setPort,
     proxyAutoStart,
     setProxyAutoStart,
+    initFromMain,
   } = useAppStore()
   const { running } = useProxyStore()
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'not-available' })
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [appVersion, setAppVersion] = useState<string>('...')
 
-  const handleThemeChange = (newTheme: 'dark' | 'light') => {
-    setTheme(newTheme)
-    toast(`Theme changed to ${newTheme} mode`, 'success')
+  useEffect(() => {
+    initFromMain()
+    if (window.korproxy?.app?.getVersion) {
+      window.korproxy.app.getVersion().then(setAppVersion)
+    }
+  }, [initFromMain])
+
+  useEffect(() => {
+    if (!window.korproxy?.updater) return
+    
+    window.korproxy.updater.getStatus().then(setUpdateStatus)
+    const unsubscribe = window.korproxy.updater.onStatus(setUpdateStatus)
+    
+    return unsubscribe
+  }, [])
+
+  const handleCheckForUpdates = async () => {
+    if (!window.korproxy?.updater) {
+      toast('Auto-updater not available in development mode', 'info')
+      return
+    }
+    
+    setIsCheckingUpdate(true)
+    try {
+      const status = await window.korproxy.updater.check()
+      if (status.status === 'not-available') {
+        toast('You are on the latest version!', 'success')
+      } else if (status.status === 'available') {
+        toast(`Version ${status.version} is available!`, 'info')
+      } else if (status.status === 'error') {
+        toast(status.error || 'Failed to check for updates', 'error')
+      }
+    } catch {
+      toast('Failed to check for updates', 'error')
+    } finally {
+      setIsCheckingUpdate(false)
+    }
+  }
+
+  const handleDownloadUpdate = async () => {
+    if (!window.korproxy?.updater) return
+    await window.korproxy.updater.download()
+  }
+
+  const handleInstallUpdate = async () => {
+    if (!window.korproxy?.updater) return
+    await window.korproxy.updater.install()
   }
 
   const handleMinimizeToTrayChange = (value: boolean) => {
@@ -134,6 +184,7 @@ export default function Settings() {
             {[
               { value: 'general', label: 'General' },
               { value: 'proxy', label: 'Proxy' },
+              { value: 'config', label: 'Config' },
               { value: 'about', label: 'About' },
             ].map((tab) => (
               <Tabs.Trigger
@@ -151,7 +202,7 @@ export default function Settings() {
           </Tabs.List>
 
           <Tabs.Content value="general">
-            <div className="bg-card border border-border rounded-xl divide-y divide-border">
+            <div className="glass-card divide-y divide-border/50">
               <div className="p-5">
                 <h3 className="font-semibold mb-1">Appearance</h3>
                 <p className="text-sm text-muted-foreground">
@@ -163,34 +214,7 @@ export default function Settings() {
                   label="Theme"
                   description="Switch between dark and light mode"
                 >
-                  <div className="flex items-center gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleThemeChange('light')}
-                      className={cn(
-                        'p-2 rounded-lg transition-colors',
-                        theme === 'light'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      <Sun className="w-5 h-5" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleThemeChange('dark')}
-                      className={cn(
-                        'p-2 rounded-lg transition-colors',
-                        theme === 'dark'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      <Moon className="w-5 h-5" />
-                    </motion.button>
-                  </div>
+                  <ThemeToggle showSystemOption />
                 </SettingRow>
               </div>
               <div className="p-5">
@@ -227,7 +251,7 @@ export default function Settings() {
           </Tabs.Content>
 
           <Tabs.Content value="proxy">
-            <div className="bg-card border border-border rounded-xl divide-y divide-border">
+            <div className="glass-card divide-y divide-border/50">
               <div className="p-5">
                 <h3 className="font-semibold mb-1">Proxy Configuration</h3>
                 <p className="text-sm text-muted-foreground">
@@ -287,8 +311,12 @@ export default function Settings() {
             </div>
           </Tabs.Content>
 
+          <Tabs.Content value="config">
+            <ConfigEditor />
+          </Tabs.Content>
+
           <Tabs.Content value="about">
-            <div className="bg-card border border-border rounded-xl divide-y divide-border">
+            <div className="glass-card divide-y divide-border/50">
               <div className="p-5">
                 <h3 className="font-semibold mb-1">About KorProxy</h3>
                 <p className="text-sm text-muted-foreground">
@@ -298,7 +326,7 @@ export default function Settings() {
               <div className="px-5">
                 <SettingRow label="Version">
                   <span className="text-sm text-muted-foreground font-mono">
-                    v1.0.0
+                    v{appVersion}
                   </span>
                 </SettingRow>
               </div>
@@ -325,15 +353,77 @@ export default function Settings() {
                   <ExternalLink className="w-4 h-4" />
                   Documentation
                 </motion.a>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => toast('Already on the latest version!', 'info')}
-                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium flex items-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Check for Updates
-                </motion.button>
+                <AnimatePresence mode="wait">
+                  {updateStatus.status === 'available' ? (
+                    <motion.button
+                      key="download"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadUpdate}
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download v{updateStatus.version}
+                    </motion.button>
+                  ) : updateStatus.status === 'downloading' ? (
+                    <motion.div
+                      key="downloading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium flex items-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Downloading... {updateStatus.progress}%
+                    </motion.div>
+                  ) : updateStatus.status === 'downloaded' ? (
+                    <motion.button
+                      key="install"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleInstallUpdate}
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2"
+                    >
+                      <Check className="w-4 h-4" />
+                      Install & Restart
+                    </motion.button>
+                  ) : updateStatus.status === 'error' ? (
+                    <motion.button
+                      key="error"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleCheckForUpdates}
+                      className="px-4 py-2 bg-red-500/10 text-red-500 rounded-lg text-sm font-medium flex items-center gap-2"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      Retry Check
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      key="check"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleCheckForUpdates}
+                      disabled={isCheckingUpdate || updateStatus.status === 'checking'}
+                      className={cn(
+                        'px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium flex items-center gap-2',
+                        (isCheckingUpdate || updateStatus.status === 'checking') && 'opacity-50 cursor-not-allowed'
+                      )}
+                    >
+                      <RefreshCw className={cn('w-4 h-4', (isCheckingUpdate || updateStatus.status === 'checking') && 'animate-spin')} />
+                      {isCheckingUpdate || updateStatus.status === 'checking' ? 'Checking...' : 'Check for Updates'}
+                    </motion.button>
+                  )}
+                </AnimatePresence>
               </div>
               <div className="p-5">
                 <h3 className="font-semibold mb-3">Credits</h3>

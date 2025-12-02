@@ -151,3 +151,8 @@ export const providerIconMap: Record<string, React.FC<IconProps>> = {
 export const getProviderIcon = (provider: string): React.FC<IconProps> => {
   return providerIconMap[provider.toLowerCase()] || IFlowIcon
 }
+
+export const ProviderIcon: React.FC<IconProps & { provider: string }> = ({ provider, ...props }) => {
+  const Icon = providerIconMap[provider.toLowerCase()] || IFlowIcon
+  return <Icon {...props} />
+}

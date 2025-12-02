@@ -1,10 +1,15 @@
-import { app, BrowserWindow, shell } from 'electron'
-import { join } from 'path'
+import { app, BrowserWindow, shell, session } from 'electron'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { proxySidecar } from './sidecar'
 import { registerIpcHandlers } from './ipc'
 import { registerAuthHandlers } from './auth'
 import { createTray, destroyTray } from './tray'
 import { settingsStore } from './store'
+import { initAutoUpdater } from './updater'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
@@ -13,6 +18,9 @@ const isDev = !app.isPackaged
 
 function createWindow(): void {
   const savedBounds = settingsStore.get('windowBounds')
+  
+  const preloadPath = join(__dirname, '../preload/index.cjs')
+  console.log('Preload path:', preloadPath)
   
   mainWindow = new BrowserWindow({
     width: savedBounds?.width ?? 1200,
@@ -26,7 +34,7 @@ function createWindow(): void {
     backgroundColor: '#0a0a0f',
     show: false,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: preloadPath,
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
@@ -44,6 +52,7 @@ function createWindow(): void {
 
   registerIpcHandlers(mainWindow)
   registerAuthHandlers(mainWindow)
+  initAutoUpdater(mainWindow)
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -75,11 +84,44 @@ function saveBounds(): void {
   settingsStore.set('windowBounds', bounds)
 }
 
+function setupContentSecurityPolicy(): void {
+  // Only apply strict CSP in production - dev mode needs inline scripts for Vite HMR
+  if (isDev) return
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "connect-src 'self' http://localhost:* https://*.convex.cloud wss://*.convex.cloud",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ].join('; ')
+
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    })
+  })
+}
+
 app.whenReady().then(async () => {
+  setupContentSecurityPolicy()
   createWindow()
 
   if (mainWindow) {
     createTray(mainWindow)
+  }
+
+  const savedPort = settingsStore.get('port')
+  if (savedPort) {
+    proxySidecar.setPort(savedPort)
   }
 
   if (settingsStore.get('autoStart')) {

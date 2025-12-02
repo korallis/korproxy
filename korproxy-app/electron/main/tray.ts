@@ -3,17 +3,6 @@ import { proxySidecar } from './sidecar'
 
 let tray: Tray | null = null
 
-function createTrayIcon(running: boolean): Electron.NativeImage {
-  const size = 16
-  const canvas = `
-    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${running ? '#22c55e' : '#6b7280'}"/>
-    </svg>
-  `
-  const image = nativeImage.createFromBuffer(Buffer.from(canvas))
-  return image.resize({ width: size, height: size })
-}
-
 function createTrayIconFromDataURL(running: boolean): Electron.NativeImage {
   const color = running ? '#22c55e' : '#6b7280'
   const size = 32

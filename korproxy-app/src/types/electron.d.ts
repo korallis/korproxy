@@ -1,85 +1,36 @@
-export interface ProxyConfig {
-  port: number
-  logLevel: 'debug' | 'info' | 'warn' | 'error'
-  logFormat: 'text' | 'json'
-}
-
-export interface ProxyStatus {
-  running: boolean
-  port: number
-  pid?: number
-}
+import type {
+  ProxyStatus,
+  LogData,
+  Settings,
+  Account,
+  OAuthResult,
+  TokenData,
+  UpdateStatus,
+  Provider,
+} from '../../electron/common/ipc-types'
 
 export interface ProxyLog {
   timestamp: string
-  level: string
+  level: 'info' | 'warn' | 'error' | 'debug'
   message: string
   provider?: string
   model?: string
   tokens?: number
 }
 
-export interface Provider {
-  id: string
-  name: string
-  enabled: boolean
-  baseUrl?: string
-}
-
-export interface Account {
-  id: string
-  name: string
-  provider: string
-  apiKey: string
-  enabled: boolean
-  weight: number
-}
-
-export interface LogData {
-  type: 'stdout' | 'stderr'
-  message: string
-}
-
-export interface Settings {
-  port: number
-  autoStart: boolean
-  minimizeToTray: boolean
-  theme: 'dark' | 'light' | 'system'
-  windowBounds?: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-}
-
 export interface KorProxyAPI {
   proxy: {
-    start: (config?: Partial<ProxyConfig>) => Promise<{ success: boolean; error?: string }>
-    stop: () => Promise<{ success: boolean; error?: string }>
-    restart: () => Promise<{ success: boolean; error?: string }>
+    start: () => Promise<{ success: boolean; error?: string }>
+    stop: () => Promise<{ success: boolean }>
+    status: () => Promise<ProxyStatus>
     getStatus: () => Promise<ProxyStatus>
-    onLog: (callback: (log: ProxyLog) => void) => () => void
+    restart: () => Promise<{ success: boolean; error?: string }>
+    onLog: (callback: (data: LogData) => void) => () => void
     onStatusChange: (callback: (status: ProxyStatus) => void) => () => void
   }
   config: {
-    get: () => Promise<ProxyConfig>
-    set: (config: Partial<ProxyConfig>) => Promise<void>
-  }
-  providers: {
-    list: () => Promise<Provider[]>
-    add: (provider: Omit<Provider, 'id'>) => Promise<Provider>
-    update: (id: string, provider: Partial<Provider>) => Promise<Provider>
-    remove: (id: string) => Promise<void>
-  }
-  accounts: {
-    list: () => Promise<Account[]>
-    add: (account: Omit<Account, 'id'>) => Promise<Account>
-    update: (id: string, account: Partial<Account>) => Promise<Account>
-    remove: (id: string) => Promise<void>
-  }
-  auth: {
-    startOAuth: (provider: string) => Promise<{ success: boolean; error?: string }>
+    get: () => Promise<{ success: boolean; content?: string; error?: string }>
+    set: (content: string) => Promise<{ success: boolean; error?: string }>
   }
   app: {
     minimize: () => Promise<void>
@@ -88,14 +39,38 @@ export interface KorProxyAPI {
     isMaximized: () => Promise<boolean>
     platform: NodeJS.Platform
     getSettings: () => Promise<Settings>
-    setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => Promise<void>
+    setSetting: <K extends keyof Settings>(
+      key: K,
+      value: Settings[K]
+    ) => Promise<{ success: boolean; error?: string }>
+    getVersion: () => Promise<string>
   }
-  window: {
-    minimize: () => void
-    maximize: () => void
-    close: () => void
+  auth: {
+    startOAuth: (provider: Provider) => Promise<OAuthResult>
+    listAccounts: () => Promise<Account[]>
+    removeAccount: (
+      id: string,
+      provider?: Provider
+    ) => Promise<{ success: boolean; error?: string }>
+    getToken: (
+      provider: Provider,
+      accountId: string
+    ) => Promise<{ success: boolean; token?: TokenData; error?: string }>
+    refreshToken: (
+      provider: Provider,
+      accountId: string
+    ) => Promise<{ success: boolean; token?: TokenData; error?: string }>
+  }
+  updater: {
+    check: () => Promise<UpdateStatus>
+    download: () => Promise<UpdateStatus>
+    install: () => Promise<void>
+    getStatus: () => Promise<UpdateStatus>
+    onStatus: (callback: (status: UpdateStatus) => void) => () => void
   }
 }
+
+export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider }
 
 declare global {
   interface Window {

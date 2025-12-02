@@ -1,10 +1,17 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, Users, Zap, AlertCircle, Plus, Power, RefreshCw } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useProxyStatus } from '../hooks/useProxyStatus'
 import { useAccounts } from '../hooks/useAccounts'
 import { useProxy } from '../hooks/useProxy'
+import { useAuthStore, hasActiveSubscription } from '../stores/authStore'
 import { CardSkeleton } from '../components/shared/LoadingSkeleton'
+import { UpgradePrompt } from '../components/auth/UpgradePrompt'
+import { AuthModal } from '../components/auth/AuthModal'
+import { UsageChart } from '../components/dashboard/UsageChart'
 import { cn } from '../lib/utils'
+import { useToast } from '../hooks/useToast'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -57,7 +64,7 @@ function StatCard({ title, value, icon, color, loading }: StatCardProps) {
   return (
     <motion.div
       variants={itemVariants}
-      className="bg-card border border-border rounded-xl p-5"
+      className="glass-card p-5"
     >
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-muted-foreground">{title}</p>
@@ -78,13 +85,19 @@ const providers = [
 ]
 
 export default function Dashboard() {
-  const { isRunning, isConnecting, error } = useProxyStatus()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const { isRunning, isConnecting, error, port } = useProxyStatus()
   const { accounts, isLoading: accountsLoading } = useAccounts()
   const { start, stop, running } = useProxy()
+  const { user, subscriptionInfo, isLoading: authLoading } = useAuthStore()
+
+  const isSubscribed = hasActiveSubscription(subscriptionInfo)
 
   const accountsByProvider = accounts.reduce(
     (acc, account) => {
-      const provider = account.provider?.toLowerCase() || account.type?.toLowerCase() || 'unknown'
+      const provider = account.provider?.toLowerCase() || 'unknown'
       acc[provider] = (acc[provider] || 0) + 1
       return acc
     },
@@ -99,7 +112,16 @@ export default function Dashboard() {
     if (running) {
       await stop()
     } else {
-      await start()
+      const result = await start()
+      if (!result.success) {
+        if (result.requiresSubscription) {
+          if (!user) {
+            setAuthModalOpen(true)
+          }
+        } else {
+          toast(result.error, 'error')
+        }
+      }
     }
   }
 
@@ -118,7 +140,7 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-xl p-5 mb-6"
+        className="glass-card p-5 mb-6"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -149,7 +171,7 @@ export default function Dashboard() {
                 {isConnecting
                   ? 'Connecting...'
                   : isRunning
-                    ? 'Running on localhost:1337'
+                    ? `Running on localhost:${port}`
                     : error || 'Stopped'}
               </p>
             </div>
@@ -209,6 +231,9 @@ export default function Dashboard() {
         />
       </motion.div>
 
+      {/* Usage Chart */}
+      <UsageChart />
+
       {/* Provider Summary */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -227,7 +252,7 @@ export default function Dashboard() {
                   layout
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-card border border-border rounded-xl p-4"
+                  className="glass-card p-4"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div
@@ -266,7 +291,8 @@ export default function Dashboard() {
               key={provider.id}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 hover:border-primary/50 transition-colors"
+              onClick={() => navigate('/providers')}
+              className="glass-card p-4 flex items-center gap-3 hover:border-primary/50 transition-colors"
             >
               <div
                 className={cn(
@@ -286,6 +312,26 @@ export default function Dashboard() {
           ))}
         </div>
       </motion.div>
+
+      {/* Subscription Upgrade Prompt */}
+      {!authLoading && user && !isSubscribed && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-6"
+        >
+          <UpgradePrompt 
+            reason={
+              subscriptionInfo?.status === 'expired' ? 'expired' :
+              subscriptionInfo?.status === 'past_due' ? 'past_due' :
+              'no_subscription'
+            }
+          />
+        </motion.div>
+      )}
+
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </div>
   )
 }

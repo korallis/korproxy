@@ -3,8 +3,9 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2, Check, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getProviderIcon } from '@/components/icons/ProviderIcons'
+import { ProviderIcon } from '@/components/icons/ProviderIcons'
 import { cn } from '@/lib/utils'
+import type { Provider } from '@/types/electron'
 
 interface OAuthModalProps {
   provider: string
@@ -42,7 +43,6 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
   const [authState, setAuthState] = React.useState<AuthState>('idle')
   const [errorMessage, setErrorMessage] = React.useState<string>('')
 
-  const ProviderIcon = getProviderIcon(provider)
   const displayName = providerDisplayNames[provider.toLowerCase()] || provider
   const gradientClass = providerColors[provider.toLowerCase()] || 'from-gray-500 to-gray-400'
 
@@ -51,7 +51,11 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
     setErrorMessage('')
 
     try {
-      const result = await window.korproxy.auth.startOAuth(provider)
+      if (!window.korproxy?.auth) {
+        throw new Error('App is still initializing. Please try again.')
+      }
+      
+      const result = await window.korproxy.auth.startOAuth(provider.toLowerCase() as Provider)
       
       if (result.success) {
         setAuthState('success')
@@ -129,7 +133,7 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        <ProviderIcon className="w-8 h-8 text-white" />
+                        <ProviderIcon provider={provider} className="w-8 h-8 text-white" />
                       </motion.div>
 
                       <Dialog.Title className="text-xl font-semibold mb-2">

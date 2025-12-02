@@ -97,7 +97,7 @@ export default function Logs() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="flex-1 flex flex-col bg-card border border-border rounded-xl overflow-hidden min-h-0"
+        className="flex-1 flex flex-col glass-card overflow-hidden min-h-0"
       >
         <Tabs.Root
           value={filter}

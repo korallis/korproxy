@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { proxyApi, type Account } from '../lib/api'
+import type { Account } from '@/types/electron'
 
 export function useAccounts() {
   const queryClient = useQueryClient()
@@ -11,21 +11,34 @@ export function useAccounts() {
     refetch,
   } = useQuery<Account[], Error>({
     queryKey: ['accounts'],
-    queryFn: () => proxyApi.getAccounts(),
+    queryFn: async () => {
+      if (!window.korproxy?.auth) {
+        return []
+      }
+      return window.korproxy.auth.listAccounts()
+    },
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
     retry: 1,
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (filename: string) => proxyApi.deleteAccount(filename),
+    mutationFn: async (id: string) => {
+      if (!window.korproxy?.auth) {
+        throw new Error('App not initialized')
+      }
+      const result = await window.korproxy.auth.removeAccount(id)
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete account')
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
     },
   })
 
-  const deleteAccount = async (filename: string) => {
-    await deleteMutation.mutateAsync(filename)
+  const deleteAccount = async (id: string) => {
+    await deleteMutation.mutateAsync(id)
   }
 
   return {

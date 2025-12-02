@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from './components/layout/AppShell'
 import { ToastContainer } from './components/shared/Toast'
+import { ErrorBoundary } from './components/shared/ErrorBoundary'
 import { useAppStore } from './stores/appStore'
 import Dashboard from './pages/Dashboard'
 import Providers from './pages/Providers'
@@ -36,15 +37,17 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <BrowserRouter>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/providers" element={<Providers />} />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/logs" element={<Logs />} />
-              <Route path="/settings" element={<Settings />} />
-            </Route>
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route element={<AppShell />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/providers" element={<Providers />} />
+                <Route path="/accounts" element={<Accounts />} />
+                <Route path="/logs" element={<Logs />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+            </Routes>
+          </ErrorBoundary>
         </BrowserRouter>
         <ToastContainer />
       </ThemeProvider>

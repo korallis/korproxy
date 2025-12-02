@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { getProviderIcon } from '@/components/icons/ProviderIcons'
+import { ProviderIcon } from '@/components/icons/ProviderIcons'
 
 export interface ProviderConfig {
   id: string
@@ -35,7 +35,6 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   onConnect,
   onManage,
 }) => {
-  const ProviderIcon = getProviderIcon(provider.id)
   const isConnected = accounts.length > 0
   const enabledAccounts = accounts.filter((a) => a.enabled)
 
@@ -87,7 +86,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <ProviderIcon className="w-6 h-6 text-white" />
+                <ProviderIcon provider={provider.id} className="w-6 h-6 text-white" />
               </motion.div>
               
               <div>

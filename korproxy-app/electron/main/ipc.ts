@@ -1,108 +1,139 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
+import { z } from 'zod'
 import { proxySidecar } from './sidecar'
 import { settingsStore, Settings } from './store'
+import { IPC_CHANNELS, LogData } from '../common/ipc-types'
+import {
+  ProxyStatusSchema,
+  ConfigContentSchema,
+  SettingsKeySchema,
+  SettingsSchema,
+  validateIpcPayload,
+  IpcValidationError,
+} from '../common/ipc-schemas'
 
-export const IPC_CHANNELS = {
-  PROXY_START: 'proxy:start',
-  PROXY_STOP: 'proxy:stop',
-  PROXY_STATUS: 'proxy:status',
-  PROXY_RESTART: 'proxy:restart',
-  PROXY_LOG: 'proxy:log',
-  CONFIG_GET: 'config:get',
-  CONFIG_SET: 'config:set',
-  APP_MINIMIZE: 'app:minimize',
-  APP_MAXIMIZE: 'app:maximize',
-  APP_CLOSE: 'app:close',
-  APP_IS_MAXIMIZED: 'app:is-maximized',
-  APP_GET_SETTINGS: 'app:get-settings',
-  APP_SET_SETTING: 'app:set-setting',
-  AUTH_START_OAUTH: 'auth:start-oauth',
-  AUTH_LIST_ACCOUNTS: 'auth:list-accounts',
-  AUTH_REMOVE_ACCOUNT: 'auth:remove-account',
-} as const
+export { IPC_CHANNELS }
 
 export interface ProxyStatus {
   running: boolean
   port: number
 }
 
+function createErrorResponse(error: unknown): { success: false; error: string } {
+  if (error instanceof IpcValidationError) {
+    return { success: false, error: `Validation error: ${error.message}` }
+  }
+  if (error instanceof Error) {
+    return { success: false, error: error.message }
+  }
+  return { success: false, error: 'An unknown error occurred' }
+}
+
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   proxySidecar.on('log', (data) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, data)
+      const logData: LogData = {
+        type: data.type,
+        message: data.message,
+        timestamp: new Date().toISOString(),
+      }
+      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, logData)
     }
   })
 
   proxySidecar.on('started', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, {
+      const logData: LogData = {
         type: 'stdout',
         message: '[KorProxy] Proxy started successfully',
-      })
+        timestamp: new Date().toISOString(),
+      }
+      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, logData)
     }
   })
 
   proxySidecar.on('stopped', (code) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, {
+      const logData: LogData = {
         type: 'stdout',
         message: `[KorProxy] Proxy stopped with code: ${code}`,
-      })
+        timestamp: new Date().toISOString(),
+      }
+      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, logData)
     }
   })
 
   proxySidecar.on('error', (error) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, {
+      const logData: LogData = {
         type: 'stderr',
         message: `[KorProxy] Error: ${error.message}`,
-      })
+        timestamp: new Date().toISOString(),
+      }
+      mainWindow.webContents.send(IPC_CHANNELS.PROXY_LOG, logData)
     }
   })
 
-  ipcMain.handle(IPC_CHANNELS.PROXY_START, async (): Promise<void> => {
-    await proxySidecar.start()
+  ipcMain.handle(IPC_CHANNELS.PROXY_START, async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await proxySidecar.start()
+      return { success: true }
+    } catch (error) {
+      return createErrorResponse(error)
+    }
   })
 
-  ipcMain.handle(IPC_CHANNELS.PROXY_STOP, (): void => {
+  ipcMain.handle(IPC_CHANNELS.PROXY_STOP, (): { success: boolean } => {
     proxySidecar.stop()
+    return { success: true }
   })
 
   ipcMain.handle(IPC_CHANNELS.PROXY_STATUS, (): ProxyStatus => {
-    return {
+    const status = {
       running: proxySidecar.isRunning(),
       port: proxySidecar.getPort(),
     }
+    return validateIpcPayload(IPC_CHANNELS.PROXY_STATUS, ProxyStatusSchema, status)
   })
 
-  ipcMain.handle(IPC_CHANNELS.PROXY_RESTART, async (): Promise<void> => {
-    await proxySidecar.restart()
+  ipcMain.handle(IPC_CHANNELS.PROXY_RESTART, async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await proxySidecar.restart()
+      return { success: true }
+    } catch (error) {
+      return createErrorResponse(error)
+    }
   })
 
-  ipcMain.handle(IPC_CHANNELS.CONFIG_GET, async (): Promise<string> => {
+  ipcMain.handle(IPC_CHANNELS.CONFIG_GET, async (): Promise<{ success: boolean; content?: string; error?: string }> => {
     const configPath = proxySidecar.getConfigPath()
     try {
       const content = await readFile(configPath, 'utf-8')
-      return content
+      return { success: true, content }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return ''
+        return { success: true, content: '' }
       }
-      throw error
+      return createErrorResponse(error)
     }
   })
 
-  ipcMain.handle(IPC_CHANNELS.CONFIG_SET, async (_, content: string): Promise<void> => {
-    const configPath = proxySidecar.getConfigPath()
-    try {
-      await mkdir(dirname(configPath), { recursive: true })
-      await writeFile(configPath, content, 'utf-8')
-    } catch (error) {
-      throw new Error(`Failed to write config: ${(error as Error).message}`)
+  ipcMain.handle(
+    IPC_CHANNELS.CONFIG_SET,
+    async (_, content: unknown): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const validContent = validateIpcPayload(IPC_CHANNELS.CONFIG_SET, ConfigContentSchema, content)
+        const configPath = proxySidecar.getConfigPath()
+        await mkdir(dirname(configPath), { recursive: true })
+        await writeFile(configPath, validContent, 'utf-8')
+        return { success: true }
+      } catch (error) {
+        return createErrorResponse(error)
+      }
     }
-  })
+  )
 
   ipcMain.handle(IPC_CHANNELS.APP_MINIMIZE, (): void => {
     mainWindow.minimize()
@@ -125,14 +156,49 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   ipcMain.handle(IPC_CHANNELS.APP_GET_SETTINGS, (): Settings => {
-    return settingsStore.getAll()
+    const settings = settingsStore.getAll()
+    return validateIpcPayload(IPC_CHANNELS.APP_GET_SETTINGS, SettingsSchema, settings)
   })
 
-  ipcMain.handle(IPC_CHANNELS.APP_SET_SETTING, <K extends keyof Settings>(
-    _: Electron.IpcMainInvokeEvent,
-    key: K,
-    value: Settings[K]
-  ): void => {
-    settingsStore.set(key, value)
+  ipcMain.handle(IPC_CHANNELS.APP_GET_VERSION, (): string => {
+    return app.getVersion()
   })
+
+  ipcMain.handle(
+    IPC_CHANNELS.APP_SET_SETTING,
+    (_, key: unknown, value: unknown): { success: boolean; error?: string } => {
+      try {
+        const validKey = validateIpcPayload(IPC_CHANNELS.APP_SET_SETTING, SettingsKeySchema, key)
+
+        const valueSchemas: Record<string, z.ZodSchema> = {
+          port: z.number().min(1).max(65535),
+          autoStart: z.boolean(),
+          minimizeToTray: z.boolean(),
+          theme: z.enum(['dark', 'light', 'system']),
+          windowBounds: z.object({
+            x: z.number(),
+            y: z.number(),
+            width: z.number().min(400),
+            height: z.number().min(300),
+          }),
+        }
+
+        const valueSchema = valueSchemas[validKey]
+        if (!valueSchema) {
+          return { success: false, error: `Unknown setting key: ${validKey}` }
+        }
+
+        const validValue = validateIpcPayload(IPC_CHANNELS.APP_SET_SETTING, valueSchema, value)
+        settingsStore.set(validKey as keyof Settings, validValue)
+        
+        if (validKey === 'port' && typeof validValue === 'number') {
+          proxySidecar.setPort(validValue)
+        }
+        
+        return { success: true }
+      } catch (error) {
+        return createErrorResponse(error)
+      }
+    }
+  )
 }

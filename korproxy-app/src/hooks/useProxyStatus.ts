@@ -1,65 +1,57 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import { proxyApi, type ProxyStatus } from '../lib/api'
 
 interface ProxyStatusState {
   isRunning: boolean
   isConnecting: boolean
   error: string | null
   version: string | null
-  setStatus: (status: ProxyStatus) => void
+  port: number
+  setRunning: (running: boolean) => void
   setConnecting: (connecting: boolean) => void
   setError: (error: string | null) => void
+  setPort: (port: number) => void
 }
 
 export const useProxyStatusStore = create<ProxyStatusState>((set) => ({
   isRunning: false,
-  isConnecting: true,
+  isConnecting: false,
   error: null,
   version: null,
+  port: 1337,
 
-  setStatus: (status) =>
-    set({
-      isRunning: status.running,
-      version: status.version || null,
-      error: null,
-    }),
-
+  setRunning: (running) => set({ isRunning: running, error: null }),
   setConnecting: (connecting) => set({ isConnecting: connecting }),
-
   setError: (error) => set({ error, isRunning: false }),
+  setPort: (port) => set({ port }),
 }))
 
 export function useProxyStatus() {
   const store = useProxyStatusStore()
 
   useEffect(() => {
-    let mounted = true
-    let intervalId: ReturnType<typeof setInterval>
+    if (!window.korproxy) return
+
+    const initSettings = async () => {
+      const settings = await window.korproxy.app.getSettings()
+      store.setPort(settings.port)
+    }
 
     const checkStatus = async () => {
-      if (!mounted) return
-      try {
-        const status = await proxyApi.getStatus()
-        if (mounted) {
-          store.setStatus(status)
-          store.setConnecting(false)
-        }
-      } catch (err) {
-        if (mounted) {
-          store.setError(err instanceof Error ? err.message : 'Connection failed')
-          store.setConnecting(false)
-        }
-      }
+      const status = await window.korproxy.proxy.status()
+      store.setRunning(status.running)
     }
 
+    initSettings()
     checkStatus()
-    intervalId = setInterval(checkStatus, 5000)
 
-    return () => {
-      mounted = false
-      clearInterval(intervalId)
-    }
+    // Subscribe to status changes via IPC polling
+    const unsubscribe = window.korproxy.proxy.onStatusChange((status) => {
+      store.setRunning(status.running)
+    })
+
+    return unsubscribe
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {
@@ -67,5 +59,6 @@ export function useProxyStatus() {
     isConnecting: store.isConnecting,
     error: store.error,
     version: store.version,
+    port: store.port,
   }
 }
