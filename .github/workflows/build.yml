@@ -121,28 +121,24 @@ jobs:
         shell: bash
         run: echo "VERSION=$(node -p "require('./korproxy-app/package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Setup Java for CodeSignTool
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-
-      - name: Setup SSL.com CodeSignTool
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.0/CodeSignTool-v1.3.0-windows.zip" -OutFile "CodeSignTool.zip"
-          Expand-Archive -Path "CodeSignTool.zip" -DestinationPath "."
-          echo "CODESIGNTOOL_PATH=$((Get-Location).Path)\CodeSignTool-v1.3.0\CodeSignTool.bat" >> $env:GITHUB_ENV
-
-      - name: Build & Package Windows
+      - name: Build & Package Windows (unsigned)
         working-directory: korproxy-app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ES_USERNAME: ${{ secrets.ES_USERNAME }}
-          ES_PASSWORD: ${{ secrets.ES_PASSWORD }}
-          ES_CREDENTIAL_ID: ${{ secrets.ES_CREDENTIAL_ID }}
-          ES_TOTP_SECRET: ${{ secrets.ES_TOTP_SECRET }}
         run: npm run package:win
+
+      - name: Sign Windows Installer with SSL.com
+        uses: sslcom/esigner-codesign@develop
+        with:
+          command: sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: korproxy-app/release/KorProxy-${{ steps.version.outputs.VERSION }}-setup.exe
+          override: true
+          malware_block: false
+          environment_name: PROD
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

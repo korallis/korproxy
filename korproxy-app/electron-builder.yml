@@ -75,13 +75,8 @@ dmg:
 # See: https://www.electron.build/code-signing
 win:
   icon: build/icon.ico
-  # Use custom sign script for SSL.com eSigner EV certificate
-  sign: scripts/windows-sign.cjs
-  # Sign all executables
-  signingHashAlgorithms:
-    - sha256
-  # Use timestamp server for long-term validity
-  timeStampServer: http://timestamp.digicert.com
+  # Code signing is handled by SSL.com eSigner GitHub Action after build
+  # See .github/workflows/build.yml
   extraResources:
     - from: "resources/binaries/win32-${arch}/"
       to: "binaries/"
