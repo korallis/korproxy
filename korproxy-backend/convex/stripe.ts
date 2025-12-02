@@ -172,7 +172,8 @@ export const handleWebhook = internalAction({
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(args.payload, args.signature, webhookSecret);
+      // Use async version for Convex runtime compatibility
+      event = await stripe.webhooks.constructEventAsync(args.payload, args.signature, webhookSecret);
       console.log("Webhook signature verified successfully");
     } catch (err) {
       console.error("Webhook signature verification failed:", err);
