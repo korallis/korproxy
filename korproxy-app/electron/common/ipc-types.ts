@@ -58,6 +58,7 @@ export interface Account {
   enabled: boolean
   createdAt: string
   lastUsed?: string
+  expiredAt?: string
 }
 
 export interface ProxyStatus {

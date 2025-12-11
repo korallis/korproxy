@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { RefreshCw, Trash2, User, Clock, AlertCircle } from 'lucide-react'
+import { RefreshCw, Trash2, User, Clock, AlertCircle, KeyRound } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAccounts } from '../hooks/useAccounts'
 import { AccountListSkeleton } from '../components/shared/LoadingSkeleton'
-import type { Account } from '@/types/electron'
+import { OAuthModal } from '../components/auth/OAuthModal'
+import type { Account, Provider } from '@/types/electron'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -55,10 +56,11 @@ function getProviderName(provider: string): string {
   return providerNames[provider.toLowerCase()] || provider
 }
 
-function StatusBadge({ status, disabled }: { status?: string; disabled?: boolean }) {
-  const isActive = status === 'active' || status === 'ready'
+function StatusBadge({ status, disabled, expiredAt }: { status?: string; disabled?: boolean; expiredAt?: string }) {
+  const isExpired = expiredAt ? new Date(expiredAt) < new Date() : false
+  const isActive = (status === 'active' || status === 'ready') && !isExpired
   const isDisabled = disabled || status === 'disabled'
-  const isError = status === 'error' || status === 'expired'
+  const isError = status === 'error' || status === 'expired' || isExpired
 
   return (
     <span
@@ -70,7 +72,7 @@ function StatusBadge({ status, disabled }: { status?: string; disabled?: boolean
         !isActive && !isDisabled && !isError && 'bg-yellow-500/10 text-yellow-500'
       )}
     >
-      {isDisabled ? 'Disabled' : isError ? 'Error' : isActive ? 'Active' : status || 'Unknown'}
+      {isDisabled ? 'Disabled' : isExpired ? 'Expired' : isError ? 'Error' : isActive ? 'Active' : status || 'Unknown'}
     </span>
   )
 }
@@ -130,6 +132,24 @@ export default function Accounts() {
   const navigate = useNavigate()
   const { accounts, isLoading, error, refetch, deleteAccount, isDeleting } = useAccounts()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [reAuthProvider, setReAuthProvider] = useState<Provider | null>(null)
+
+  const isTokenExpired = (expiredAt?: string) => {
+    if (!expiredAt) return false
+    return new Date(expiredAt) < new Date()
+  }
+
+  const handleReAuth = (provider: Provider) => {
+    setReAuthProvider(provider)
+  }
+
+  const handleReAuthSuccess = () => {
+    refetch()
+  }
+
+  const handleReAuthClose = () => {
+    setReAuthProvider(null)
+  }
 
   const groupedAccounts = accounts.reduce(
     (acc, account) => {
@@ -259,7 +279,11 @@ export default function Accounts() {
                             {account.email || account.name}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <StatusBadge status={account.enabled ? 'active' : 'disabled'} disabled={!account.enabled} />
+                            <StatusBadge
+                              status={account.enabled ? 'active' : 'disabled'}
+                              disabled={!account.enabled}
+                              expiredAt={account.expiredAt}
+                            />
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {formatDate(account.createdAt)}
@@ -268,6 +292,18 @@ export default function Accounts() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {isTokenExpired(account.expiredAt) && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleReAuth(account.provider)}
+                            className="px-3 py-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                            title="Re-authenticate"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                            Re-auth
+                          </motion.button>
+                        )}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -293,6 +329,15 @@ export default function Accounts() {
             ))}
           </AnimatePresence>
         </motion.div>
+      )}
+
+      {reAuthProvider && (
+        <OAuthModal
+          provider={reAuthProvider}
+          isOpen={true}
+          onClose={handleReAuthClose}
+          onSuccess={handleReAuthSuccess}
+        />
       )}
     </div>
   )

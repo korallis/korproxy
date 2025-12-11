@@ -179,6 +179,7 @@ function listAccounts(): Account[] {
           provider,
           enabled: true,
           createdAt: stats.mtime.toISOString(),
+          expiredAt: data.expired,
         }
         
         accounts.push(account)
