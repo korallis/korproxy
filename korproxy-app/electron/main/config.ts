@@ -28,9 +28,11 @@ quota-exceeded:
   switch-preview-model: true
 
 # Amp CLI Integration - enables OAuth and management proxy
+# restrict-management-to-localhost: true restricts /api/user, /auth, etc. to localhost only (secure default)
+# Set to false if accessing KorProxy from a different machine running Amp CLI
 ampcode:
   upstream-url: "https://ampcode.com"
-  restrict-management-to-localhost: false
+  restrict-management-to-localhost: true
 `
 }
 
@@ -60,9 +62,11 @@ function migrateConfig(configPath: string): void {
     if (!content.includes('ampcode:')) {
       const ampcodeSection = `
 # Amp CLI Integration - enables OAuth and management proxy
+# restrict-management-to-localhost: true restricts /api/user, /auth, etc. to localhost only (secure default)
+# Set to false if accessing KorProxy from a different machine running Amp CLI
 ampcode:
   upstream-url: "https://ampcode.com"
-  restrict-management-to-localhost: false
+  restrict-management-to-localhost: true
 `
       writeFileSync(configPath, content.trimEnd() + '\n' + ampcodeSection, 'utf-8')
     }
