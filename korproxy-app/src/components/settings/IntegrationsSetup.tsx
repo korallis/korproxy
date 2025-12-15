@@ -175,14 +175,24 @@ export function IntegrationsSetup() {
 
     setFactorySaving(true)
     try {
-      const models: FactoryCustomModel[] = AVAILABLE_MODELS.filter((m) => selectedModels.has(m.id)).map((m) => ({
-        model_display_name: `${m.displayName} [KorProxy]`,
-        model: m.model,
-        base_url: `http://localhost:${port}/v1`,
-        api_key: 'korproxy',
-        provider: m.provider,
-        max_tokens: m.maxTokens,
-      }))
+      const models: FactoryCustomModel[] = AVAILABLE_MODELS.filter((m) => selectedModels.has(m.id)).map((m) => {
+        // Factory CLI constructs API paths differently per provider:
+        // - anthropic: calls {base_url}/v1/messages -> use base without /v1
+        // - openai: calls {base_url}/responses -> use base with /v1
+        // - generic-chat-completion-api: calls {base_url}/chat/completions -> use base with /v1
+        const baseUrl = m.provider === 'anthropic'
+          ? `http://localhost:${port}`
+          : `http://localhost:${port}/v1`
+
+        return {
+          model_display_name: `${m.displayName} [KorProxy]`,
+          model: m.model,
+          base_url: baseUrl,
+          api_key: 'korproxy',
+          provider: m.provider,
+          max_tokens: m.maxTokens,
+        }
+      })
 
       const result = await window.korproxy.integrations.factory.set(models)
       if (result.success) {
