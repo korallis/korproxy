@@ -142,7 +142,7 @@ export function ConfigEditor() {
               onChange={(e) => setContent(e.target.value)}
               className={cn(
                 'w-full h-80 p-4 rounded-lg font-mono text-sm resize-none',
-                'bg-background/50 border border-border/50',
+                'bg-background border border-border/50 text-foreground',
                 'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50',
                 'placeholder:text-muted-foreground'
               )}
