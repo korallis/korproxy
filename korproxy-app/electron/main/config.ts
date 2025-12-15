@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { join, dirname } from 'path'
-import { existsSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'fs'
 
 const DEFAULT_PORT = 1337
 
@@ -26,6 +26,11 @@ max-retry-interval: 30
 quota-exceeded:
   switch-project: true
   switch-preview-model: true
+
+# Amp CLI Integration - enables OAuth and management proxy
+ampcode:
+  upstream-url: "https://ampcode.com"
+  restrict-management-to-localhost: false
 `
 }
 
@@ -37,6 +42,32 @@ export function ensureConfigExists(port: number = DEFAULT_PORT): void {
       mkdirSync(configDir, { recursive: true })
     }
     writeFileSync(configPath, generateDefaultConfig(port), 'utf-8')
+  } else {
+    // Migrate existing config: add ampcode section if missing
+    migrateConfig(configPath)
+  }
+}
+
+/**
+ * Migrates existing config files to add new required sections.
+ * Currently adds ampcode upstream-url for Amp CLI authentication.
+ */
+function migrateConfig(configPath: string): void {
+  try {
+    const content = readFileSync(configPath, 'utf-8')
+
+    // Check if ampcode section is missing
+    if (!content.includes('ampcode:')) {
+      const ampcodeSection = `
+# Amp CLI Integration - enables OAuth and management proxy
+ampcode:
+  upstream-url: "https://ampcode.com"
+  restrict-management-to-localhost: false
+`
+      writeFileSync(configPath, content.trimEnd() + '\n' + ampcodeSection, 'utf-8')
+    }
+  } catch (error) {
+    console.error('Failed to migrate config:', error)
   }
 }
 
