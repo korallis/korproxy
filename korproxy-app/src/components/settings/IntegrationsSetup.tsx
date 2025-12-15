@@ -103,11 +103,12 @@ const AVAILABLE_MODELS: ModelOption[] = [
 ]
 
 const AMP_PROVIDER_INFO = [
-  { mode: 'Smart mode', provider: 'Gemini', model: 'gemini-3-pro-preview' },
-  { mode: 'Rush mode', provider: 'Claude', model: 'claude-haiku-4-5-20251001' },
-  { mode: 'Oracle subagent', provider: 'OpenAI', model: 'gpt-5(medium)' },
-  { mode: 'Librarian', provider: 'Claude', model: 'claude-sonnet-4-5-20250929' },
-  { mode: 'Review feature', provider: 'Gemini', model: 'gemini-2.5-flash-lite' },
+  { mode: 'Smart mode', provider: 'Claude', model: 'Claude Opus 4.5' },
+  { mode: 'Rush mode', provider: 'Claude', model: 'Claude Haiku 4.5' },
+  { mode: 'Oracle subagent', provider: 'OpenAI', model: 'GPT-5.1 (medium reasoning)' },
+  { mode: 'Librarian', provider: 'Claude', model: 'Claude Sonnet 4.5' },
+  { mode: 'Search subagent', provider: 'Claude', model: 'Claude Haiku 4.5' },
+  { mode: 'Review feature', provider: 'Gemini', model: 'Gemini 2.5 Flash-Lite' },
 ]
 
 export function IntegrationsSetup() {

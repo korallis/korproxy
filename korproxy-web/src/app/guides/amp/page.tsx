@@ -161,7 +161,7 @@ export default function AmpGuidePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div className="p-3 bg-muted rounded-lg">
               <p className="font-medium text-foreground">Smart Mode</p>
-              <p className="text-muted-foreground text-xs">Google/Gemini (Gemini 3 Pro)</p>
+              <p className="text-muted-foreground text-xs">Anthropic/Claude (Claude Opus 4.5)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg">
               <p className="font-medium text-foreground">Rush Mode</p>
@@ -169,7 +169,7 @@ export default function AmpGuidePage() {
             </div>
             <div className="p-3 bg-muted rounded-lg">
               <p className="font-medium text-foreground">Oracle Subagent</p>
-              <p className="text-muted-foreground text-xs">OpenAI/GPT (GPT-5 medium reasoning)</p>
+              <p className="text-muted-foreground text-xs">OpenAI/GPT (GPT-5.1 medium reasoning)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg">
               <p className="font-medium text-foreground">Librarian Subagent</p>
