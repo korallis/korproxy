@@ -64,82 +64,52 @@ const geminiModels: ModelInfo[] = [
 
 const claudeModels: ModelInfo[] = [
   {
-    id: "claude-opus-4-5-thinking",
-    displayName: "Claude 4.5 Opus Thinking",
-    description: "Premium model with extended thinking for complex reasoning",
-    features: ["200K context", "Extended thinking", "Best reasoning"],
-  },
-  {
-    id: "claude-opus-4-5-thinking-high",
-    displayName: "Claude 4.5 Opus Thinking High",
-    description: "Opus with high thinking budget",
-    features: ["200K context", "High thinking", "Deep analysis"],
-  },
-  {
-    id: "claude-opus-4-5-thinking-medium",
-    displayName: "Claude 4.5 Opus Thinking Medium",
-    description: "Opus with medium thinking budget",
-    features: ["200K context", "Medium thinking", "Balanced"],
-  },
-  {
-    id: "claude-opus-4-5-thinking-low",
-    displayName: "Claude 4.5 Opus Thinking Low",
-    description: "Opus with low thinking budget for faster responses",
-    features: ["200K context", "Low thinking", "Faster"],
-  },
-  {
     id: "claude-opus-4-5-20251101",
     displayName: "Claude 4.5 Opus",
     description: "Premium model combining maximum intelligence with practical performance",
-    features: ["200K context", "64K output", "Best for complex tasks"],
-  },
-  {
-    id: "claude-sonnet-4-5-thinking",
-    displayName: "Claude 4.5 Sonnet Thinking",
-    description: "Balanced model with extended thinking capabilities",
-    features: ["200K context", "Extended thinking", "Best for coding"],
+    features: ["200K context", "64K output", "Thinking: 1024-100000"],
   },
   {
     id: "claude-sonnet-4-5-20250929",
     displayName: "Claude 4.5 Sonnet",
     description: "Balanced model with excellent coding capabilities",
-    features: ["200K context", "64K output", "Fast responses"],
+    features: ["200K context", "64K output", "Thinking: 1024-100000"],
   },
   {
     id: "claude-haiku-4-5-20251001",
     displayName: "Claude 4.5 Haiku",
     description: "Fastest Claude model for quick tasks",
-    features: ["200K context", "Ultra-fast", "Cost-effective"],
+    features: ["200K context", "64K output", "No thinking"],
   },
   {
     id: "claude-opus-4-1-20250805",
     displayName: "Claude 4.1 Opus",
     description: "Previous generation Opus model",
-    features: ["200K context", "32K output", "Stable"],
+    features: ["200K context", "32K output", "Thinking support"],
   },
   {
     id: "claude-opus-4-20250514",
     displayName: "Claude 4 Opus",
     description: "Claude 4 flagship model",
-    features: ["200K context", "32K output", "Proven"],
+    features: ["200K context", "32K output", "Thinking support"],
   },
   {
     id: "claude-sonnet-4-20250514",
     displayName: "Claude 4 Sonnet",
     description: "Claude 4 balanced model",
-    features: ["200K context", "64K output", "Efficient"],
+    features: ["200K context", "64K output", "Thinking support"],
   },
   {
     id: "claude-3-7-sonnet-20250219",
     displayName: "Claude 3.7 Sonnet",
     description: "Claude 3.7 generation Sonnet",
-    features: ["128K context", "8K output", "Legacy"],
+    features: ["128K context", "8K output", "Thinking support"],
   },
   {
     id: "claude-3-5-haiku-20241022",
     displayName: "Claude 3.5 Haiku",
     description: "Claude 3.5 generation Haiku",
-    features: ["128K context", "8K output", "Legacy"],
+    features: ["128K context", "8K output", "No thinking"],
   },
 ];
 
@@ -148,73 +118,19 @@ const codexModels: ModelInfo[] = [
     id: "gpt-5.1-codex-max",
     displayName: "GPT 5.1 Codex Max",
     description: "Most powerful Codex model for complex agentic tasks",
-    features: ["400K context", "128K output", "Max reasoning"],
-  },
-  {
-    id: "gpt-5.1-codex-max-xhigh",
-    displayName: "GPT 5.1 Codex Max XHigh",
-    description: "Codex Max with extra high reasoning",
-    features: ["400K context", "XHigh reasoning", "Premium"],
-  },
-  {
-    id: "gpt-5.1-codex-max-high",
-    displayName: "GPT 5.1 Codex Max High",
-    description: "Codex Max with high reasoning",
-    features: ["400K context", "High reasoning", "Complex tasks"],
-  },
-  {
-    id: "gpt-5.1-codex-max-medium",
-    displayName: "GPT 5.1 Codex Max Medium",
-    description: "Codex Max with medium reasoning",
-    features: ["400K context", "Medium reasoning", "Balanced"],
-  },
-  {
-    id: "gpt-5.1-codex-max-low",
-    displayName: "GPT 5.1 Codex Max Low",
-    description: "Codex Max with low reasoning for speed",
-    features: ["400K context", "Low reasoning", "Faster"],
+    features: ["400K context", "128K output", "Levels: low, medium, high, xhigh"],
   },
   {
     id: "gpt-5.1-codex",
     displayName: "GPT 5.1 Codex",
     description: "Latest Codex model for coding tasks",
-    features: ["400K context", "128K output", "Function calling"],
-  },
-  {
-    id: "gpt-5.1-codex-high",
-    displayName: "GPT 5.1 Codex High",
-    description: "GPT 5.1 Codex with high reasoning",
-    features: ["400K context", "High reasoning", "Complex coding"],
-  },
-  {
-    id: "gpt-5.1-codex-medium",
-    displayName: "GPT 5.1 Codex Medium",
-    description: "GPT 5.1 Codex with medium reasoning",
-    features: ["400K context", "Medium reasoning", "Balanced"],
-  },
-  {
-    id: "gpt-5.1-codex-low",
-    displayName: "GPT 5.1 Codex Low",
-    description: "GPT 5.1 Codex with low reasoning",
-    features: ["400K context", "Low reasoning", "Fast"],
+    features: ["400K context", "128K output", "Levels: low, medium, high"],
   },
   {
     id: "gpt-5.1-codex-mini",
     displayName: "GPT 5.1 Codex Mini",
     description: "Smaller, faster version of Codex",
-    features: ["400K context", "Cost-effective", "Fast"],
-  },
-  {
-    id: "gpt-5.1-codex-mini-high",
-    displayName: "GPT 5.1 Codex Mini High",
-    description: "Codex Mini with high reasoning",
-    features: ["400K context", "High reasoning", "Efficient"],
-  },
-  {
-    id: "gpt-5.1-codex-mini-medium",
-    displayName: "GPT 5.1 Codex Mini Medium",
-    description: "Codex Mini with medium reasoning",
-    features: ["400K context", "Medium reasoning", "Balanced"],
+    features: ["400K context", "Cost-effective", "Levels: low, medium, high"],
   },
   {
     id: "gpt-5.1",
@@ -223,34 +139,22 @@ const codexModels: ModelInfo[] = [
     features: ["400K context", "128K output", "Multimodal"],
   },
   {
-    id: "gpt-5.1-high",
-    displayName: "GPT 5.1 High",
-    description: "GPT 5.1 with high reasoning",
-    features: ["400K context", "High reasoning", "Complex tasks"],
-  },
-  {
-    id: "gpt-5.1-medium",
-    displayName: "GPT 5.1 Medium",
-    description: "GPT 5.1 with medium reasoning",
-    features: ["400K context", "Medium reasoning", "Balanced"],
-  },
-  {
-    id: "gpt-5.1-low",
-    displayName: "GPT 5.1 Low",
-    description: "GPT 5.1 with low reasoning",
-    features: ["400K context", "Low reasoning", "Fast"],
-  },
-  {
-    id: "gpt-5",
-    displayName: "GPT 5",
-    description: "GPT 5 base model",
-    features: ["400K context", "128K output", "Stable"],
+    id: "gpt-5.2",
+    displayName: "GPT 5.2",
+    description: "Next generation GPT model",
+    features: ["400K context", "128K output", "Latest"],
   },
   {
     id: "gpt-5-codex",
     displayName: "GPT 5 Codex",
     description: "GPT 5 optimized for code",
-    features: ["400K context", "Code-focused", "Function calling"],
+    features: ["400K context", "Code-focused", "Levels: low, medium, high"],
+  },
+  {
+    id: "gpt-5",
+    displayName: "GPT 5",
+    description: "GPT 5 base model",
+    features: ["400K context", "128K output", "Levels: minimal, low, medium, high"],
   },
 ];
 
@@ -548,14 +452,16 @@ export default function ModelsGuidePage() {
               Copy any model ID and use it in your AI coding tool&apos;s configuration. For example, in Cline or Cursor settings:
             </p>
             <div className="bg-muted p-3 rounded-lg font-mono text-xs">
-              <div className="text-muted-foreground mb-1"># Example configuration</div>
-              <div><span className="text-blue-400">model:</span> <span className="text-green-400">claude-sonnet-4-5-20250929</span></div>
-              <div><span className="text-blue-400">baseUrl:</span> <span className="text-green-400">http://localhost:1337/v1</span></div>
+              <div className="text-muted-foreground mb-1"># Example configurations</div>
+              <div><span className="text-blue-400">model:</span> <span className="text-green-400">claude-opus-4-5-20251101</span></div>
+              <div><span className="text-blue-400">model:</span> <span className="text-green-400">gpt-5.1-codex-max</span></div>
+              <div><span className="text-blue-400">model:</span> <span className="text-green-400">gemini-2.5-pro</span></div>
+              <div className="mt-2"><span className="text-blue-400">baseUrl:</span> <span className="text-green-400">http://localhost:1337/v1</span></div>
             </div>
             <div className="flex items-start gap-2 mt-4">
               <Zap className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <p>
-                <strong className="text-foreground">Thinking Models:</strong> Models ending in &quot;-thinking&quot; or with reasoning levels (high/medium/low) provide extended reasoning capabilities.
+                <strong className="text-foreground">Thinking/Reasoning:</strong> For OpenAI Codex models, append reasoning level in parentheses: <code className="bg-muted px-1.5 py-0.5 rounded text-xs">gpt-5.1-codex-max(high)</code>. Claude models have built-in thinking budgets. Gemini models use <code className="bg-muted px-1.5 py-0.5 rounded text-xs">thinkingBudget</code> parameter.
               </p>
             </div>
           </div>

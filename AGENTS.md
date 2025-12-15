@@ -135,20 +135,26 @@ npm run deploy           # Deploy to Convex production
 
 ## Supported AI Models
 
+Models must match CLIProxyAPI registry. See `CLIProxyAPI/internal/registry/model_definitions.go`.
+
 ### Claude (Anthropic)
-- `claude-opus-4-5-thinking-high` - Premium with high thinking
-- `claude-sonnet-4-5-thinking` - Balanced with thinking
-- `claude-haiku-4-5-20251001` - Fast responses
+- `claude-opus-4-5-20251101` - Premium flagship (thinking: 1024-100000)
+- `claude-sonnet-4-5-20250929` - Balanced (thinking: 1024-100000)
+- `claude-haiku-4-5-20251001` - Fast responses (no thinking)
 
 ### Codex (OpenAI)
-- `gpt-5.1-codex-max-xhigh` - Max reasoning (premium)
-- `gpt-5.1-codex-high` - High reasoning
-- `gpt-5.1-codex` - Standard
+- `gpt-5.1-codex-max` - Max reasoning (levels: low, medium, high, xhigh)
+- `gpt-5.1-codex` - Standard (levels: low, medium, high)
+- `gpt-5.1-codex-mini` - Faster/cheaper (levels: low, medium, high)
+- `gpt-5-codex` - Legacy (levels: low, medium, high)
+- `gpt-5` - Base model (levels: minimal, low, medium, high)
 
 ### Gemini (Google)
-- `gemini-3-pro-image-preview` - With image generation
-- `gemini-3-pro-preview` - Latest flagship
-- `gemini-2.5-pro` - Stable flagship
+- `gemini-3-pro-preview` - Latest flagship (thinking: 128-32768)
+- `gemini-3-pro-image-preview` - With image generation (thinking: 128-32768)
+- `gemini-2.5-pro` - Stable flagship (thinking: 128-32768)
+- `gemini-2.5-flash` - Fast (thinking: 0-24576)
+- `gemini-2.5-flash-lite` - Fastest/cheapest (thinking: 0-24576)
 
 ## Convex Reference
 **IMPORTANT:** When creating or modifying any Convex code, ALWAYS read [docs/convex-llms-reference.md](docs/convex-llms-reference.md) first.

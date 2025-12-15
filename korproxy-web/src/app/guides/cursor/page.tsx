@@ -141,15 +141,15 @@ export OPENAI_API_KEY=korproxy`}</code>
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3 bg-muted rounded-lg text-center">
-              <code className="font-mono text-sm text-foreground">claude-opus-4-5-thinking-high</code>
+              <code className="font-mono text-sm text-foreground">claude-opus-4-5-20251101</code>
               <p className="text-xs text-muted-foreground mt-1">Anthropic (premium)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg text-center">
-              <code className="font-mono text-sm text-foreground">claude-sonnet-4-5-thinking</code>
+              <code className="font-mono text-sm text-foreground">claude-sonnet-4-5-20250929</code>
               <p className="text-xs text-muted-foreground mt-1">Anthropic (balanced)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg text-center">
-              <code className="font-mono text-sm text-foreground">gpt-5.1-codex-max-xhigh</code>
+              <code className="font-mono text-sm text-foreground">gpt-5.1-codex-max</code>
               <p className="text-xs text-muted-foreground mt-1">OpenAI (max reasoning)</p>
             </div>
             <div className="p-3 bg-muted rounded-lg text-center">

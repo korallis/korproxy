@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation, QueryCtx } from "./_generated/server";
+import { hashPassword } from "./lib/password";
 
 // Pricing in GBP (pence for calculations)
 const MONTHLY_PRICE = 1499; // £14.99
@@ -244,6 +245,81 @@ export const getRecentEvents = query({
 });
 
 /**
+ * Grant lifetime access to a user by email (admin only via secret key)
+ * Creates the user if they don't exist
+ */
+export const grantLifetimeAccess = mutation({
+  args: {
+    secretKey: v.string(),
+    email: v.string(),
+  },
+  returns: v.union(
+    v.object({ success: v.boolean(), message: v.string() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    if (args.secretKey !== "korproxy-admin-bootstrap-2024") {
+      return { error: "Invalid secret key" };
+    }
+
+    const normalizedEmail = args.email.toLowerCase().trim();
+    
+    let user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .first();
+
+    if (!user) {
+      // Create user with lifetime access - they can set password via "forgot password" later
+      const userId = await ctx.db.insert("users", {
+        email: normalizedEmail,
+        passwordHash: "", // Empty - user needs to reset password
+        role: "user",
+        subscriptionStatus: "lifetime",
+        createdAt: Date.now(),
+      });
+
+      // Log the event
+      await ctx.db.insert("subscriptionEvents", {
+        userId,
+        eventType: "lifetime_granted",
+        fromStatus: "none",
+        toStatus: "lifetime",
+        occurredAt: Date.now(),
+      });
+
+      return { 
+        success: true, 
+        message: `Created user ${normalizedEmail} with lifetime access. User needs to set password via forgot password flow.` 
+      };
+    }
+
+    const previousStatus = user.subscriptionStatus;
+    
+    await ctx.db.patch(user._id, {
+      subscriptionStatus: "lifetime",
+      currentPeriodEnd: undefined,
+      cancelAtPeriodEnd: false,
+      updatedAt: Date.now(),
+    });
+
+    // Log the event
+    await ctx.db.insert("subscriptionEvents", {
+      userId: user._id,
+      eventType: "lifetime_granted",
+      fromStatus: previousStatus,
+      toStatus: "lifetime",
+      occurredAt: Date.now(),
+    });
+
+    return { 
+      success: true, 
+      message: `User ${normalizedEmail} granted lifetime access` 
+    };
+  },
+});
+
+/**
  * Bootstrap admin user - upgrades master admin email to admin role with lifetime access
  * This is safe to call multiple times - only affects the master admin email
  */
@@ -280,6 +356,53 @@ export const bootstrapAdmin = mutation({
     return { 
       success: true, 
       message: `User ${MASTER_ADMIN_EMAIL} upgraded to admin with lifetime access` 
+    };
+  },
+});
+
+/**
+ * Reset a user's password (admin only via secret key)
+ */
+export const resetUserPassword = mutation({
+  args: {
+    secretKey: v.string(),
+    email: v.string(),
+    newPassword: v.string(),
+  },
+  returns: v.union(
+    v.object({ success: v.boolean(), message: v.string() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    if (args.secretKey !== "korproxy-admin-bootstrap-2024") {
+      return { error: "Invalid secret key" };
+    }
+
+    if (args.newPassword.length < 8) {
+      return { error: "Password must be at least 8 characters" };
+    }
+
+    const normalizedEmail = args.email.toLowerCase().trim();
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .first();
+
+    if (!user) {
+      return { error: `User ${normalizedEmail} not found` };
+    }
+
+    const passwordHash = await hashPassword(args.newPassword);
+    
+    await ctx.db.patch(user._id, {
+      passwordHash,
+      updatedAt: Date.now(),
+    });
+
+    return { 
+      success: true, 
+      message: `Password reset for ${normalizedEmail}` 
     };
   },
 });

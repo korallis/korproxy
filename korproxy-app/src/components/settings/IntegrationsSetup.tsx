@@ -27,19 +27,19 @@ interface ModelOption {
 const AVAILABLE_MODELS: ModelOption[] = [
   // Claude models
   {
-    id: 'claude-opus-thinking-high',
-    displayName: 'Claude Opus 4.5 Thinking High',
-    model: 'claude-opus-4-5-thinking-high',
+    id: 'claude-opus',
+    displayName: 'Claude Opus 4.5',
+    model: 'claude-opus-4-5-20251101',
     provider: 'anthropic',
-    maxTokens: 32000,
+    maxTokens: 64000,
     category: 'claude',
   },
   {
-    id: 'claude-sonnet-thinking',
-    displayName: 'Claude Sonnet 4.5 Thinking',
-    model: 'claude-sonnet-4-5-thinking',
+    id: 'claude-sonnet',
+    displayName: 'Claude Sonnet 4.5',
+    model: 'claude-sonnet-4-5-20250929',
     provider: 'anthropic',
-    maxTokens: 32000,
+    maxTokens: 64000,
     category: 'claude',
   },
   {
@@ -47,32 +47,32 @@ const AVAILABLE_MODELS: ModelOption[] = [
     displayName: 'Claude Haiku 4.5',
     model: 'claude-haiku-4-5-20251001',
     provider: 'anthropic',
-    maxTokens: 16000,
+    maxTokens: 64000,
     category: 'claude',
   },
   // Codex models
   {
-    id: 'gpt-codex-max',
-    displayName: 'GPT-5.1 Codex Max (xHigh)',
-    model: 'gpt-5.1-codex-max-xhigh',
+    id: 'gpt-5-codex-max',
+    displayName: 'GPT-5.1 Codex Max',
+    model: 'gpt-5.1-codex-max',
     provider: 'openai',
-    maxTokens: 32000,
+    maxTokens: 128000,
     category: 'codex',
   },
   {
-    id: 'gpt-codex-high',
-    displayName: 'GPT-5.1 Codex High',
-    model: 'gpt-5.1-codex-high',
-    provider: 'openai',
-    maxTokens: 32000,
-    category: 'codex',
-  },
-  {
-    id: 'gpt-codex',
+    id: 'gpt-5-codex',
     displayName: 'GPT-5.1 Codex',
     model: 'gpt-5.1-codex',
     provider: 'openai',
-    maxTokens: 32000,
+    maxTokens: 128000,
+    category: 'codex',
+  },
+  {
+    id: 'gpt-5-codex-mini',
+    displayName: 'GPT-5.1 Codex Mini',
+    model: 'gpt-5.1-codex-mini',
+    provider: 'openai',
+    maxTokens: 128000,
     category: 'codex',
   },
   // Gemini models
@@ -103,11 +103,11 @@ const AVAILABLE_MODELS: ModelOption[] = [
 ]
 
 const AMP_PROVIDER_INFO = [
-  { mode: 'Smart mode', provider: 'Gemini', model: 'Gemini 3 Pro' },
-  { mode: 'Rush mode', provider: 'Claude', model: 'Claude Haiku 4.5' },
-  { mode: 'Oracle subagent', provider: 'OpenAI', model: 'GPT-5 medium' },
-  { mode: 'Librarian', provider: 'Claude', model: 'Claude Sonnet 4.5' },
-  { mode: 'Review feature', provider: 'Gemini', model: 'Gemini 2.5 Flash-Lite' },
+  { mode: 'Smart mode', provider: 'Gemini', model: 'gemini-3-pro-preview' },
+  { mode: 'Rush mode', provider: 'Claude', model: 'claude-haiku-4-5-20251001' },
+  { mode: 'Oracle subagent', provider: 'OpenAI', model: 'gpt-5(medium)' },
+  { mode: 'Librarian', provider: 'Claude', model: 'claude-sonnet-4-5-20250929' },
+  { mode: 'Review feature', provider: 'Gemini', model: 'gemini-2.5-flash-lite' },
 ]
 
 export function IntegrationsSetup() {
