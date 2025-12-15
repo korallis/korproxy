@@ -8,6 +8,10 @@ import type {
   UpdateStatus,
   Provider,
   ProxyStats,
+  FactoryCustomModel,
+  FactoryConfig,
+  AmpConfig,
+  IntegrationStatus,
 } from '../../electron/common/ipc-types'
 
 export interface ProxyLog {
@@ -73,9 +77,19 @@ export interface KorProxyAPI {
   subscription: {
     setStatus: (info: { isValid: boolean; expiresAt?: number }) => Promise<{ success: boolean }>
   }
+  integrations: {
+    factory: {
+      get: () => Promise<{ success: boolean; status?: IntegrationStatus; config?: FactoryConfig; error?: string }>
+      set: (models: FactoryCustomModel[]) => Promise<{ success: boolean; error?: string }>
+    }
+    amp: {
+      get: () => Promise<{ success: boolean; status?: IntegrationStatus; config?: AmpConfig; error?: string }>
+      set: (port: number) => Promise<{ success: boolean; error?: string }>
+    }
+  }
 }
 
-export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider, ProxyStats }
+export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider, ProxyStats, FactoryCustomModel, FactoryConfig, AmpConfig, IntegrationStatus }
 
 declare global {
   interface Window {

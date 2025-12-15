@@ -1,11 +1,12 @@
 import { ipcMain, BrowserWindow, app } from 'electron'
-import { readFile, writeFile, mkdir } from 'fs/promises'
-import { dirname } from 'path'
+import { readFile, writeFile, mkdir, access } from 'fs/promises'
+import { dirname, join } from 'path'
+import { homedir } from 'os'
 import { z } from 'zod'
 import http from 'http'
 import { proxySidecar } from './sidecar'
 import { settingsStore, Settings } from './store'
-import { IPC_CHANNELS, LogData, ProxyStats } from '../common/ipc-types'
+import { IPC_CHANNELS, LogData, ProxyStats, FactoryConfig, FactoryCustomModel, AmpConfig, IntegrationStatus } from '../common/ipc-types'
 import {
   ProxyStatusSchema,
   ConfigContentSchema,
@@ -272,6 +273,134 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       subscriptionValid = info.isValid
       subscriptionExpiry = info.expiresAt || null
       return { success: true }
+    }
+  )
+
+  // Factory Droid CLI integration
+  const factoryConfigPath = join(homedir(), '.factory', 'config.json')
+
+  ipcMain.handle(
+    IPC_CHANNELS.INTEGRATIONS_FACTORY_GET,
+    async (): Promise<{ success: boolean; status?: IntegrationStatus; config?: FactoryConfig; error?: string }> => {
+      try {
+        await access(factoryConfigPath)
+        const content = await readFile(factoryConfigPath, 'utf-8')
+        const config: FactoryConfig = JSON.parse(content)
+        const korproxyModels = (config.custom_models || [])
+          .filter(m => m.base_url.includes('localhost:1337') || m.api_key === 'korproxy')
+          .map(m => m.model)
+        return {
+          success: true,
+          status: {
+            configured: korproxyModels.length > 0,
+            configPath: factoryConfigPath,
+            models: korproxyModels,
+          },
+          config,
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          return {
+            success: true,
+            status: {
+              configured: false,
+              configPath: factoryConfigPath,
+              models: [],
+            },
+            config: {},
+          }
+        }
+        return createErrorResponse(error) as { success: false; error: string }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.INTEGRATIONS_FACTORY_SET,
+    async (_, models: FactoryCustomModel[]): Promise<{ success: boolean; error?: string }> => {
+      try {
+        let existingConfig: FactoryConfig = {}
+        try {
+          const content = await readFile(factoryConfigPath, 'utf-8')
+          existingConfig = JSON.parse(content)
+        } catch {
+          // File doesn't exist or is invalid, start fresh
+        }
+
+        // Remove existing KorProxy models
+        const existingModels = (existingConfig.custom_models || [])
+          .filter(m => !m.base_url.includes('localhost:1337') && m.api_key !== 'korproxy')
+
+        // Merge with new models
+        existingConfig.custom_models = [...existingModels, ...models]
+
+        // Write config
+        await mkdir(dirname(factoryConfigPath), { recursive: true })
+        await writeFile(factoryConfigPath, JSON.stringify(existingConfig, null, 2), 'utf-8')
+        return { success: true }
+      } catch (error) {
+        return createErrorResponse(error)
+      }
+    }
+  )
+
+  // Amp CLI integration
+  const ampConfigPath = join(homedir(), '.config', 'amp', 'settings.json')
+
+  ipcMain.handle(
+    IPC_CHANNELS.INTEGRATIONS_AMP_GET,
+    async (): Promise<{ success: boolean; status?: IntegrationStatus; config?: AmpConfig; error?: string }> => {
+      try {
+        await access(ampConfigPath)
+        const content = await readFile(ampConfigPath, 'utf-8')
+        const config: AmpConfig = JSON.parse(content)
+        const isConfigured = config['amp.url']?.includes('localhost:1337') || false
+        return {
+          success: true,
+          status: {
+            configured: isConfigured,
+            configPath: ampConfigPath,
+          },
+          config,
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          return {
+            success: true,
+            status: {
+              configured: false,
+              configPath: ampConfigPath,
+            },
+            config: {},
+          }
+        }
+        return createErrorResponse(error) as { success: false; error: string }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.INTEGRATIONS_AMP_SET,
+    async (_, port: number): Promise<{ success: boolean; error?: string }> => {
+      try {
+        let existingConfig: AmpConfig = {}
+        try {
+          const content = await readFile(ampConfigPath, 'utf-8')
+          existingConfig = JSON.parse(content)
+        } catch {
+          // File doesn't exist or is invalid, start fresh
+        }
+
+        // Set the amp.url to point to KorProxy
+        existingConfig['amp.url'] = `http://localhost:${port}`
+
+        // Write config
+        await mkdir(dirname(ampConfigPath), { recursive: true })
+        await writeFile(ampConfigPath, JSON.stringify(existingConfig, null, 2), 'utf-8')
+        return { success: true }
+      } catch (error) {
+        return createErrorResponse(error)
+      }
     }
   )
 }

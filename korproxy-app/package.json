@@ -1,6 +1,6 @@
 {
   "name": "korproxy",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Desktop GUI for CLIProxyAPI - Manage your AI proxy connections",
   "homepage": "https://korproxy.com",
   "main": "dist-electron/main/index.js",

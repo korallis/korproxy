@@ -26,6 +26,10 @@ export const IPC_CHANNELS = {
   APP_GET_VERSION: 'app:get-version',
   PROXY_STATS: 'proxy:stats',
   SUBSCRIPTION_SET: 'subscription:set',
+  INTEGRATIONS_FACTORY_GET: 'integrations:factory:get',
+  INTEGRATIONS_FACTORY_SET: 'integrations:factory:set',
+  INTEGRATIONS_AMP_GET: 'integrations:amp:get',
+  INTEGRATIONS_AMP_SET: 'integrations:amp:set',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -104,4 +108,29 @@ export interface ProxyStats {
 export interface SubscriptionInfo {
   isValid: boolean
   expiresAt?: number
+}
+
+export interface FactoryCustomModel {
+  model_display_name: string
+  model: string
+  base_url: string
+  api_key: string
+  provider: 'anthropic' | 'openai' | 'generic-chat-completion-api'
+  max_tokens?: number
+  supports_images?: boolean
+}
+
+export interface FactoryConfig {
+  custom_models?: FactoryCustomModel[]
+}
+
+export interface AmpConfig {
+  'amp.url'?: string
+  [key: string]: unknown
+}
+
+export interface IntegrationStatus {
+  configured: boolean
+  configPath: string
+  models?: string[]
 }

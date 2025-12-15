@@ -26,6 +26,10 @@ const IPC_CHANNELS = {
   APP_GET_VERSION: 'app:get-version',
   PROXY_STATS: 'proxy:stats',
   SUBSCRIPTION_SET: 'subscription:set',
+  INTEGRATIONS_FACTORY_GET: 'integrations:factory:get',
+  INTEGRATIONS_FACTORY_SET: 'integrations:factory:set',
+  INTEGRATIONS_AMP_GET: 'integrations:amp:get',
+  INTEGRATIONS_AMP_SET: 'integrations:amp:set',
 }
 
 const korproxyAPI = {
@@ -87,6 +91,16 @@ const korproxyAPI = {
   },
   subscription: {
     setStatus: (info) => ipcRenderer.invoke(IPC_CHANNELS.SUBSCRIPTION_SET, info),
+  },
+  integrations: {
+    factory: {
+      get: () => ipcRenderer.invoke(IPC_CHANNELS.INTEGRATIONS_FACTORY_GET),
+      set: (models) => ipcRenderer.invoke(IPC_CHANNELS.INTEGRATIONS_FACTORY_SET, models),
+    },
+    amp: {
+      get: () => ipcRenderer.invoke(IPC_CHANNELS.INTEGRATIONS_AMP_GET),
+      set: (port) => ipcRenderer.invoke(IPC_CHANNELS.INTEGRATIONS_AMP_SET, port),
+    },
   },
 }
 

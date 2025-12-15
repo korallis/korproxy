@@ -10,6 +10,7 @@ import { useToast } from '../hooks/useToast'
 import { StatusIndicator } from '../components/shared/StatusIndicator'
 import { ThemeToggle } from '../components/shared/ThemeToggle'
 import { ConfigEditor } from '../components/settings/ConfigEditor'
+import { IntegrationsSetup } from '../components/settings/IntegrationsSetup'
 import type { UpdateStatus } from '../types/electron'
 
 function SettingRow({
@@ -184,6 +185,7 @@ export default function Settings() {
             {[
               { value: 'general', label: 'General' },
               { value: 'proxy', label: 'Proxy' },
+              { value: 'integrations', label: 'Integrations' },
               { value: 'config', label: 'Config' },
               { value: 'about', label: 'About' },
             ].map((tab) => (
@@ -309,6 +311,10 @@ export default function Settings() {
                 </SettingRow>
               </div>
             </div>
+          </Tabs.Content>
+
+          <Tabs.Content value="integrations">
+            <IntegrationsSetup />
           </Tabs.Content>
 
           <Tabs.Content value="config">
