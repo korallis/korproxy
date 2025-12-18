@@ -89,7 +89,7 @@ export default function ClineGuidePage() {
               Step 2: Configure API Provider
             </h3>
             <ul className="space-y-2 text-muted-foreground ml-6 mb-4">
-              <li>• Select <strong className="text-foreground">"OpenAI Compatible"</strong> as the provider</li>
+              <li>• Select <strong className="text-foreground">&quot;OpenAI Compatible&quot;</strong> as the provider</li>
               <li>• Set Base URL: <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">http://localhost:1337/v1</code></li>
               <li>• Set API Key: <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">korproxy</code> (any string works)</li>
             </ul>
@@ -116,7 +116,7 @@ export default function ClineGuidePage() {
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
             <h3 className="font-semibold text-foreground mb-3">For Anthropic/Claude directly:</h3>
             <ul className="space-y-2 text-muted-foreground ml-6">
-              <li>• Select <strong className="text-foreground">"Anthropic"</strong> as provider</li>
+              <li>• Select <strong className="text-foreground">&quot;Anthropic&quot;</strong> as provider</li>
               <li>• Set Base URL: <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">http://localhost:1337</code></li>
               <li>• API Key: <code className="px-2 py-1 bg-muted rounded text-sm text-foreground">korproxy</code></li>
             </ul>
@@ -153,14 +153,14 @@ export OPENAI_API_KEY=korproxy`}</code>
             <div className="flex items-start gap-3">
               <AlertCircle size={20} className="text-yellow-500 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium text-foreground">"Invalid API key"</p>
+                <p className="font-medium text-foreground">&quot;Invalid API key&quot;</p>
                 <p className="text-sm text-muted-foreground">Any key works - check base URL is correct</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <AlertCircle size={20} className="text-yellow-500 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium text-foreground">"Model not found"</p>
+                <p className="font-medium text-foreground">&quot;Model not found&quot;</p>
                 <p className="text-sm text-muted-foreground">Verify provider is authenticated in KorProxy</p>
               </div>
             </div>
