@@ -210,7 +210,7 @@ export class HealthMonitor extends EventEmitter {
         {
           hostname: '127.0.0.1',
           port: this.port,
-          path: '/v0/management/usage',
+          path: '/v1/diagnostics/health',
           method: 'GET',
           timeout: HEALTH_CHECK_TIMEOUT,
         },
