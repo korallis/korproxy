@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useThemeStore } from '../../stores/themeStore'

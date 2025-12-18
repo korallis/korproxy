@@ -14,6 +14,18 @@ export function Footer() {
 
           <div className="flex items-center gap-6">
             <Link
+              href="/roadmap"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
+            >
+              Roadmap
+            </Link>
+            <Link
+              href="/changelog"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
+            >
+              Changelog
+            </Link>
+            <Link
               href="/terms"
               className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
             >

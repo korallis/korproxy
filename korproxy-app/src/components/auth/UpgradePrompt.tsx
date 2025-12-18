@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import { Crown, ExternalLink, AlertTriangle } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

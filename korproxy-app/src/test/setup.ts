@@ -12,9 +12,17 @@ const mockKorproxyAPI = {
     stop: vi.fn().mockResolvedValue({ success: true }),
     status: vi.fn().mockResolvedValue({ running: false, port: 1337 }),
     getStatus: vi.fn().mockResolvedValue({ running: false, port: 1337 }),
+    getStats: vi.fn().mockResolvedValue(null),
     restart: vi.fn().mockResolvedValue({ success: true }),
     onLog: vi.fn().mockReturnValue(() => {}),
     onStatusChange: vi.fn().mockReturnValue(() => {}),
+  },
+  metrics: {
+    getSummary: vi.fn().mockResolvedValue({
+      summary: { totalRequests: 0, totalFailures: 0, avgLatencyMs: 0, successRate: 0 },
+      byProvider: [],
+      timeRange: '7d',
+    }),
   },
   config: {
     get: vi.fn().mockResolvedValue({ success: true, content: '' }),

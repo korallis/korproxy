@@ -165,8 +165,8 @@ describe('useProxyStore', () => {
       expect(useProxyStore.getState().logs).toContainEqual(log)
     })
 
-    it('limits logs to 1000 entries', () => {
-      const logs = Array.from({ length: 1000 }, (_, i) => ({
+    it('limits logs to 5000 entries', () => {
+      const logs = Array.from({ length: 5000 }, (_, i) => ({
         timestamp: `2024-01-01T00:00:${i}`,
         level: 'info' as const,
         message: `Log ${i}`,
@@ -176,7 +176,7 @@ describe('useProxyStore', () => {
       useProxyStore.getState().addLog({ timestamp: '2024-01-02', level: 'info', message: 'New log' })
 
       const state = useProxyStore.getState()
-      expect(state.logs).toHaveLength(1000)
+      expect(state.logs).toHaveLength(5000)
       expect(state.logs[state.logs.length - 1].message).toBe('New log')
     })
   })

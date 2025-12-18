@@ -40,6 +40,18 @@ export function Header() {
             >
               Guides
             </Link>
+            <Link
+              href="/roadmap"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+            >
+              Roadmap
+            </Link>
+            <Link
+              href="/changelog"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+            >
+              Changelog
+            </Link>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -88,6 +100,20 @@ export function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Guides
+              </Link>
+              <Link
+                href="/roadmap"
+                className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Roadmap
+              </Link>
+              <Link
+                href="/changelog"
+                className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Changelog
               </Link>
               <hr className="border-border" />
               <Link

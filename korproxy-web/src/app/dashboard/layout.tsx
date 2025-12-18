@@ -12,12 +12,14 @@ import {
   ShieldCheck,
   LogOut,
   Zap,
+  Users,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/teams", label: "Teams", icon: Users },
   { href: "/dashboard/account", label: "Account", icon: User },
-  { href: "/dashboard/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/guides", label: "Guides", icon: BookOpen },
 ];
 

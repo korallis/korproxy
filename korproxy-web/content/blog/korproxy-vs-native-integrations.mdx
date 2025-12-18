@@ -1,0 +1,85 @@
+---
+title: "KorProxy vs Native Integrations: When to Use a Proxy"
+description: "Compare using KorProxy with native tool integrations to understand when a local proxy makes sense for your workflow."
+date: "2025-12-16"
+author: "KorProxy Team"
+---
+
+## Why Consider a Proxy at All?
+
+Tools like Cursor, Windsurf, and Cline have built-in AI integrations. They work out of the box. So why would you route through a local proxy like KorProxy instead?
+
+The answer depends on how you work, what you're paying for, and how much flexibility you need.
+
+## Native Integrations: Pros and Cons
+
+### The Good
+
+**Zero configuration** - Install the tool, sign up, start coding. Native integrations are optimized for their specific tool, with features designed around how that tool works.
+
+**Tight UX integration** - Native AI features can do things external APIs can't—inline suggestions, codebase indexing, tool-specific context. Cursor's Composer, for example, understands your project structure in ways a generic API call doesn't.
+
+**Bundled pricing** - Some tools include AI usage in their subscription. You know exactly what you'll pay each month.
+
+### The Challenges
+
+**Locked to their pricing** - Cursor Pro is $20/month. If you're already paying $20/month for Claude Pro, that's $40/month for what's essentially the same underlying AI. Most native integrations don't let you bring your own subscription.
+
+**Provider restrictions** - Many tools limit which models you can use. Want Claude in a tool that only offers GPT? You're out of luck with native integrations.
+
+**Multiple subscriptions** - If you use multiple tools (Cursor at work, VS Code at home, NeoVim for quick edits), you might need separate AI subscriptions for each—or go without AI in some of them.
+
+## The KorProxy Approach: Pros and Cons
+
+### The Good
+
+**Use existing subscriptions** - Already paying for Claude Pro, ChatGPT Plus, or Google AI? KorProxy lets you use those subscriptions in any compatible tool. Stop paying twice.
+
+**Switch providers freely** - KorProxy supports Claude, GPT, and Gemini. Switch between them based on the task, or set up automatic routing. Your tools don't need to support multiple providers—KorProxy handles it.
+
+**One setup, every tool** - Configure KorProxy once. Every tool that supports OpenAI-compatible APIs now has access to your AI providers. Add a new tool? Just point it at `localhost:1337`.
+
+**No usage caps** - Many native integrations meter your AI usage or throttle heavy users. Your personal subscriptions typically have more generous limits.
+
+### The Challenges
+
+**Initial setup required** - You'll spend 5-10 minutes downloading KorProxy, authenticating, and configuring your tools. It's not hard, but it's not zero.
+
+**Local process** - KorProxy runs on your machine. It needs to be running when you want AI features. It's lightweight (uses minimal RAM), but it's there.
+
+**Some native features unavailable** - Tool-specific AI features that require deep integration (like Cursor's codebase indexing) may not work through KorProxy. You're using the AI for chat and completions, not proprietary features.
+
+## Decision Framework: When to Use Each
+
+### Use Native Integrations When:
+
+- **You're new to AI coding tools** - Start with the simplest path. Learn what you actually use before optimizing.
+- **You need tool-specific features** - If Cursor's Composer or Copilot's inline suggestions are essential to your workflow, use them natively.
+- **You only use one tool** - If Cursor is your only AI-enabled editor and you don't have other AI subscriptions, the native experience is hard to beat.
+- **Your company pays** - If your employer covers Cursor Pro, use it. Don't optimize costs that aren't yours.
+
+### Use KorProxy When:
+
+- **You have existing AI subscriptions** - Claude Pro, ChatGPT Plus, or Google AI subscriptions you're already paying for. Put them to work.
+- **You use multiple tools** - Cursor at work, Cline for personal projects, Continue for quick experiments. One KorProxy setup covers all of them.
+- **You want provider flexibility** - Sometimes Claude is better for your task. Sometimes GPT is faster. KorProxy lets you switch or route intelligently.
+- **You value cost efficiency** - Rather than paying $20/month for Cursor Pro + $20/month for Claude Pro, use KorProxy to consolidate.
+
+## The Hybrid Approach
+
+Here's what many power users do: **use both**.
+
+Keep native integrations for tool-specific features you depend on. Use KorProxy for everything else—especially when you want access to a specific model or provider that your tool doesn't natively support.
+
+For example:
+- Use Cursor's native Composer for complex multi-file refactors (it understands your codebase)
+- Use KorProxy to access Claude when Cursor's native Claude integration is slow or unavailable
+- Switch to GPT via KorProxy when you need a different perspective on a problem
+
+## The Bottom Line
+
+Native integrations optimize for simplicity. KorProxy optimizes for flexibility and cost efficiency.
+
+If you're paying for multiple AI subscriptions or using multiple coding tools, KorProxy likely saves you money and gives you more control. If you're all-in on one tool and one provider, native integration is simpler.
+
+Most developers eventually end up wanting both. [Download KorProxy](/) and see where it fits in your workflow.

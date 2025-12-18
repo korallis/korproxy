@@ -1,0 +1,16 @@
+version: 1.0.0
+profile: default
+
+# Project metadata
+project_name: "KorProxy"
+tech_stack: []  # e.g., ["node", "react", "postgres"]
+
+# Installation settings
+use_symlinks: true
+
+# Active standards (enable/disable per project)
+standards:
+  global: true
+  backend: true
+  frontend: true
+  testing: true

@@ -1,9 +1,10 @@
 import * as React from 'react'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ProviderIcon } from '@/components/icons/ProviderIcons'
+import { ProviderTestButton } from '@/components/providers/ProviderTestButton'
 
 export interface ProviderConfig {
   id: string
@@ -159,6 +160,12 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
               </motion.div>
             )}
           </div>
+
+          {isConnected && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <ProviderTestButton providerId={provider.id} />
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

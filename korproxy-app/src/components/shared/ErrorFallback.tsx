@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '../../lib/utils'
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Github, ExternalLink, RefreshCw, Heart, Download, Check, AlertCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
+import { Github, ExternalLink, RefreshCw, Heart, Download, Check, AlertCircle, MessageSquareText } from 'lucide-react'
 import * as Tabs from '@radix-ui/react-tabs'
 import * as Switch from '@radix-ui/react-switch'
 import { cn } from '../lib/utils'
@@ -11,6 +11,7 @@ import { StatusIndicator } from '../components/shared/StatusIndicator'
 import { ThemeToggle } from '../components/shared/ThemeToggle'
 import { ConfigEditor } from '../components/settings/ConfigEditor'
 import { IntegrationsSetup } from '../components/settings/IntegrationsSetup'
+import { FeedbackModal } from '../components/feedback/FeedbackModal'
 import type { UpdateStatus } from '../types/electron'
 
 function SettingRow({
@@ -88,6 +89,7 @@ export default function Settings() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'not-available' })
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [appVersion, setAppVersion] = useState<string>('...')
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   useEffect(() => {
     initFromMain()
@@ -337,6 +339,15 @@ export default function Settings() {
                 </SettingRow>
               </div>
               <div className="px-5 py-4 flex flex-wrap gap-3">
+                <motion.button
+                  onClick={() => setFeedbackOpen(true)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium flex items-center gap-2"
+                >
+                  <MessageSquareText className="w-4 h-4" />
+                  Send Feedback
+                </motion.button>
                 <motion.a
                   href="https://github.com/korproxy/korproxy"
                   target="_blank"
@@ -450,6 +461,8 @@ export default function Settings() {
           </Tabs.Content>
         </Tabs.Root>
       </motion.div>
+
+      <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
   )
 }

@@ -1,0 +1,178 @@
+---
+title: "Multi-Provider Routing for AI Code Assistants"
+description: "Set up intelligent routing between Claude, GPT, and Gemini to optimize for speed, cost, and capability."
+date: "2025-12-15"
+author: "KorProxy Team"
+---
+
+## Why Use Multiple AI Providers?
+
+Each AI model has strengths. Claude excels at nuanced reasoning and following complex instructions. GPT is fast and great at code generation. Gemini handles massive context windows and multimodal inputs.
+
+Using just one provider means accepting its weaknesses alongside its strengths. With KorProxy, you can route different requests to different providers—getting the best model for each task.
+
+## Use Cases for Multi-Provider Routing
+
+### Fast Models for Simple Tasks, Powerful Models for Complex Ones
+
+Not every AI request needs your most capable model. Quick completions, simple questions, and boilerplate generation don't require Claude Opus's full reasoning power.
+
+Route simple tasks to faster, lighter models:
+- **Autocomplete** → Gemini Flash (fast, cheap)
+- **Chat questions** → Claude Sonnet (balanced)
+- **Complex refactors** → Claude Opus (maximum capability)
+
+You get speed where it matters and power where it counts.
+
+### Fallback When Providers Are Slow or Down
+
+AI providers have bad days. Anthropic might be slow during peak hours. OpenAI might have an outage. If your workflow depends on one provider, you're stuck waiting.
+
+With multi-provider routing, set up automatic fallbacks:
+
+1. Try Claude first (your preferred provider)
+2. If Claude is slow or unavailable, route to GPT
+3. If both fail, fall back to Gemini
+
+Your coding flow never stops because one provider is having issues.
+
+### Cost Optimization
+
+Different providers have different pricing—and your subscriptions have different value.
+
+If you have Claude Pro and ChatGPT Plus subscriptions, you're paying fixed monthly costs regardless of usage. Maximize the value of both:
+- Heavy reasoning tasks → Claude (use your Pro subscription)
+- Quick iterations → GPT (use your Plus subscription)
+- Experimentation → Gemini (generous free tier)
+
+### Provider-Specific Strengths
+
+Each provider genuinely does some things better:
+
+| Task | Best Provider | Why |
+|------|--------------|-----|
+| Code review | Claude | Nuanced analysis, catches subtle issues |
+| Rapid prototyping | GPT | Fast responses, good code generation |
+| Large file analysis | Gemini | Massive context window (1M+ tokens) |
+| Documentation | Claude | Clear, well-structured writing |
+| API integration | GPT | Strong function calling |
+
+Route based on what you're doing, not just what's convenient.
+
+## KorProxy Routing Features
+
+### Model Aliases
+
+Map simple names to specific providers and models:
+
+```
+fast → gemini-2.5-flash
+default → claude-sonnet-4-5-20250929
+powerful → claude-opus-4-5-20251101
+```
+
+Your tools request `fast` or `default`, and KorProxy routes to the right provider automatically.
+
+### Provider Groups
+
+Set up groups of providers with priority ordering:
+
+```yaml
+primary:
+  - claude-sonnet-4-5-20250929
+  - gpt-5.1-codex
+  - gemini-2.5-pro
+
+fast:
+  - gemini-2.5-flash
+  - gpt-5.1-codex-mini
+  - claude-haiku-4-5-20251001
+```
+
+Request from a group, and KorProxy tries providers in order until one responds.
+
+### Workspace Profiles
+
+Different projects have different needs. A data pipeline might benefit from Gemini's large context. A web app might need Claude's nuanced understanding of React patterns.
+
+Create workspace-specific profiles:
+
+```yaml
+# data-pipeline/.korproxy
+default_model: gemini-2.5-pro
+fallback: claude-sonnet-4-5-20250929
+
+# web-app/.korproxy
+default_model: claude-sonnet-4-5-20250929
+fallback: gpt-5.1-codex
+```
+
+KorProxy detects which workspace you're in and routes accordingly.
+
+## Example Configuration
+
+Here's a practical multi-provider setup:
+
+```yaml
+providers:
+  claude:
+    enabled: true
+    default_model: claude-sonnet-4-5-20250929
+  openai:
+    enabled: true
+    default_model: gpt-5.1-codex
+  google:
+    enabled: true
+    default_model: gemini-2.5-flash
+
+routing:
+  default: claude-sonnet-4-5-20250929
+  
+  aliases:
+    fast: gemini-2.5-flash
+    smart: claude-opus-4-5-20251101
+    code: gpt-5.1-codex
+    
+  fallback_chain:
+    - claude-sonnet-4-5-20250929
+    - gpt-5.1-codex
+    - gemini-2.5-pro
+```
+
+With this config:
+- Default requests go to Claude Sonnet
+- Request `fast` for quick Gemini responses
+- Request `smart` when you need maximum capability
+- If Claude fails, automatic fallback to GPT then Gemini
+
+## Tips for Optimization
+
+### Start Simple
+
+Don't over-engineer your routing on day one. Start with a single provider, learn its strengths and weaknesses in your workflow, then add routing rules based on actual pain points.
+
+### Monitor Response Times
+
+Pay attention to which requests feel slow. Those are candidates for routing to faster providers—or for caching if you're making similar requests repeatedly.
+
+### Match Models to Tasks
+
+Think about what you're asking for:
+
+- **"Fix this bug"** → Needs reasoning, use Claude
+- **"Generate boilerplate"** → Pattern matching, GPT is fast
+- **"Explain this 5000-line file"** → Large context, Gemini shines
+- **"Quick autocomplete"** → Speed matters, use Flash-tier models
+
+### Use Fallbacks for Reliability
+
+Even if you prefer one provider, always configure fallbacks. The five seconds it takes to set up saves you from blocked workflows during outages.
+
+## Getting Started with Multi-Provider Routing
+
+1. [Download KorProxy](/) and authenticate your AI accounts
+2. Connect your providers: [Claude](/guides/connect-claude), [GPT](/guides/connect-openai), [Gemini](/guides/connect-google)
+3. Configure routing in KorProxy settings
+4. Point your tools at `localhost:1337` with your preferred model alias
+
+Your AI workflow just got a lot more flexible.

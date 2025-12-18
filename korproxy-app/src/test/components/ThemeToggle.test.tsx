@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { ThemeToggle, ThemeToggleCompact } from '../../components/shared/ThemeToggle'
 import { useThemeStore } from '../../stores/themeStore'
 
-vi.mock('framer-motion', () => ({
+vi.mock('motion/react', () => ({
   motion: {
     button: ({ children, onClick, ...props }: React.ComponentProps<'button'>) => (
       <button onClick={onClick} {...props}>{children}</button>

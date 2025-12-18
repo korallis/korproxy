@@ -6,15 +6,45 @@ import { z } from 'zod'
 import http from 'http'
 import { proxySidecar } from './sidecar'
 import { settingsStore, Settings } from './store'
-import { IPC_CHANNELS, LogData, ProxyStats, FactoryConfig, FactoryCustomModel, AmpConfig, IntegrationStatus } from '../common/ipc-types'
+import { logManager } from './log-manager'
+import { HealthMonitor } from './health-monitor'
+import { runProviderTest } from './provider-test'
+import { getToolIntegrations, copyConfigToClipboard } from './tool-integrations'
+import { getDeviceInfo } from './device'
+import { submitFeedback, getRecentLogs, getSystemInfo } from './feedback-handler'
+import { generateDebugBundle, getRecentRequests, copyBundleToClipboard } from './diagnostics-handler'
+import { 
+  IPC_CHANNELS, 
+  PROFILE_IPC_CHANNELS,
+  METRICS_IPC_CHANNELS,
+  LogData, 
+  ProxyStats, 
+  FactoryConfig, 
+  FactoryCustomModel, 
+  AmpConfig, 
+  IntegrationStatus,
+  type ProviderTestRequest,
+  type LogsGetOptions,
+  type RoutingConfig,
+  type MetricsTimeRange,
+  type MetricsDashboardResponse,
+  type MetricsProviderData,
+} from '../common/ipc-types'
 import {
   ProxyStatusSchema,
   ConfigContentSchema,
   SettingsKeySchema,
   SettingsSchema,
+  ProviderTestRequestSchema,
+  LogsGetOptionsSchema,
+  RoutingConfigSchema,
+  DeviceInfoSchema,
+  FeedbackSubmitRequestSchema,
   validateIpcPayload,
   IpcValidationError,
 } from '../common/ipc-schemas'
+import type { FeedbackSubmitRequest, RecentRequestsFilter, DiagnosticsProviderState, DiagnosticsMetrics } from '../common/ipc-types'
+import { writeRoutingConfig, getConfigPath } from './config-writer'
 
 export { IPC_CHANNELS }
 
@@ -27,6 +57,28 @@ export interface ProxyStatus {
 let subscriptionValid = false
 let subscriptionExpiry: number | null = null
 
+// Entitlements cache managed by main process
+interface CachedEntitlements {
+  plan: 'free' | 'pro' | 'team'
+  scope: 'personal' | 'team'
+  teamId?: string
+  status: 'active' | 'trialing' | 'grace' | 'past_due' | 'expired'
+  limits: {
+    maxProfiles: number
+    maxProviderGroups: number
+    maxDevices: number
+    smartRoutingEnabled: boolean
+    analyticsRetentionDays: number
+  }
+  currentPeriodEnd?: number
+  gracePeriodEnd?: number
+}
+
+let cachedEntitlements: CachedEntitlements | null = null
+
+// Health monitor instance (created per window)
+let healthMonitor: HealthMonitor | null = null
+
 function createErrorResponse(error: unknown): { success: false; error: string } {
   if (error instanceof IpcValidationError) {
     return { success: false, error: `Validation error: ${error.message}` }
@@ -38,6 +90,20 @@ function createErrorResponse(error: unknown): { success: false; error: string } 
 }
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
+  // Initialize health monitor
+  const port = settingsStore.get('port') || 1337
+  healthMonitor = new HealthMonitor(proxySidecar, port)
+  
+  // Forward health state changes to renderer
+  healthMonitor.on('stateChange', (status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC_CHANNELS.PROXY_HEALTH, status)
+    }
+  })
+
+  // Cleanup log files older than 24 hours on startup
+  logManager.cleanup().catch(console.error)
+
   proxySidecar.on('log', (data) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       const logData: LogData = {
@@ -95,7 +161,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
     
     try {
-      await proxySidecar.start()
+      // Use health monitor to start proxy (it manages lifecycle)
+      if (healthMonitor) {
+        await healthMonitor.start()
+      } else {
+        await proxySidecar.start()
+      }
       return { success: true }
     } catch (error) {
       return createErrorResponse(error)
@@ -103,7 +174,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   ipcMain.handle(IPC_CHANNELS.PROXY_STOP, (): { success: boolean } => {
-    proxySidecar.stop()
+    // Use health monitor to stop proxy
+    if (healthMonitor) {
+      healthMonitor.stop()
+    } else {
+      proxySidecar.stop()
+    }
     return { success: true }
   })
 
@@ -225,13 +301,24 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
 
     const port = proxySidecar.getPort()
+
+    // Normalize hour keys to zero-padded strings ("0" -> "00", "1" -> "01", etc.)
+    const normalizeHourKeys = (hourMap: Record<string, number> | undefined): Record<string, number> => {
+      if (!hourMap) return {}
+      const normalized: Record<string, number> = {}
+      for (const [key, value] of Object.entries(hourMap)) {
+        const normalizedKey = key.padStart(2, '0')
+        normalized[normalizedKey] = (normalized[normalizedKey] || 0) + (value || 0)
+      }
+      return normalized
+    }
     
     return new Promise((resolve) => {
       const req = http.request(
         {
           hostname: '127.0.0.1',
           port,
-          path: '/mgmt/usage',
+          path: '/v0/management/usage',
           method: 'GET',
           timeout: 2000,
         },
@@ -241,13 +328,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
           res.on('end', () => {
             try {
               const json = JSON.parse(data)
-              const usage = json.usage || {}
+              // Handle both { usage: {...} } and direct usage object formats
+              const usage = json.usage || json || {}
               resolve({
                 totalRequests: usage.total_requests || 0,
                 successCount: usage.success_count || 0,
                 failureCount: usage.failure_count || json.failed_requests || 0,
                 totalTokens: usage.total_tokens || 0,
-                requestsByHour: usage.requests_by_hour || {},
+                requestsByHour: normalizeHourKeys(usage.requests_by_hour),
                 requestsByDay: usage.requests_by_day || {},
               })
             } catch {
@@ -403,4 +491,301 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       }
     }
   )
+
+  // Phase A: Provider Testing
+  ipcMain.handle(
+    IPC_CHANNELS.PROVIDER_TEST_RUN,
+    async (_, request: unknown) => {
+      try {
+        const validated = validateIpcPayload(
+          IPC_CHANNELS.PROVIDER_TEST_RUN,
+          ProviderTestRequestSchema,
+          request
+        ) as ProviderTestRequest
+        return await runProviderTest(validated.providerId, validated.modelId)
+      } catch (error) {
+        return {
+          providerId: 'unknown',
+          success: false,
+          errorCode: 'PROVIDER_ERROR' as const,
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString(),
+        }
+      }
+    }
+  )
+
+  // Phase A: Tool Integrations
+  ipcMain.handle(IPC_CHANNELS.TOOL_INTEGRATION_LIST, async () => {
+    const currentPort = settingsStore.get('port') || 1337
+    return await getToolIntegrations(currentPort)
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.TOOL_INTEGRATION_COPY,
+    (_, toolId: string): { success: boolean } => {
+      const currentPort = settingsStore.get('port') || 1337
+      const success = copyConfigToClipboard(toolId, currentPort)
+      return { success }
+    }
+  )
+
+  // Phase A: Log Manager
+  ipcMain.handle(IPC_CHANNELS.LOGS_GET, async (_, options?: unknown) => {
+    try {
+      const validated = options 
+        ? validateIpcPayload(IPC_CHANNELS.LOGS_GET, LogsGetOptionsSchema, options) as LogsGetOptions
+        : undefined
+      return await logManager.getLogs(validated)
+    } catch {
+      return []
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LOGS_EXPORT, async () => {
+    return await logManager.exportLogs()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LOGS_CLEAR, async () => {
+    await logManager.clear()
+    return { success: true }
+  })
+
+  // Phase A: Health Monitor - get current status
+  ipcMain.handle(IPC_CHANNELS.PROXY_HEALTH, () => {
+    return healthMonitor?.getStatus() ?? {
+      state: 'stopped',
+      lastCheck: null,
+      consecutiveFailures: 0,
+      restartAttempts: 0,
+    }
+  })
+
+  // Phase C: Config Sync - write routing config to disk for Go backend
+  ipcMain.handle(
+    PROFILE_IPC_CHANNELS.CONFIG_SYNC,
+    async (_, config: unknown): Promise<{ success: boolean; error?: string; path?: string }> => {
+      try {
+        const validated = validateIpcPayload(
+          PROFILE_IPC_CHANNELS.CONFIG_SYNC,
+          RoutingConfigSchema,
+          config
+        ) as RoutingConfig
+        await writeRoutingConfig(validated)
+        return { success: true, path: getConfigPath() }
+      } catch (error) {
+        return createErrorResponse(error) as { success: false; error: string }
+      }
+    }
+  )
+
+  // Entitlements - get cached entitlements
+  ipcMain.handle(IPC_CHANNELS.ENTITLEMENTS_GET, (): CachedEntitlements | null => {
+    return cachedEntitlements
+  })
+
+  // Entitlements - set/update cached entitlements from renderer
+  ipcMain.handle(
+    IPC_CHANNELS.ENTITLEMENTS_SET,
+    (_, entitlements: CachedEntitlements): { success: boolean } => {
+      cachedEntitlements = entitlements
+      
+      // Update subscription validity based on entitlements
+      const activeStatuses = ['active', 'trialing', 'grace']
+      subscriptionValid = activeStatuses.includes(entitlements.status)
+      subscriptionExpiry = entitlements.currentPeriodEnd || null
+      
+      return { success: true }
+    }
+  )
+
+  // Device Sync - get device info
+  ipcMain.handle(IPC_CHANNELS.DEVICE_GET_INFO, () => {
+    const info = getDeviceInfo()
+    return validateIpcPayload(IPC_CHANNELS.DEVICE_GET_INFO, DeviceInfoSchema, info)
+  })
+
+  // Device Sync - register device (returns device info for renderer to send to Convex)
+  ipcMain.handle(IPC_CHANNELS.DEVICE_REGISTER, () => {
+    const info = getDeviceInfo()
+    return validateIpcPayload(IPC_CHANNELS.DEVICE_REGISTER, DeviceInfoSchema, info)
+  })
+
+  // TG5: Feedback System
+  ipcMain.handle(IPC_CHANNELS.LOGS_GET_RECENT, async (_, count: number) => {
+    const maxCount = Math.min(Math.max(1, count || 50), 50)
+    return await getRecentLogs(maxCount)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_INFO, () => {
+    return getSystemInfo()
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.FEEDBACK_SUBMIT,
+    async (_, request: unknown) => {
+      try {
+        const validated = validateIpcPayload(
+          IPC_CHANNELS.FEEDBACK_SUBMIT,
+          FeedbackSubmitRequestSchema,
+          request
+        ) as FeedbackSubmitRequest
+        return await submitFeedback(validated)
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
+
+  // TG3: Diagnostics Handlers
+  ipcMain.handle(
+    IPC_CHANNELS.DIAGNOSTICS_GET_BUNDLE,
+    async (_, config: Record<string, unknown>, providers: DiagnosticsProviderState[], metrics: DiagnosticsMetrics | null) => {
+      try {
+        return await generateDebugBundle(config || {}, providers || [], metrics)
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.DIAGNOSTICS_GET_RECENT_REQUESTS,
+    (_, filter?: RecentRequestsFilter) => {
+      return getRecentRequests(filter)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.DIAGNOSTICS_COPY_BUNDLE,
+    async (_, config: Record<string, unknown>, providers: DiagnosticsProviderState[], metrics: DiagnosticsMetrics | null) => {
+      try {
+        const bundle = await generateDebugBundle(config || {}, providers || [], metrics)
+        const success = copyBundleToClipboard(bundle)
+        return { success }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
+
+  // TG5: Metrics Dashboard
+  ipcMain.handle(
+    METRICS_IPC_CHANNELS.GET_SUMMARY,
+    async (_, timeRange: MetricsTimeRange): Promise<MetricsDashboardResponse> => {
+      const port = proxySidecar.getPort()
+
+      if (!proxySidecar.isRunning()) {
+        return {
+          summary: { totalRequests: 0, totalFailures: 0, avgLatencyMs: 0, successRate: 0 },
+          byProvider: [],
+          timeRange,
+        }
+      }
+
+      return new Promise((resolve) => {
+        const days = timeRange === '1d' ? 1 : 7
+        const from = new Date()
+        from.setDate(from.getDate() - days)
+
+        const req = http.request(
+          {
+            hostname: '127.0.0.1',
+            port,
+            path: `/v0/management/metrics?from=${from.toISOString()}&to=${new Date().toISOString()}`,
+            method: 'GET',
+            timeout: 5000,
+          },
+          (res) => {
+            let data = ''
+            res.on('data', (chunk) => (data += chunk))
+            res.on('end', () => {
+              try {
+                const json = JSON.parse(data)
+                const byProviderMap = (json.by_provider || {}) as Record<string, Record<string, unknown>>
+                const byProvider: MetricsProviderData[] = Object.entries(byProviderMap).map(
+                  ([provider, stats]) => ({
+                    provider,
+                    requests: Number(stats.requests) || 0,
+                    failures: Number(stats.failures) || 0,
+                    errorRate:
+                      Number(stats.requests) > 0
+                        ? (Number(stats.failures) / Number(stats.requests)) * 100
+                        : 0,
+                    p50Ms: Number(stats.p50_ms) || 0,
+                    p90Ms: Number(stats.p90_ms) || 0,
+                    p99Ms: Number(stats.p99_ms) || 0,
+                  })
+                )
+
+                const summary = json.summary || {}
+                const totalRequests = Number(summary.total_requests) || 0
+                const totalFailures = Number(summary.total_failures) || 0
+
+                resolve({
+                  summary: {
+                    totalRequests,
+                    totalFailures,
+                    avgLatencyMs: Number(summary.avg_latency_ms) || 0,
+                    successRate:
+                      totalRequests > 0
+                        ? ((totalRequests - totalFailures) / totalRequests) * 100
+                        : 0,
+                  },
+                  byProvider,
+                  timeRange,
+                })
+              } catch {
+                resolve({
+                  summary: { totalRequests: 0, totalFailures: 0, avgLatencyMs: 0, successRate: 0 },
+                  byProvider: [],
+                  timeRange,
+                })
+              }
+            })
+          }
+        )
+
+        req.on('error', () => {
+          resolve({
+            summary: { totalRequests: 0, totalFailures: 0, avgLatencyMs: 0, successRate: 0 },
+            byProvider: [],
+            timeRange,
+          })
+        })
+
+        req.on('timeout', () => {
+          req.destroy()
+          resolve({
+            summary: { totalRequests: 0, totalFailures: 0, avgLatencyMs: 0, successRate: 0 },
+            byProvider: [],
+            timeRange,
+          })
+        })
+
+        req.end()
+      })
+    }
+  )
+}
+
+// Export health monitor controls for use in main process
+export function getHealthMonitor(): HealthMonitor | null {
+  return healthMonitor
+}
+
+export function cleanupHealthMonitor(): void {
+  if (healthMonitor) {
+    healthMonitor.stop()
+    healthMonitor = null
+  }
 }

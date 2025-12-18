@@ -8,6 +8,8 @@ import {
   ArrowRight,
   Cpu,
   Bot,
+  HelpCircle,
+  Laptop,
 } from "lucide-react";
 
 const guides = [
@@ -59,6 +61,30 @@ const guides = [
     name: "Continue",
     description: "Configure the Continue extension for VS Code and JetBrains",
     icon: ArrowRight,
+  },
+  {
+    href: "/guides/jetbrains",
+    name: "JetBrains IDEs",
+    description: "Configure IntelliJ, PyCharm, or WebStorm with the Continue plugin",
+    icon: Laptop,
+  },
+  {
+    href: "/guides/neovim",
+    name: "NeoVim",
+    description: "Set up AI plugins like avante.nvim and ChatGPT.nvim",
+    icon: Terminal,
+  },
+  {
+    href: "/guides/emacs",
+    name: "Emacs",
+    description: "Configure gptel, chatgpt-shell, and other AI packages",
+    icon: FileCode,
+  },
+  {
+    href: "/guides/troubleshooting",
+    name: "Troubleshooting",
+    description: "Common issues and solutions for KorProxy",
+    icon: HelpCircle,
   },
 ];
 

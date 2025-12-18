@@ -8,6 +8,7 @@ import Stripe from "stripe";
 const PRICE_IDS = {
   monthly: process.env.STRIPE_PRICE_MONTHLY,
   yearly: process.env.STRIPE_PRICE_YEARLY,
+  team: process.env.STRIPE_TEAM_PRICE_ID,
 };
 
 // Trial period in days
@@ -104,6 +105,184 @@ export const createCheckoutSession = action({
 });
 
 /**
+ * Create a Stripe Checkout session for team subscription
+ */
+export const createTeamCheckoutSession = action({
+  args: {
+    token: v.string(),
+    teamId: v.id("teams"),
+    seats: v.number(),
+    successUrl: v.string(),
+    cancelUrl: v.string(),
+  },
+  returns: v.union(
+    v.object({ url: v.string() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args): Promise<{ url: string } | { error: string }> => {
+    try {
+      const stripe = getStripeClient();
+
+      // Validate session and get user
+      const userSession = await ctx.runQuery(internal.stripe.getSessionUser, { token: args.token });
+      if (!userSession) {
+        return { error: "Invalid session" };
+      }
+
+      // Get team and validate ownership
+      const team = await ctx.runQuery(internal.stripe.getTeamById, { teamId: args.teamId });
+      if (!team) {
+        return { error: "Team not found" };
+      }
+
+      if (team.ownerUserId !== userSession.userId) {
+        return { error: "Only the team owner can manage billing" };
+      }
+
+      const priceId = PRICE_IDS.team;
+      if (!priceId) {
+        return { error: "Team price not configured" };
+      }
+
+      if (args.seats < 1) {
+        return { error: "Must purchase at least 1 seat" };
+      }
+
+      // Create or get Stripe customer for team
+      let customerId: string | undefined = team.stripeCustomerId;
+
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          name: team.name,
+          metadata: {
+            teamId: args.teamId,
+            convexUserId: userSession.userId,
+            type: "team",
+          },
+        });
+        customerId = customer.id;
+
+        // Save customer ID to team
+        await ctx.runMutation(internal.stripe.setTeamStripeCustomerId, {
+          teamId: args.teamId,
+          stripeCustomerId: customerId,
+        });
+      }
+
+      // Create checkout session
+      const checkoutSession = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: priceId,
+            quantity: args.seats,
+          },
+        ],
+        subscription_data: {
+          metadata: {
+            teamId: args.teamId,
+            convexUserId: userSession.userId,
+            type: "team",
+          },
+        },
+        success_url: args.successUrl,
+        cancel_url: args.cancelUrl,
+        metadata: {
+          teamId: args.teamId,
+          convexUserId: userSession.userId,
+          type: "team",
+        },
+      });
+
+      return { url: checkoutSession.url || "" };
+    } catch (error) {
+      console.error("Stripe team checkout error:", error);
+      return { error: error instanceof Error ? error.message : "Failed to create checkout session" };
+    }
+  },
+});
+
+/**
+ * Update team seat count
+ */
+export const updateTeamSeats = action({
+  args: {
+    token: v.string(),
+    teamId: v.id("teams"),
+    newSeatCount: v.number(),
+  },
+  returns: v.union(
+    v.object({ success: v.boolean() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args): Promise<{ success: boolean } | { error: string }> => {
+    try {
+      const stripe = getStripeClient();
+
+      // Validate session and get user
+      const userSession = await ctx.runQuery(internal.stripe.getSessionUser, { token: args.token });
+      if (!userSession) {
+        return { error: "Invalid session" };
+      }
+
+      // Get team and validate ownership
+      const team = await ctx.runQuery(internal.stripe.getTeamById, { teamId: args.teamId });
+      if (!team) {
+        return { error: "Team not found" };
+      }
+
+      if (team.ownerUserId !== userSession.userId) {
+        return { error: "Only the team owner can manage billing" };
+      }
+
+      if (!team.stripeSubscriptionId) {
+        return { error: "No active subscription found" };
+      }
+
+      if (args.newSeatCount < team.seatsUsed) {
+        return { error: `Cannot reduce seats below current usage (${team.seatsUsed} seats in use)` };
+      }
+
+      if (args.newSeatCount < 1) {
+        return { error: "Must have at least 1 seat" };
+      }
+
+      // Get the subscription
+      const subscription = await stripe.subscriptions.retrieve(team.stripeSubscriptionId);
+      const subscriptionItem = subscription.items.data[0];
+
+      if (!subscriptionItem) {
+        return { error: "Subscription item not found" };
+      }
+
+      // Update the subscription quantity
+      await stripe.subscriptions.update(team.stripeSubscriptionId, {
+        items: [
+          {
+            id: subscriptionItem.id,
+            quantity: args.newSeatCount,
+          },
+        ],
+        proration_behavior: "create_prorations",
+      });
+
+      // Update local record
+      await ctx.runMutation(internal.stripe.updateTeamSubscription, {
+        teamId: args.teamId,
+        seatsPurchased: args.newSeatCount,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("Stripe update seats error:", error);
+      return { error: error instanceof Error ? error.message : "Failed to update seats" };
+    }
+  },
+});
+
+/**
  * Create a Stripe Customer Portal session for managing subscription
  */
 export const createPortalSession = action({
@@ -187,20 +366,38 @@ export const handleWebhook = internalAction({
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
-          await handleCheckoutCompleted(ctx, stripe, session);
+          // Check if this is a team checkout
+          if (session.metadata?.teamId) {
+            console.log("Processing team checkout:", session.metadata.teamId);
+            await handleTeamCheckoutCompleted(ctx, stripe, session);
+          } else {
+            await handleCheckoutCompleted(ctx, stripe, session);
+          }
           break;
         }
 
         case "customer.subscription.created":
         case "customer.subscription.updated": {
           const subscription = event.data.object as Stripe.Subscription;
-          await handleSubscriptionUpdate(ctx, stripe, subscription);
+          // Check if this is a team subscription
+          if (subscription.metadata?.teamId) {
+            console.log("Processing team subscription update:", subscription.metadata.teamId);
+            await handleTeamSubscriptionUpdate(ctx, stripe, subscription);
+          } else {
+            await handleSubscriptionUpdate(ctx, stripe, subscription);
+          }
           break;
         }
 
         case "customer.subscription.deleted": {
           const subscription = event.data.object as Stripe.Subscription;
-          await handleSubscriptionDeleted(ctx, subscription);
+          // Check if this is a team subscription
+          if (subscription.metadata?.teamId) {
+            console.log("Processing team subscription deletion:", subscription.metadata.teamId);
+            await handleTeamSubscriptionDeleted(ctx, subscription);
+          } else {
+            await handleSubscriptionDeleted(ctx, subscription);
+          }
           break;
         }
 
@@ -208,7 +405,11 @@ export const handleWebhook = internalAction({
           const invoice = event.data.object as Stripe.Invoice;
           if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
-            await handleSubscriptionUpdate(ctx, stripe, subscription);
+            if (subscription.metadata?.teamId) {
+              await handleTeamSubscriptionUpdate(ctx, stripe, subscription);
+            } else {
+              await handleSubscriptionUpdate(ctx, stripe, subscription);
+            }
           }
           break;
         }
@@ -216,7 +417,12 @@ export const handleWebhook = internalAction({
         case "invoice.payment_failed": {
           const invoice = event.data.object as Stripe.Invoice;
           if (invoice.subscription) {
-            await handlePaymentFailed(ctx, invoice);
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+            if (subscription.metadata?.teamId) {
+              await handleTeamPaymentFailed(ctx, subscription);
+            } else {
+              await handlePaymentFailed(ctx, invoice);
+            }
           }
           break;
         }
@@ -423,6 +629,189 @@ async function handlePaymentFailed(
 }
 
 // ============================================
+// Team-specific webhook handlers
+// ============================================
+
+/**
+ * Handle team checkout.session.completed
+ */
+async function handleTeamCheckoutCompleted(
+  ctx: ActionContext,
+  stripe: Stripe,
+  session: Stripe.Checkout.Session
+): Promise<void> {
+  console.log("Handling team checkout.session.completed:", session.id);
+  
+  const teamId = session.metadata?.teamId as Id<"teams"> | undefined;
+  const customerId = session.customer as string;
+
+  if (!teamId) {
+    console.error("No teamId in checkout session metadata");
+    return;
+  }
+
+  if (!customerId) {
+    console.error("No customer ID in checkout session");
+    return;
+  }
+
+  // Set customer ID if not already set
+  const team = await ctx.runQuery(internal.stripe.getTeamById, { teamId });
+  if (team && !team.stripeCustomerId) {
+    await ctx.runMutation(internal.stripe.setTeamStripeCustomerId, {
+      teamId,
+      stripeCustomerId: customerId,
+    });
+  }
+
+  // If there's a subscription, fetch it and update the team
+  if (session.subscription) {
+    const subscriptionId = typeof session.subscription === 'string' 
+      ? session.subscription 
+      : session.subscription.id;
+    
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    await handleTeamSubscriptionUpdate(ctx, stripe, subscription);
+  }
+}
+
+/**
+ * Handle team subscription creation/update
+ */
+async function handleTeamSubscriptionUpdate(
+  ctx: ActionContext,
+  _stripe: Stripe,
+  subscription: Stripe.Subscription
+): Promise<void> {
+  const teamId = subscription.metadata?.teamId as Id<"teams"> | undefined;
+  const customerId = subscription.customer as string;
+  
+  if (!teamId) {
+    // Try to find team by customer ID
+    const team = await ctx.runQuery(internal.stripe.getTeamByStripeCustomer, { stripeCustomerId: customerId });
+    if (!team) {
+      console.error("Team not found for subscription:", subscription.id);
+      return;
+    }
+    console.log("Found team by customer ID:", team.id);
+    await updateTeamFromSubscription(ctx, team.id, subscription);
+    return;
+  }
+
+  console.log("Updating team subscription for teamId:", teamId, "status:", subscription.status);
+  await updateTeamFromSubscription(ctx, teamId, subscription);
+}
+
+/**
+ * Helper to update team from subscription data
+ */
+async function updateTeamFromSubscription(
+  ctx: ActionContext,
+  teamId: Id<"teams">,
+  subscription: Stripe.Subscription
+): Promise<void> {
+  // Determine status
+  let status: "trialing" | "active" | "past_due" | "canceled" | "expired";
+  switch (subscription.status) {
+    case "trialing":
+      status = "trialing";
+      break;
+    case "active":
+      status = "active";
+      break;
+    case "past_due":
+      status = "past_due";
+      break;
+    case "canceled":
+    case "unpaid":
+      status = "canceled";
+      break;
+    default:
+      status = "expired";
+  }
+
+  // Get quantity (seats purchased)
+  const seatsPurchased = subscription.items.data[0]?.quantity || 1;
+
+  await ctx.runMutation(internal.stripe.updateTeamSubscription, {
+    teamId,
+    status,
+    stripeSubscriptionId: subscription.id,
+    seatsPurchased,
+    currentPeriodEnd: subscription.current_period_end * 1000,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+  });
+}
+
+/**
+ * Handle team subscription deletion
+ */
+async function handleTeamSubscriptionDeleted(
+  ctx: ActionContext,
+  subscription: Stripe.Subscription
+): Promise<void> {
+  const teamId = subscription.metadata?.teamId as Id<"teams"> | undefined;
+  const customerId = subscription.customer as string;
+  
+  let targetTeamId = teamId;
+  
+  if (!targetTeamId) {
+    const team = await ctx.runQuery(internal.stripe.getTeamByStripeCustomer, { stripeCustomerId: customerId });
+    if (!team) {
+      console.error("Team not found for customer:", customerId);
+      return;
+    }
+    targetTeamId = team.id;
+  }
+
+  await ctx.runMutation(internal.stripe.updateTeamSubscription, {
+    teamId: targetTeamId,
+    status: "expired",
+    stripeSubscriptionId: undefined,
+    seatsPurchased: 0,
+    currentPeriodEnd: undefined,
+    cancelAtPeriodEnd: undefined,
+  });
+}
+
+/**
+ * Handle team payment failure
+ */
+async function handleTeamPaymentFailed(
+  ctx: ActionContext,
+  subscription: Stripe.Subscription
+): Promise<void> {
+  const teamId = subscription.metadata?.teamId as Id<"teams"> | undefined;
+  const customerId = subscription.customer as string;
+  
+  let targetTeamId = teamId;
+  
+  if (!targetTeamId) {
+    const team = await ctx.runQuery(internal.stripe.getTeamByStripeCustomer, { stripeCustomerId: customerId });
+    if (!team) {
+      console.error("Team not found for customer:", customerId);
+      return;
+    }
+    targetTeamId = team.id;
+  }
+
+  const team = await ctx.runQuery(internal.stripe.getTeamById, { teamId: targetTeamId });
+  if (!team) {
+    console.error("Team not found:", targetTeamId);
+    return;
+  }
+
+  await ctx.runMutation(internal.stripe.updateTeamSubscription, {
+    teamId: targetTeamId,
+    status: "past_due",
+    stripeSubscriptionId: team.stripeSubscriptionId,
+    seatsPurchased: team.seatsPurchased,
+    currentPeriodEnd: team.currentPeriodEnd,
+    cancelAtPeriodEnd: team.cancelAtPeriodEnd,
+  });
+}
+
+// ============================================
 // Internal functions (not exposed to clients)
 // ============================================
 
@@ -619,6 +1008,191 @@ export const updateUserSubscription = internalMutation({
       plan: args.plan,
       occurredAt: Date.now(),
     });
+
+    return null;
+  },
+});
+
+// ============================================
+// Team-specific internal functions
+// ============================================
+
+/**
+ * Get team by ID (internal)
+ */
+export const getTeamById = internalQuery({
+  args: { teamId: v.id("teams") },
+  returns: v.union(
+    v.object({
+      id: v.id("teams"),
+      name: v.string(),
+      ownerUserId: v.id("users"),
+      stripeCustomerId: v.optional(v.string()),
+      stripeSubscriptionId: v.optional(v.string()),
+      subscriptionStatus: v.string(),
+      seatsPurchased: v.number(),
+      seatsUsed: v.number(),
+      currentPeriodEnd: v.optional(v.number()),
+      cancelAtPeriodEnd: v.optional(v.boolean()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const team = await ctx.db.get(args.teamId);
+    if (!team) return null;
+
+    return {
+      id: team._id,
+      name: team.name,
+      ownerUserId: team.ownerUserId,
+      stripeCustomerId: team.stripeCustomerId,
+      stripeSubscriptionId: team.stripeSubscriptionId,
+      subscriptionStatus: team.subscriptionStatus,
+      seatsPurchased: team.seatsPurchased,
+      seatsUsed: team.seatsUsed,
+      currentPeriodEnd: team.currentPeriodEnd,
+      cancelAtPeriodEnd: team.cancelAtPeriodEnd,
+    };
+  },
+});
+
+/**
+ * Get team by Stripe customer ID (for webhook lookup)
+ */
+export const getTeamByStripeCustomer = internalQuery({
+  args: { stripeCustomerId: v.string() },
+  returns: v.union(
+    v.object({
+      id: v.id("teams"),
+      name: v.string(),
+      ownerUserId: v.id("users"),
+      stripeCustomerId: v.optional(v.string()),
+      stripeSubscriptionId: v.optional(v.string()),
+      subscriptionStatus: v.string(),
+      seatsPurchased: v.number(),
+      seatsUsed: v.number(),
+      currentPeriodEnd: v.optional(v.number()),
+      cancelAtPeriodEnd: v.optional(v.boolean()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const team = await ctx.db
+      .query("teams")
+      .withIndex("by_stripe_customer", (q) => q.eq("stripeCustomerId", args.stripeCustomerId))
+      .first();
+
+    if (!team) return null;
+
+    return {
+      id: team._id,
+      name: team.name,
+      ownerUserId: team.ownerUserId,
+      stripeCustomerId: team.stripeCustomerId,
+      stripeSubscriptionId: team.stripeSubscriptionId,
+      subscriptionStatus: team.subscriptionStatus,
+      seatsPurchased: team.seatsPurchased,
+      seatsUsed: team.seatsUsed,
+      currentPeriodEnd: team.currentPeriodEnd,
+      cancelAtPeriodEnd: team.cancelAtPeriodEnd,
+    };
+  },
+});
+
+/**
+ * Set Stripe customer ID for team
+ */
+export const setTeamStripeCustomerId = internalMutation({
+  args: {
+    teamId: v.id("teams"),
+    stripeCustomerId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.teamId, {
+      stripeCustomerId: args.stripeCustomerId,
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/**
+ * Update team subscription status
+ */
+export const updateTeamSubscription = internalMutation({
+  args: {
+    teamId: v.id("teams"),
+    status: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("trialing"),
+        v.literal("active"),
+        v.literal("past_due"),
+        v.literal("canceled"),
+        v.literal("expired")
+      )
+    ),
+    stripeSubscriptionId: v.optional(v.string()),
+    seatsPurchased: v.optional(v.number()),
+    currentPeriodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    console.log("=== updateTeamSubscription called ===");
+    console.log("teamId:", args.teamId, "updates:", args);
+    
+    const team = await ctx.db.get(args.teamId);
+    if (!team) {
+      console.error("Team not found for ID:", args.teamId);
+      return null;
+    }
+
+    const previousStatus = team.subscriptionStatus;
+    console.log("Updating team:", team.name, "from", previousStatus, "to", args.status || previousStatus);
+
+    const updates: Partial<{
+      subscriptionStatus: "none" | "trialing" | "active" | "past_due" | "canceled" | "expired";
+      stripeSubscriptionId: string | undefined;
+      seatsPurchased: number;
+      currentPeriodEnd: number | undefined;
+      cancelAtPeriodEnd: boolean | undefined;
+      updatedAt: number;
+    }> = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.status !== undefined) {
+      updates.subscriptionStatus = args.status;
+    }
+    if (args.stripeSubscriptionId !== undefined) {
+      updates.stripeSubscriptionId = args.stripeSubscriptionId;
+    }
+    if (args.seatsPurchased !== undefined) {
+      updates.seatsPurchased = args.seatsPurchased;
+    }
+    if (args.currentPeriodEnd !== undefined) {
+      updates.currentPeriodEnd = args.currentPeriodEnd;
+    }
+    if (args.cancelAtPeriodEnd !== undefined) {
+      updates.cancelAtPeriodEnd = args.cancelAtPeriodEnd;
+    }
+
+    await ctx.db.patch(args.teamId, updates);
+
+    // Log subscription event for team owner
+    if (args.status !== undefined) {
+      await ctx.db.insert("subscriptionEvents", {
+        userId: team.ownerUserId,
+        stripeSubscriptionId: args.stripeSubscriptionId,
+        eventType: "team_subscription_updated",
+        fromStatus: previousStatus,
+        toStatus: args.status,
+        plan: "team",
+        occurredAt: Date.now(),
+      });
+    }
 
     return null;
   },

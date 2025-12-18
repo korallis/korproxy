@@ -8,27 +8,16 @@
  * @module
  */
 
-import type * as admin from "../admin.js";
-import type * as auth from "../auth.js";
-import type * as http from "../http.js";
-import type * as lib_password from "../lib/password.js";
-import type * as stripe from "../stripe.js";
-import type * as subscriptions from "../subscriptions.js";
-
 import type {
-  ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{
-  admin: typeof admin;
-  auth: typeof auth;
-  http: typeof http;
-  "lib/password": typeof lib_password;
-  stripe: typeof stripe;
-  subscriptions: typeof subscriptions;
-}>;
+type AnyApi = {
+  [key: string]: {
+    [key: string]: FunctionReference<any, any, any, any>;
+  };
+};
 
 /**
  * A utility for referencing Convex functions in your app's public API.
@@ -38,10 +27,7 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
->;
+export declare const api: AnyApi;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -51,9 +37,6 @@ export declare const api: FilterApi<
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "internal">
->;
+export declare const internal: AnyApi;
 
 export declare const components: {};

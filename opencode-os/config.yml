@@ -1,0 +1,15 @@
+# Amp-OS Configuration (OpenCode)
+version: 1.0.0
+profile: opencode
+project_name: "KorProxy"
+platform: opencode
+installed: 2025-12-18T18:30:12+00:00
+
+standards:
+  global: true
+  backend: true
+  frontend: true
+  testing: true
+
+features:
+  oh_my_opencode: false

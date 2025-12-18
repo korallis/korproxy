@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useConvex } from "convex/react";
 import { useAuth } from "@/providers/AuthProvider";
@@ -9,7 +9,23 @@ import {
   listUsers,
   getRecentEvents,
   formatMoney,
+  searchUsers,
+  getUserById,
+  getFeatureFlags,
+  setFeatureFlag,
+  enableSafeMode,
+  disableSafeMode,
+  getAdminLogs,
+  AdminUserDetail,
+  FeatureFlags,
+  AdminLog,
 } from "@/lib/api";
+import {
+  UserStatusCard,
+  FeatureFlagsEditor,
+  SafeModeToggle,
+  AdminLogsTable,
+} from "@/components/admin";
 import {
   Users,
   CreditCard,
@@ -20,6 +36,9 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Search,
+  X,
+  ArrowLeft,
 } from "lucide-react";
 
 interface Metrics {
@@ -86,6 +105,7 @@ export default function AdminPage() {
   const router = useRouter();
   const convex = useConvex();
 
+  // Dashboard state
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -94,12 +114,24 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
+  // User management state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<AdminUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserDetail | null>(null);
+  const [userFlags, setUserFlags] = useState<FeatureFlags | null>(null);
+  const [userLogs, setUserLogs] = useState<AdminLog[]>([]);
+  const [allLogs, setAllLogs] = useState<AdminLog[]>([]);
+  const [loadingUser, setLoadingUser] = useState(false);
+
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "admin")) {
       router.push("/dashboard");
     }
   }, [authLoading, user, router]);
 
+  // Fetch dashboard data
   useEffect(() => {
     async function fetchData() {
       if (!token) return;
@@ -108,10 +140,11 @@ export default function AdminPage() {
       setError(null);
 
       try {
-        const [metricsResult, usersResult, eventsResult] = await Promise.all([
+        const [metricsResult, usersResult, eventsResult, logsResult] = await Promise.all([
           getMetrics(convex, token),
           listUsers(convex, token, USERS_PER_PAGE, page * USERS_PER_PAGE),
           getRecentEvents(convex, token, 10),
+          getAdminLogs(convex, token, undefined, 20),
         ]);
 
         if ("error" in metricsResult) {
@@ -131,6 +164,10 @@ export default function AdminPage() {
         setUsers(usersResult.users);
         setTotalUsers(usersResult.total);
         setEvents(eventsResult.events);
+
+        if (!("error" in logsResult)) {
+          setAllLogs(logsResult.logs);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch data");
       } finally {
@@ -143,6 +180,120 @@ export default function AdminPage() {
     }
   }, [convex, token, user, page]);
 
+  // Search users
+  useEffect(() => {
+    async function search() {
+      if (!token || searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const result = await searchUsers(convex, token, searchQuery);
+        if (!("error" in result)) {
+          setSearchResults(result.users as AdminUser[]);
+        }
+      } finally {
+        setIsSearching(false);
+      }
+    }
+
+    const debounce = setTimeout(search, 300);
+    return () => clearTimeout(debounce);
+  }, [convex, token, searchQuery]);
+
+  // Load selected user details
+  const loadUserDetails = useCallback(async (userId: string) => {
+    if (!token) return;
+
+    setLoadingUser(true);
+    setSelectedUserId(userId);
+
+    try {
+      const [userResult, flagsResult, logsResult] = await Promise.all([
+        getUserById(convex, token, userId),
+        getFeatureFlags(convex, token, userId),
+        getAdminLogs(convex, token, userId, 20),
+      ]);
+
+      if (userResult && !("error" in userResult)) {
+        setSelectedUser(userResult);
+      }
+
+      if (flagsResult && !("error" in flagsResult)) {
+        setUserFlags(flagsResult);
+      } else {
+        setUserFlags(null);
+      }
+
+      if (!("error" in logsResult)) {
+        setUserLogs(logsResult.logs);
+      }
+    } finally {
+      setLoadingUser(false);
+    }
+  }, [convex, token]);
+
+  const handleSetFlag = async (flagName: string, value: boolean) => {
+    if (!token || !selectedUserId) return;
+
+    const result = await setFeatureFlag(convex, token, selectedUserId, flagName, value);
+    if (!("error" in result)) {
+      // Reload user flags
+      const flagsResult = await getFeatureFlags(convex, token, selectedUserId);
+      if (flagsResult && !("error" in flagsResult)) {
+        setUserFlags(flagsResult);
+      }
+      // Reload logs
+      const logsResult = await getAdminLogs(convex, token, selectedUserId, 20);
+      if (!("error" in logsResult)) {
+        setUserLogs(logsResult.logs);
+      }
+    }
+  };
+
+  const handleEnableSafeMode = async (provider?: string) => {
+    if (!token || !selectedUserId) return;
+
+    const result = await enableSafeMode(convex, token, selectedUserId, provider);
+    if (!("error" in result)) {
+      const flagsResult = await getFeatureFlags(convex, token, selectedUserId);
+      if (flagsResult && !("error" in flagsResult)) {
+        setUserFlags(flagsResult);
+      }
+      const logsResult = await getAdminLogs(convex, token, selectedUserId, 20);
+      if (!("error" in logsResult)) {
+        setUserLogs(logsResult.logs);
+      }
+    }
+  };
+
+  const handleDisableSafeMode = async () => {
+    if (!token || !selectedUserId) return;
+
+    const result = await disableSafeMode(convex, token, selectedUserId);
+    if (!("error" in result)) {
+      const flagsResult = await getFeatureFlags(convex, token, selectedUserId);
+      if (flagsResult && !("error" in flagsResult)) {
+        setUserFlags(flagsResult);
+      }
+      const logsResult = await getAdminLogs(convex, token, selectedUserId, 20);
+      if (!("error" in logsResult)) {
+        setUserLogs(logsResult.logs);
+      }
+    }
+  };
+
+  const clearUserSelection = () => {
+    setSelectedUserId(null);
+    setSelectedUser(null);
+    setUserFlags(null);
+    setUserLogs([]);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
   if (authLoading || !user || user.role !== "admin") {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -153,11 +304,116 @@ export default function AdminPage() {
 
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
+  // User detail view
+  if (selectedUserId && selectedUser) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={clearUserSelection}
+            className="p-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold">User Management</h1>
+            <p className="text-muted-foreground">{selectedUser.email}</p>
+          </div>
+        </div>
+
+        {loadingUser ? (
+          <div className="flex items-center justify-center min-h-[200px]">
+            <Loader2 className="animate-spin text-primary" size={32} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <UserStatusCard user={selectedUser} />
+              <SafeModeToggle
+                safeMode={userFlags?.safeMode ?? false}
+                safeModeProvider={userFlags?.safeModeProvider ?? "claude-haiku"}
+                onEnable={handleEnableSafeMode}
+                onDisable={handleDisableSafeMode}
+              />
+            </div>
+            <div className="space-y-6">
+              <FeatureFlagsEditor
+                flags={userFlags?.flags ?? {}}
+                onSetFlag={handleSetFlag}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <AdminLogsTable logs={userLogs} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Main dashboard view
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold mb-2 text-foreground">Admin Dashboard</h1>
         <p className="text-muted-foreground">Monitor users, subscriptions, and revenue</p>
+      </div>
+
+      {/* User Search */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search users by email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-3 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {searchQuery.length >= 2 && (
+          <div className="mt-2 border border-border rounded-lg divide-y divide-border max-h-64 overflow-y-auto">
+            {isSearching ? (
+              <div className="p-4 text-center text-muted-foreground">
+                <Loader2 className="animate-spin inline-block mr-2" size={16} />
+                Searching...
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                No users found
+              </div>
+            ) : (
+              searchResults.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => loadUserDetails(u.id)}
+                  className="w-full p-3 text-left hover:bg-muted/50 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-medium">{u.email}</p>
+                    <p className="text-sm text-muted-foreground">{u.name || "No name"}</p>
+                  </div>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadgeClass(
+                      u.subscriptionStatus
+                    )}`}
+                  >
+                    {u.subscriptionStatus}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -224,10 +480,13 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* Admin Actions Log */}
+          {allLogs.length > 0 && <AdminLogsTable logs={allLogs} />}
+
           {/* Recent Events */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="p-4 border-b border-border">
-              <h2 className="text-xl font-bold">Recent Events</h2>
+              <h2 className="text-xl font-bold">Recent Subscription Events</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -293,6 +552,7 @@ export default function AdminPage() {
                     <th className="text-left p-4 text-muted-foreground font-medium">Status</th>
                     <th className="text-left p-4 text-muted-foreground font-medium">Plan</th>
                     <th className="text-left p-4 text-muted-foreground font-medium">Joined</th>
+                    <th className="text-left p-4 text-muted-foreground font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -325,6 +585,14 @@ export default function AdminPage() {
                       </td>
                       <td className="p-4 text-sm text-muted-foreground">
                         {formatDate(u.createdAt)}
+                      </td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => loadUserDetails(u.id)}
+                          className="text-sm text-primary hover:underline"
+                        >
+                          Manage
+                        </button>
                       </td>
                     </tr>
                   ))}

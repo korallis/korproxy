@@ -7,6 +7,7 @@ import { registerAuthHandlers } from './auth'
 import { createTray, destroyTray } from './tray'
 import { settingsStore } from './store'
 import { initAutoUpdater } from './updater'
+import { deepLinkStore } from './deeplink'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -15,6 +16,40 @@ let mainWindow: BrowserWindow | null = null
 let isQuitting = false
 
 const isDev = !app.isPackaged
+
+const PROTOCOL = 'korproxy'
+
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [process.argv[1]])
+  }
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL)
+}
+
+function handleDeepLink(url: string): void {
+  try {
+    const parsedUrl = new URL(url)
+    const params = parsedUrl.searchParams
+
+    const utm = {
+      source: params.get('utm_source') || undefined,
+      medium: params.get('utm_medium') || undefined,
+      campaign: params.get('utm_campaign') || undefined,
+    }
+
+    if (utm.source || utm.medium || utm.campaign) {
+      deepLinkStore.setUtm(utm)
+    }
+
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  } catch (error) {
+    console.error('Failed to parse deep link:', error)
+  }
+}
 
 function createWindow(): void {
   const savedBounds = settingsStore.get('windowBounds')
@@ -115,36 +150,62 @@ function setupContentSecurityPolicy(): void {
   })
 }
 
-app.whenReady().then(async () => {
-  setupContentSecurityPolicy()
-  createWindow()
+const gotTheLock = app.requestSingleInstanceLock()
 
-  if (mainWindow) {
-    createTray(mainWindow)
-  }
-
-  const savedPort = settingsStore.get('port')
-  if (savedPort) {
-    proxySidecar.setPort(savedPort)
-  }
-
-  if (settingsStore.get('autoStart')) {
-    try {
-      await proxySidecar.start()
-    } catch (error) {
-      console.error('Failed to start proxy sidecar:', error)
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    const url = commandLine.find((arg) => arg.startsWith(`${PROTOCOL}://`))
+    if (url) {
+      handleDeepLink(url)
     }
-  }
-
-  app.on('activate', () => {
     if (mainWindow) {
-      mainWindow.show()
+      if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
-    } else if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
     }
   })
-})
+
+  app.on('open-url', (_event, url) => {
+    handleDeepLink(url)
+  })
+
+  app.whenReady().then(async () => {
+    setupContentSecurityPolicy()
+    createWindow()
+
+    if (mainWindow) {
+      createTray(mainWindow)
+    }
+
+    const savedPort = settingsStore.get('port')
+    if (savedPort) {
+      proxySidecar.setPort(savedPort)
+    }
+
+    if (settingsStore.get('autoStart')) {
+      try {
+        await proxySidecar.start()
+      } catch (error) {
+        console.error('Failed to start proxy sidecar:', error)
+      }
+    }
+
+    const launchUrl = process.argv.find((arg) => arg.startsWith(`${PROTOCOL}://`))
+    if (launchUrl) {
+      handleDeepLink(launchUrl)
+    }
+
+    app.on('activate', () => {
+      if (mainWindow) {
+        mainWindow.show()
+        mainWindow.focus()
+      } else if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+      }
+    })
+  })
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

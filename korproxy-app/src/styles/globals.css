@@ -192,6 +192,23 @@
     }
   }
 
+  /* Health status pulse */
+  .health-pulse {
+    animation: healthPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes healthPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .health-pulse,
+    .status-pulse {
+      animation: none;
+    }
+  }
+
   /* Gradient text */
   .gradient-text {
     background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '../../lib/utils'

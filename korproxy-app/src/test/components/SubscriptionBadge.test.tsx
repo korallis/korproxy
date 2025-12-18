@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { SubscriptionBadge } from '../../components/auth/SubscriptionBadge'
 
-vi.mock('framer-motion', () => ({
+vi.mock('motion/react', () => ({
   motion: {
     div: ({ children, className, ...props }: React.ComponentProps<'div'>) => (
       <div className={className} {...props}>{children}</div>

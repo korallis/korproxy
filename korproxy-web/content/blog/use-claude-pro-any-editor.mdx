@@ -1,0 +1,90 @@
+---
+title: "Use Your Claude Pro Subscription in Any Editor"
+description: "Learn how to use your existing Claude Pro subscription with Cursor, VS Code, NeoVim, and more using KorProxy."
+date: "2025-12-17"
+author: "KorProxy Team"
+---
+
+## The Problem: Claude Pro Locked to One Interface
+
+You're paying $20/month for Claude Pro. It's fantastic in claude.ai—fast, capable, and great for conversations. But when you switch to your favorite code editor, that subscription sits unused. You're forced to either pay again for API access or use whatever AI your editor bundles in.
+
+**KorProxy changes that.**
+
+## What is KorProxy?
+
+KorProxy is a lightweight desktop app that acts as a local AI gateway. It bridges your existing Claude Pro subscription to any tool that supports OpenAI-compatible APIs—which is almost every AI coding tool on the market.
+
+Instead of paying for multiple subscriptions or buying API credits, you authenticate once with your Claude account and KorProxy handles the rest.
+
+## How It Works
+
+KorProxy runs a local proxy server on `localhost:1337` that:
+
+1. **Authenticates via OAuth** - Securely connects to your Claude Pro account using the same login you use for claude.ai
+2. **Translates requests** - Converts OpenAI-format API calls to Claude's native format
+3. **Routes intelligently** - Sends your requests through your authenticated session
+4. **Returns responses** - Delivers Claude's responses in the format your tools expect
+
+```
+Your Editor → localhost:1337 → KorProxy → Claude Pro → Response
+```
+
+Your tools think they're talking to an OpenAI-compatible API. Claude thinks it's serving claude.ai. Everyone's happy.
+
+## Step-by-Step Setup
+
+### 1. Download KorProxy
+
+Head to [korproxy.com](/) and download the app for your platform (macOS, Windows, or Linux). Install it like any other desktop app.
+
+### 2. Connect Your Claude Account
+
+Launch KorProxy and click **Connect Claude**. You'll be redirected to Anthropic's login page. Sign in with your Claude Pro credentials—KorProxy uses OAuth, so we never see your password.
+
+Once authenticated, you'll see your account status in the KorProxy dashboard.
+
+### 3. Configure Your Editor
+
+Point your editor to use KorProxy as its AI backend:
+
+- **Cursor**: [Cursor setup guide](/guides/cursor)
+- **Cline (VS Code)**: [Cline setup guide](/guides/cline)
+- **Continue**: [Continue setup guide](/guides/continue)
+- **Windsurf**: [Windsurf setup guide](/guides/windsurf)
+
+The basic configuration for most tools:
+
+```
+API Base URL: http://localhost:1337/v1
+API Key: korproxy
+Model: claude-sonnet-4-5-20250929
+```
+
+### 4. Start Coding with Claude
+
+That's it. Open your editor, trigger an AI completion or chat, and watch Claude respond—powered by your existing Pro subscription.
+
+## Benefits
+
+### Use Your Existing Subscription
+
+No new accounts. No API credits. No usage-based billing surprises. Your $20/month Claude Pro subscription now works everywhere.
+
+### No Extra API Costs
+
+Claude API pricing can add up fast—$3 per million input tokens, $15 per million output tokens for Sonnet. Heavy usage during a coding session can cost more than your monthly subscription. With KorProxy, your Pro subscription covers it all.
+
+### Works Across All Your Tools
+
+Switch between Cursor, Cline, Continue, or any other compatible tool. They all connect through the same KorProxy instance, using the same Claude subscription.
+
+### Privacy-First
+
+KorProxy runs entirely on your machine. Your code and conversations flow directly between your editor and Anthropic—we never see, store, or process your data.
+
+## Start Using Claude Pro Everywhere
+
+Your Claude Pro subscription is more valuable than you thought. Stop letting it collect dust in a browser tab while you pay extra for AI in your editor.
+
+[Download KorProxy](/) and put your subscription to work.

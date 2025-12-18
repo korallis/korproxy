@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 import {
   Check,
   RefreshCw,
@@ -9,10 +9,13 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Code,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import { useAppStore } from '@/stores/appStore'
+import { useToolIntegrations } from '@/hooks/useToolIntegrations'
 import type { FactoryCustomModel, IntegrationStatus } from '@/types/electron'
 
 interface ModelOption {
@@ -115,6 +118,12 @@ export function IntegrationsSetup() {
   const { toast } = useToast()
   const { port } = useAppStore()
 
+  // Tool integrations (Cline, Continue.dev)
+  const { integrations: toolIntegrations, loading: toolsLoading } = useToolIntegrations()
+  const [toolsExpanded, setToolsExpanded] = useState(true)
+  const [copiedTool, setCopiedTool] = useState<string | null>(null)
+  const [expandedInstructions, setExpandedInstructions] = useState<string | null>(null)
+
   // Factory state
   const [factoryStatus, setFactoryStatus] = useState<IntegrationStatus | null>(null)
   const [factoryLoading, setFactoryLoading] = useState(true)
@@ -142,7 +151,7 @@ export function IntegrationsSetup() {
           setSelectedModels(existingIds)
         }
       }
-    } catch (err) {
+    } catch {
       toast('Failed to load Factory status', 'error')
     } finally {
       setFactoryLoading(false)
@@ -156,7 +165,7 @@ export function IntegrationsSetup() {
       if (result.success && result.status) {
         setAmpStatus(result.status)
       }
-    } catch (err) {
+    } catch {
       toast('Failed to load Amp status', 'error')
     } finally {
       setAmpLoading(false)
@@ -202,7 +211,7 @@ export function IntegrationsSetup() {
       } else {
         toast(result.error || 'Failed to configure', 'error')
       }
-    } catch (err) {
+    } catch {
       toast('Failed to configure Factory', 'error')
     } finally {
       setFactorySaving(false)
@@ -219,7 +228,7 @@ export function IntegrationsSetup() {
       } else {
         toast(result.error || 'Failed to configure', 'error')
       }
-    } catch (err) {
+    } catch {
       toast('Failed to configure Amp', 'error')
     } finally {
       setAmpSaving(false)
@@ -246,8 +255,152 @@ export function IntegrationsSetup() {
     })
   }
 
+  const handleCopyToolConfig = async (toolId: string) => {
+    if (!window.korproxy?.tools) return
+    const result = await window.korproxy.tools.copyConfig(toolId)
+    if (result.success) {
+      setCopiedTool(toolId)
+      toast('Config copied to clipboard!', 'success')
+      setTimeout(() => setCopiedTool(null), 2000)
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* VS Code Extensions (Cline, Continue.dev) */}
+      <div className="glass-card overflow-hidden">
+        <button
+          onClick={() => setToolsExpanded(!toolsExpanded)}
+          className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <Code className="w-5 h-5 text-blue-500" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold">VS Code Extensions</h3>
+              <p className="text-sm text-muted-foreground">Cline and Continue.dev configuration</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {toolsExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {toolsExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="px-5 pb-5 border-t border-border/50">
+                {toolsLoading ? (
+                  <div className="py-8 flex items-center justify-center">
+                    <RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    {toolIntegrations.map((tool) => (
+                      <div
+                        key={tool.toolId}
+                        className="border border-border/50 rounded-lg overflow-hidden"
+                      >
+                        <div className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{tool.displayName}</span>
+                                <span
+                                  className={cn(
+                                    'text-xs px-2 py-0.5 rounded-full',
+                                    tool.detected
+                                      ? 'bg-green-500/10 text-green-500'
+                                      : 'bg-muted text-muted-foreground'
+                                  )}
+                                >
+                                  {tool.detected ? 'Detected' : 'Not Detected'}
+                                </span>
+                              </div>
+                              {tool.configPath && (
+                                <p className="text-xs text-muted-foreground font-mono mt-1">
+                                  {tool.configPath}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => handleCopyToolConfig(tool.toolId)}
+                            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-secondary-foreground flex items-center gap-2"
+                          >
+                            {copiedTool === tool.toolId ? (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4" />
+                                Copy Config
+                              </>
+                            )}
+                          </motion.button>
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            setExpandedInstructions(
+                              expandedInstructions === tool.toolId ? null : tool.toolId
+                            )
+                          }
+                          className="w-full px-4 py-2 text-left text-sm text-muted-foreground hover:bg-muted/50 transition-colors flex items-center gap-2 border-t border-border/30"
+                        >
+                          <ChevronDown
+                            className={cn(
+                              'w-4 h-4 transition-transform',
+                              expandedInstructions === tool.toolId && 'rotate-180'
+                            )}
+                          />
+                          {expandedInstructions === tool.toolId ? 'Hide' : 'Show'} setup instructions
+                        </button>
+
+                        <AnimatePresence>
+                          {expandedInstructions === tool.toolId && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="px-4 pb-4 space-y-3">
+                                <div className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/50 rounded p-3">
+                                  {tool.instructions}
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                                    Config Snippet:
+                                  </p>
+                                  <pre className="overflow-x-auto rounded bg-background border border-border/50 p-3 text-xs">
+                                    <code>{tool.configSnippet}</code>
+                                  </pre>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       {/* Factory Droid CLI */}
       <div className="glass-card overflow-hidden">
         <button

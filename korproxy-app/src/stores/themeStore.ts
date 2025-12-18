@@ -13,12 +13,30 @@ function getSystemTheme(): 'dark' | 'light' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme, withTransition = false) {
   const root = document.documentElement
+  
+  if (withTransition) {
+    root.classList.add('theme-transition')
+  }
+  
   root.classList.remove('dark', 'light')
-
   const resolvedTheme = theme === 'system' ? getSystemTheme() : theme
   root.classList.add(resolvedTheme)
+  
+  if (withTransition) {
+    // Remove transition class after animation completes
+    setTimeout(() => {
+      root.classList.remove('theme-transition')
+    }, 200)
+  }
+  
+  // Sync to Electron main process if available
+  if (window.korproxy?.app?.setSetting) {
+    window.korproxy.app.setSetting('theme', theme).catch(() => {
+      // Ignore errors - main process sync is best-effort
+    })
+  }
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -26,7 +44,7 @@ export const useThemeStore = create<ThemeState>()(
     (set) => ({
       theme: 'dark',
       setTheme: (theme) => {
-        applyTheme(theme)
+        applyTheme(theme, true) // Enable transition for user-initiated changes
         set({ theme })
       },
     }),
@@ -34,7 +52,7 @@ export const useThemeStore = create<ThemeState>()(
       name: 'korproxy-theme-storage',
       onRehydrateStorage: () => (state) => {
         if (state) {
-          applyTheme(state.theme)
+          applyTheme(state.theme, false) // No transition on initial load
         }
       },
     }

@@ -79,7 +79,7 @@ export const useProxyStore = create<ProxyState>((set) => ({
 
   addLog: (log) =>
     set((state) => ({
-      logs: [...state.logs.slice(-999), log],
+      logs: [...state.logs.slice(-4999), log],
     })),
 
   setStatus: (status) => {

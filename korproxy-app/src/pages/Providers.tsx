@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { useAccounts } from '../hooks/useAccounts'
 import { ProviderCard, providerConfigs } from '../components/auth/ProviderCard'

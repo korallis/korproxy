@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import {
   LayoutDashboard,
   Plug,
   Users,
+  BarChart3,
   ScrollText,
   Settings,
   Zap,
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/providers', icon: Plug, label: 'Providers' },
   { to: '/accounts', icon: Users, label: 'Accounts' },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/logs', icon: ScrollText, label: 'Logs' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]

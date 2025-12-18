@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import { Activity, BarChart3 } from 'lucide-react'
 import { useProxyStatus } from '../../hooks/useProxyStatus'
 import type { ProxyStats } from '../../../electron/common/ipc-types'

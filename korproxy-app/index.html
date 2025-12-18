@@ -7,7 +7,7 @@
       http-equiv="Content-Security-Policy"
       content="
         default-src 'self';
-        script-src 'self';
+        script-src 'self' 'unsafe-inline';
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https:;
         font-src 'self' data:;
@@ -20,6 +20,38 @@
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>KorProxy</title>
+    <!-- Inline theme script to prevent flash of wrong theme -->
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('korproxy-theme-storage');
+          var theme = stored ? JSON.parse(stored).state.theme : 'dark';
+          var resolved = theme === 'system'
+            ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : theme;
+          document.documentElement.classList.add(resolved);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    <style>
+      /* Smooth theme transition */
+      html.theme-transition,
+      html.theme-transition *,
+      html.theme-transition *::before,
+      html.theme-transition *::after {
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, fill 0.2s ease !important;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html.theme-transition,
+        html.theme-transition *,
+        html.theme-transition *::before,
+        html.theme-transition *::after {
+          transition: none !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

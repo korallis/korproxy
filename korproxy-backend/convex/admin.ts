@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation, QueryCtx } from "./_generated/server";
+import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
 import { hashPassword } from "./lib/password";
+import { Id } from "./_generated/dataModel";
 
 // Pricing in GBP (pence for calculations)
 const MONTHLY_PRICE = 1499; // £14.99
@@ -9,10 +10,13 @@ const YEARLY_PRICE = 12000; // £120.00
 // Master admin email
 const MASTER_ADMIN_EMAIL = "leebarry84@icloud.com";
 
+// Default safe mode fallback provider
+const SAFE_MODE_DEFAULT_PROVIDER = "claude-haiku";
+
 /**
  * Helper to verify admin access
  */
-async function verifyAdmin(ctx: QueryCtx, token: string): Promise<boolean> {
+async function verifyAdmin(ctx: QueryCtx | MutationCtx, token: string): Promise<boolean> {
   const session = await ctx.db
     .query("sessions")
     .withIndex("by_token", (q) => q.eq("token", token))
@@ -22,6 +26,23 @@ async function verifyAdmin(ctx: QueryCtx, token: string): Promise<boolean> {
 
   const user = await ctx.db.get(session.userId);
   return user?.role === "admin";
+}
+
+/**
+ * Helper to get admin user ID from token
+ */
+async function getAdminId(ctx: QueryCtx | MutationCtx, token: string): Promise<Id<"users"> | null> {
+  const session = await ctx.db
+    .query("sessions")
+    .withIndex("by_token", (q) => q.eq("token", token))
+    .first();
+
+  if (!session || session.expiresAt < Date.now()) return null;
+
+  const user = await ctx.db.get(session.userId);
+  if (!user || user.role !== "admin") return null;
+
+  return user._id;
 }
 
 /**
@@ -404,5 +425,404 @@ export const resetUserPassword = mutation({
       success: true, 
       message: `Password reset for ${normalizedEmail}` 
     };
+  },
+});
+
+// ============================================================================
+// Feature Flags & Safe Mode Functions
+// ============================================================================
+
+/**
+ * Get feature flags for a user (admin only)
+ */
+export const getFeatureFlags = query({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+  },
+  returns: v.union(
+    v.object({
+      userId: v.id("users"),
+      flags: v.record(v.string(), v.boolean()),
+      safeMode: v.boolean(),
+      safeModeProvider: v.string(),
+      updatedAt: v.number(),
+    }),
+    v.object({ error: v.string() }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const isAdmin = await verifyAdmin(ctx, args.token);
+    if (!isAdmin) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const flags = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!flags) {
+      return null;
+    }
+
+    return {
+      userId: flags.userId,
+      flags: flags.flags,
+      safeMode: flags.safeMode,
+      safeModeProvider: flags.safeModeProvider,
+      updatedAt: flags.updatedAt,
+    };
+  },
+});
+
+/**
+ * Set a feature flag for a user (admin only)
+ */
+export const setFeatureFlag = mutation({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+    flagName: v.string(),
+    value: v.boolean(),
+  },
+  returns: v.union(
+    v.object({ success: v.boolean() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const adminId = await getAdminId(ctx, args.token);
+    if (!adminId) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return { error: "User not found" };
+    }
+
+    const existingFlags = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    const now = Date.now();
+
+    if (existingFlags) {
+      const newFlags = { ...existingFlags.flags, [args.flagName]: args.value };
+      await ctx.db.patch(existingFlags._id, {
+        flags: newFlags,
+        updatedBy: adminId,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("featureFlags", {
+        userId: args.userId,
+        flags: { [args.flagName]: args.value },
+        safeMode: false,
+        safeModeProvider: SAFE_MODE_DEFAULT_PROVIDER,
+        updatedBy: adminId,
+        updatedAt: now,
+      });
+    }
+
+    await ctx.db.insert("adminLogs", {
+      userId: args.userId,
+      adminId,
+      action: "set_feature_flag",
+      details: `Set flag "${args.flagName}" to ${args.value}`,
+      timestamp: now,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Enable safe mode for a user (admin only)
+ */
+export const enableSafeMode = mutation({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+    provider: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({ success: v.boolean() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const adminId = await getAdminId(ctx, args.token);
+    if (!adminId) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return { error: "User not found" };
+    }
+
+    const provider = args.provider ?? SAFE_MODE_DEFAULT_PROVIDER;
+    const now = Date.now();
+
+    const existingFlags = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (existingFlags) {
+      await ctx.db.patch(existingFlags._id, {
+        safeMode: true,
+        safeModeProvider: provider,
+        updatedBy: adminId,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("featureFlags", {
+        userId: args.userId,
+        flags: {},
+        safeMode: true,
+        safeModeProvider: provider,
+        updatedBy: adminId,
+        updatedAt: now,
+      });
+    }
+
+    await ctx.db.insert("adminLogs", {
+      userId: args.userId,
+      adminId,
+      action: "enable_safe_mode",
+      details: `Enabled safe mode with provider: ${provider}`,
+      timestamp: now,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Disable safe mode for a user (admin only)
+ */
+export const disableSafeMode = mutation({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+  },
+  returns: v.union(
+    v.object({ success: v.boolean() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const adminId = await getAdminId(ctx, args.token);
+    if (!adminId) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return { error: "User not found" };
+    }
+
+    const now = Date.now();
+
+    const existingFlags = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (existingFlags) {
+      await ctx.db.patch(existingFlags._id, {
+        safeMode: false,
+        updatedBy: adminId,
+        updatedAt: now,
+      });
+    }
+
+    await ctx.db.insert("adminLogs", {
+      userId: args.userId,
+      adminId,
+      action: "disable_safe_mode",
+      details: "Disabled safe mode",
+      timestamp: now,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Get admin logs for a user (admin only)
+ */
+export const getAdminLogs = query({
+  args: {
+    token: v.string(),
+    userId: v.optional(v.id("users")),
+    limit: v.optional(v.number()),
+  },
+  returns: v.union(
+    v.object({
+      logs: v.array(
+        v.object({
+          id: v.string(),
+          userId: v.string(),
+          userEmail: v.optional(v.string()),
+          adminId: v.string(),
+          adminEmail: v.optional(v.string()),
+          action: v.string(),
+          details: v.string(),
+          timestamp: v.number(),
+        })
+      ),
+    }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const isAdmin = await verifyAdmin(ctx, args.token);
+    if (!isAdmin) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const limit = args.limit ?? 50;
+
+    let logs;
+    if (args.userId) {
+      const userId = args.userId;
+      logs = await ctx.db
+        .query("adminLogs")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .order("desc")
+        .take(limit);
+    } else {
+      logs = await ctx.db
+        .query("adminLogs")
+        .order("desc")
+        .take(limit);
+    }
+
+    const logsWithEmails = await Promise.all(
+      logs.map(async (log) => {
+        const user = await ctx.db.get(log.userId);
+        const admin = await ctx.db.get(log.adminId);
+        return {
+          id: log._id,
+          userId: log.userId,
+          userEmail: user?.email,
+          adminId: log.adminId,
+          adminEmail: admin?.email,
+          action: log.action,
+          details: log.details,
+          timestamp: log.timestamp,
+        };
+      })
+    );
+
+    return { logs: logsWithEmails };
+  },
+});
+
+/**
+ * Get user by ID (admin only) - for detailed user view
+ */
+export const getUserById = query({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+  },
+  returns: v.union(
+    v.object({
+      id: v.string(),
+      email: v.string(),
+      name: v.optional(v.string()),
+      role: v.string(),
+      subscriptionStatus: v.string(),
+      subscriptionPlan: v.optional(v.string()),
+      currentPeriodEnd: v.optional(v.number()),
+      trialEnd: v.optional(v.number()),
+      cancelAtPeriodEnd: v.optional(v.boolean()),
+      stripeCustomerId: v.optional(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.optional(v.number()),
+    }),
+    v.object({ error: v.string() }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const isAdmin = await verifyAdmin(ctx, args.token);
+    if (!isAdmin) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      subscriptionStatus: user.subscriptionStatus,
+      subscriptionPlan: user.subscriptionPlan,
+      currentPeriodEnd: user.currentPeriodEnd,
+      trialEnd: user.trialEnd,
+      cancelAtPeriodEnd: user.cancelAtPeriodEnd,
+      stripeCustomerId: user.stripeCustomerId,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  },
+});
+
+/**
+ * Search users by email (admin only)
+ */
+export const searchUsers = query({
+  args: {
+    token: v.string(),
+    query: v.string(),
+    limit: v.optional(v.number()),
+  },
+  returns: v.union(
+    v.object({
+      users: v.array(
+        v.object({
+          id: v.string(),
+          email: v.string(),
+          name: v.optional(v.string()),
+          role: v.string(),
+          subscriptionStatus: v.string(),
+        })
+      ),
+    }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const isAdmin = await verifyAdmin(ctx, args.token);
+    if (!isAdmin) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const searchQuery = args.query.toLowerCase().trim();
+    const limit = args.limit ?? 20;
+
+    if (searchQuery.length < 2) {
+      return { users: [] };
+    }
+
+    const allUsers = await ctx.db.query("users").collect();
+    
+    const matchingUsers = allUsers
+      .filter((u) => u.email.toLowerCase().includes(searchQuery))
+      .slice(0, limit)
+      .map((u) => ({
+        id: u._id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        subscriptionStatus: u.subscriptionStatus,
+      }));
+
+    return { users: matchingUsers };
   },
 });

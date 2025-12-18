@@ -2,7 +2,14 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Providers Page', () => {
   test.beforeEach(async ({ page }) => {
+    // Skip onboarding
+    await page.addInitScript(() => {
+      localStorage.setItem('korproxy-onboarding-storage', JSON.stringify({
+        state: { completed: true, currentStep: 6, selectedProviders: [], selectedTools: [] },
+      }))
+    })
     await page.goto('/providers')
+    await page.waitForLoadState('networkidle')
   })
 
   test('should display providers page heading', async ({ page }) => {

@@ -31,3 +31,4 @@ logs/
 
 # Testing
 coverage/
+e2e/.auth/

@@ -1,0 +1,1 @@
+/Users/leebarry/Development/Amp-OS/profiles/opencode/commands/shape-spec.md

@@ -12,7 +12,34 @@ import type {
   FactoryConfig,
   AmpConfig,
   IntegrationStatus,
+  HealthStatus,
+  ProviderTestResult,
+  ToolIntegration,
+  LogEntry,
+  LogsGetOptions,
+  OnboardingState,
+  AuthError,
+  AuthErrorCode,
+  RoutingConfig,
+  MetricsResponse,
+  MetricsQuery,
+  DeviceInfo,
+  FeedbackSubmitRequest,
+  FeedbackSubmitResponse,
+  FeedbackLogEntry,
+  SystemInfo,
+  FeedbackCategory,
+  UTMParams,
+  DebugBundle,
+  DiagnosticsProviderState,
+  DiagnosticsMetrics,
+  RecentRequest,
+  RecentRequestsFilter,
+  MetricsTimeRange,
+  MetricsDashboardResponse,
 } from '../../electron/common/ipc-types'
+import type { Entitlements } from './entitlements'
+import { OnboardingStep, AUTH_ERROR_MESSAGES } from '../../electron/common/ipc-types'
 
 export interface ProxyLog {
   timestamp: string
@@ -37,6 +64,7 @@ export interface KorProxyAPI {
   config: {
     get: () => Promise<{ success: boolean; content?: string; error?: string }>
     set: (content: string) => Promise<{ success: boolean; error?: string }>
+    sync: (config: RoutingConfig) => Promise<{ success: boolean; error?: string; path?: string }>
   }
   app: {
     minimize: () => Promise<void>
@@ -87,9 +115,56 @@ export interface KorProxyAPI {
       set: (port: number) => Promise<{ success: boolean; error?: string }>
     }
   }
+  health: {
+    getStatus: () => Promise<HealthStatus>
+    onStateChange: (callback: (status: HealthStatus) => void) => () => void
+  }
+  provider: {
+    test: (providerId: string, modelId?: string) => Promise<ProviderTestResult>
+  }
+  tools: {
+    list: () => Promise<ToolIntegration[]>
+    copyConfig: (toolId: string) => Promise<{ success: boolean }>
+  }
+  logs: {
+    get: (options?: LogsGetOptions) => Promise<LogEntry[]>
+    export: () => Promise<string>
+    clear: () => Promise<{ success: boolean }>
+  }
+  tray: {
+    syncProfiles: (config: RoutingConfig) => Promise<{ success: boolean }>
+    getActiveProfile: () => Promise<{ activeProfileId: string | null; loaded: boolean }>
+    onProfileChanged: (callback: (profileId: string) => void) => () => void
+  }
+  entitlements: {
+    get: () => Promise<Entitlements | null>
+    set: (entitlements: Entitlements) => Promise<{ success: boolean }>
+  }
+  device: {
+    register: () => Promise<DeviceInfo>
+    getInfo: () => Promise<DeviceInfo>
+  }
+  feedback: {
+    submit: (data: FeedbackSubmitRequest) => Promise<FeedbackSubmitResponse>
+    getRecentLogs: (count: number) => Promise<FeedbackLogEntry[]>
+    getSystemInfo: () => Promise<SystemInfo>
+  }
+  deeplink: {
+    getUtm: () => Promise<UTMParams | null>
+    clearUtm: () => Promise<void>
+  }
+  diagnostics: {
+    getBundle: (config: Record<string, unknown>, providers: DiagnosticsProviderState[], metrics: DiagnosticsMetrics | null) => Promise<DebugBundle>
+    getRecentRequests: (filter?: RecentRequestsFilter) => Promise<RecentRequest[]>
+    copyBundleToClipboard: (config: Record<string, unknown>, providers: DiagnosticsProviderState[], metrics: DiagnosticsMetrics | null) => Promise<{ success: boolean; error?: string }>
+  }
+  metrics: {
+    getSummary: (timeRange: MetricsTimeRange) => Promise<MetricsDashboardResponse>
+  }
 }
 
-export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider, ProxyStats, FactoryCustomModel, FactoryConfig, AmpConfig, IntegrationStatus }
+export type { ProxyStatus, LogData, Settings, Account, OAuthResult, TokenData, UpdateStatus, Provider, ProxyStats, FactoryCustomModel, FactoryConfig, AmpConfig, IntegrationStatus, HealthStatus, ProviderTestResult, ToolIntegration, LogEntry, LogsGetOptions, OnboardingState, AuthError, AuthErrorCode, RoutingConfig, MetricsResponse, MetricsQuery, DeviceInfo, FeedbackSubmitRequest, FeedbackSubmitResponse, FeedbackLogEntry, SystemInfo, FeedbackCategory, DebugBundle, DiagnosticsProviderState, DiagnosticsMetrics, RecentRequest, RecentRequestsFilter }
+export { OnboardingStep, AUTH_ERROR_MESSAGES }
 
 declare global {
   interface Window {

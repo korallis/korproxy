@@ -12,9 +12,6 @@ export interface SidecarEvents {
 
 export class ProxySidecar extends EventEmitter {
   private process: ChildProcess | null = null
-  private autoRestart: boolean = true
-  private restartAttempts: number = 0
-  private maxRestartAttempts: number = 3
   private port: number = 1337
 
   setPort(port: number): void {
@@ -80,15 +77,14 @@ export class ProxySidecar extends EventEmitter {
 
       this.process.on('error', (error: Error) => {
         this.emit('error', error)
-        this.handleProcessExit(null)
+        this.process = null
       })
 
       this.process.on('exit', (code: number | null) => {
         this.emit('stopped', code)
-        this.handleProcessExit(code)
+        this.process = null
       })
 
-      this.restartAttempts = 0
       this.emit('started')
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
@@ -97,23 +93,7 @@ export class ProxySidecar extends EventEmitter {
     }
   }
 
-  private handleProcessExit(code: number | null): void {
-    this.process = null
-
-    if (this.autoRestart && code !== 0 && this.restartAttempts < this.maxRestartAttempts) {
-      this.restartAttempts++
-      const delay = Math.min(1000 * Math.pow(2, this.restartAttempts - 1), 10000)
-      
-      setTimeout(() => {
-        this.start().catch((error) => {
-          this.emit('error', error)
-        })
-      }, delay)
-    }
-  }
-
   stop(): void {
-    this.autoRestart = false
 
     if (this.process) {
       if (process.platform === 'win32') {
@@ -131,7 +111,6 @@ export class ProxySidecar extends EventEmitter {
   }
 
   async restart(): Promise<void> {
-    this.autoRestart = false
     this.stop()
 
     await new Promise<void>((resolve) => {
@@ -145,13 +124,7 @@ export class ProxySidecar extends EventEmitter {
       checkStopped()
     })
 
-    this.autoRestart = true
-    this.restartAttempts = 0
     await this.start()
-  }
-
-  setAutoRestart(enabled: boolean): void {
-    this.autoRestart = enabled
   }
 }
 

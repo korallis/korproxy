@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 import { Activity, Users, Zap, AlertCircle, Plus, Power, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProxyStatus } from '../hooks/useProxyStatus'
@@ -11,6 +11,7 @@ import { CardSkeleton } from '../components/shared/LoadingSkeleton'
 import { UpgradePrompt } from '../components/auth/UpgradePrompt'
 import { AuthModal } from '../components/auth/AuthModal'
 import { UsageChart } from '../components/dashboard/UsageChart'
+import { HealthStatusBadge } from '../components/dashboard/HealthStatusBadge'
 import { cn } from '../lib/utils'
 import { useToast } from '../hooks/useToast'
 
@@ -27,7 +28,7 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: 'spring', stiffness: 300, damping: 24 },
+    transition: { type: 'spring' as const, stiffness: 300, damping: 24 },
   },
 }
 
@@ -167,7 +168,10 @@ export default function Dashboard() {
               )}
             </div>
             <div>
-              <h3 className="font-semibold">Proxy Status</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="font-semibold">Proxy Status</h3>
+                <HealthStatusBadge />
+              </div>
               <p className="text-sm text-muted-foreground">
                 {isConnecting
                   ? 'Connecting...'

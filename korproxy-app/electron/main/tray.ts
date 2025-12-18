@@ -1,8 +1,23 @@
-import { Tray, Menu, nativeImage, BrowserWindow, app } from 'electron'
+import { Tray, Menu, nativeImage, BrowserWindow, app, ipcMain } from 'electron'
 import { proxySidecar } from './sidecar'
 import path from 'path'
+import type { Profile, RoutingConfig } from '../common/ipc-types'
 
 let tray: Tray | null = null
+let mainWindowRef: BrowserWindow | null = null
+
+// Profile state cache (synced from renderer)
+interface ProfileCache {
+  profiles: Profile[]
+  activeProfileId: string | null
+  loaded: boolean
+}
+
+const profileCache: ProfileCache = {
+  profiles: [],
+  activeProfileId: null,
+  loaded: false,
+}
 
 function getTrayIcon(): Electron.NativeImage {
   // On Windows, use the actual .ico file for proper taskbar display
@@ -49,6 +64,41 @@ function createTrayIconFromSVG(): Electron.NativeImage {
   return image.resize({ width: 16, height: 16 })
 }
 
+function getActiveProfileName(): string {
+  if (!profileCache.loaded || profileCache.profiles.length === 0) {
+    return 'Default'
+  }
+  const active = profileCache.profiles.find(p => p.id === profileCache.activeProfileId)
+  return active?.name ?? 'Default'
+}
+
+function buildProfilesSubmenu(mainWindow: BrowserWindow): Electron.MenuItemConstructorOptions[] {
+  if (!profileCache.loaded || profileCache.profiles.length === 0) {
+    return [
+      {
+        label: 'Loading...',
+        enabled: false,
+      },
+    ]
+  }
+
+  return profileCache.profiles.map(profile => ({
+    label: profile.name,
+    type: 'radio' as const,
+    checked: profile.id === profileCache.activeProfileId,
+    click: () => {
+      // Update local cache immediately for UI responsiveness
+      profileCache.activeProfileId = profile.id
+      updateTrayStatus(mainWindow)
+      
+      // Notify renderer to update store and sync config
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('tray:profile-changed', profile.id)
+      }
+    },
+  }))
+}
+
 function buildContextMenu(mainWindow: BrowserWindow): Electron.Menu {
   const isRunning = proxySidecar.isRunning()
   
@@ -59,6 +109,11 @@ function buildContextMenu(mainWindow: BrowserWindow): Electron.Menu {
         mainWindow.show()
         mainWindow.focus()
       },
+    },
+    { type: 'separator' },
+    {
+      label: 'Profiles',
+      submenu: buildProfilesSubmenu(mainWindow),
     },
     { type: 'separator' },
     {
@@ -94,9 +149,10 @@ function buildContextMenu(mainWindow: BrowserWindow): Electron.Menu {
 
 export function createTray(mainWindow: BrowserWindow): Tray {
   const icon = getTrayIcon()
+  mainWindowRef = mainWindow
   
   tray = new Tray(icon)
-  tray.setToolTip('KorProxy')
+  tray.setToolTip('KorProxy - Stopped')
   tray.setContextMenu(buildContextMenu(mainWindow))
   
   tray.on('double-click', () => {
@@ -112,16 +168,45 @@ export function createTray(mainWindow: BrowserWindow): Tray {
     updateTrayStatus(mainWindow)
   })
   
+  // Register IPC handler for profile state sync from renderer
+  registerTrayIpcHandlers()
+  
   return tray
+}
+
+function registerTrayIpcHandlers(): void {
+  // Handler for renderer to sync profile state to main process
+  ipcMain.handle('tray:sync-profiles', (_, config: RoutingConfig) => {
+    profileCache.profiles = config.profiles || []
+    profileCache.activeProfileId = config.activeProfileId
+    profileCache.loaded = true
+    
+    if (mainWindowRef) {
+      updateTrayStatus(mainWindowRef)
+    }
+    
+    return { success: true }
+  })
+  
+  // Handler to get current profile state (for renderer initialization)
+  ipcMain.handle('tray:get-active-profile', () => {
+    return {
+      activeProfileId: profileCache.activeProfileId,
+      loaded: profileCache.loaded,
+    }
+  })
 }
 
 export function updateTrayStatus(mainWindow: BrowserWindow): void {
   if (!tray) return
   
   const isRunning = proxySidecar.isRunning()
-  // Only update tooltip and menu, not icon (icon stays consistent on Windows)
+  const profileName = getActiveProfileName()
+  const status = isRunning ? 'Running' : 'Stopped'
+  
+  // Update tooltip with profile name: "KorProxy - [Profile] - Running/Stopped"
+  tray.setToolTip(`KorProxy - ${profileName} - ${status}`)
   tray.setContextMenu(buildContextMenu(mainWindow))
-  tray.setToolTip(`KorProxy - ${isRunning ? 'Running' : 'Stopped'}`)
 }
 
 export function destroyTray(): void {
@@ -129,4 +214,5 @@ export function destroyTray(): void {
     tray.destroy()
     tray = null
   }
+  mainWindowRef = null
 }
