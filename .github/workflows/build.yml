@@ -184,6 +184,18 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -o publish/win-x64
 
+      - name: Copy CLIProxyAPI binary into publish output
+        shell: pwsh
+        run: |
+          $src = "runtimes\\win-x64\\native\\cliproxy.exe"
+          if (!(Test-Path $src)) {
+            throw "Missing CLIProxyAPI binary at $src"
+          }
+
+          $destDir = "publish\\win-x64\\runtimes\\win-x64\\native"
+          New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+          Copy-Item -Force $src (Join-Path $destDir "cliproxy.exe")
+
       - name: Create portable ZIP
         shell: pwsh
         run: |
