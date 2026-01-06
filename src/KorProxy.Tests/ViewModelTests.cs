@@ -1,5 +1,6 @@
 using KorProxy.Core.Models;
 using KorProxy.Core.Services;
+using KorProxy.Services;
 using KorProxy.ViewModels;
 using Moq;
 using Xunit;
@@ -207,6 +208,8 @@ public class ViewModelTests
         var apiClient = new Mock<IManagementApiClient>();
         var appPaths = new Mock<IAppPaths>();
         var updateService = new Mock<IUpdateService>();
+        var startupLaunchService = new Mock<IStartupLaunchService>();
+        var navigationService = new Mock<INavigationService>();
         var options = Microsoft.Extensions.Options.Options.Create(new ProxyOptions());
 
         appPaths.SetupGet(x => x.ConfigFilePath).Returns("/test/config.yaml");
@@ -214,7 +217,13 @@ public class ViewModelTests
         updateService.SetupGet(x => x.IsPortableBuild).Returns(false);
         updateService.SetupGet(x => x.State).Returns(new UpdateState(UpdateStatus.Idle, null, null, null));
 
-        var viewModel = new SettingsViewModel(apiClient.Object, appPaths.Object, updateService.Object, options);
+        var viewModel = new SettingsViewModel(
+            apiClient.Object,
+            appPaths.Object,
+            updateService.Object,
+            startupLaunchService.Object,
+            navigationService.Object,
+            options);
 
         // Act - Simulate update state change
         var newState = new UpdateState(UpdateStatus.Downloading, "2.0.0", "Downloading v2.0.0...", 45.5);
