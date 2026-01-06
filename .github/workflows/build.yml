@@ -193,7 +193,34 @@ jobs:
       - name: Install NSIS
         shell: pwsh
         run: |
-          choco install nsis -y
+          choco install nsis -y --no-progress
+
+      - name: Add NSIS to PATH
+        shell: pwsh
+        run: |
+          $nsisRoot = "${env:ProgramFiles(x86)}\\NSIS"
+          $candidatePaths = @(
+            (Join-Path $nsisRoot "Bin"),
+            $nsisRoot
+          ) | Where-Object { Test-Path $_ }
+
+          if ($candidatePaths.Count -eq 0) {
+            throw "NSIS was installed but could not be found at '$nsisRoot'."
+          }
+
+          $nsisPath = $candidatePaths[0]
+          Write-Host "Adding NSIS to PATH via GITHUB_PATH: $nsisPath"
+          $nsisPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify makensis is available
+        shell: pwsh
+        run: |
+          $cmd = Get-Command makensis -ErrorAction SilentlyContinue
+          if (-not $cmd) {
+            Write-Host "PATH: $env:PATH"
+            throw "makensis not found on PATH after installing NSIS."
+          }
+          Write-Host "makensis found at: $($cmd.Source)"
 
       - name: Create NSIS installer
         shell: bash
@@ -230,7 +257,7 @@ jobs:
           NSIS_EOF
           fi
           
-          makensis -DVERSION=${{ steps.version.outputs.VERSION }} scripts/installer.nsi
+          makensis.exe -DVERSION=${{ steps.version.outputs.VERSION }} scripts/installer.nsi
 
       - name: Sign Windows Installer with SSL.com
         if: ${{ !inputs.skip_signing }}
