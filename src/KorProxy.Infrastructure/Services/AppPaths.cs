@@ -26,17 +26,43 @@ public sealed class AppPaths : IAppPaths
         get
         {
             var runtimeId = GetRuntimeId();
-            var binaryName = OperatingSystem.IsWindows() ? "CLIProxyAPI.exe" : "CLIProxyAPI";
-            
-            var appRuntimesPath = Path.Combine(_appDirectory.Value, "runtimes", runtimeId, binaryName);
-            if (File.Exists(appRuntimesPath))
-                return appRuntimesPath;
-            
-            var userInstalledPath = Path.Combine(DataDirectory, "bin", runtimeId, binaryName);
-            if (File.Exists(userInstalledPath))
-                return userInstalledPath;
-            
-            return appRuntimesPath;
+
+            var candidateNames = GetProxyBinaryCandidateNames();
+
+            // Prefer the packaged binary that ships with the app.
+            foreach (var name in candidateNames)
+            {
+                var packaged = Path.Combine(_appDirectory.Value, "runtimes", runtimeId, "native", name);
+                if (File.Exists(packaged))
+                    return packaged;
+
+                var packagedLegacy = Path.Combine(_appDirectory.Value, "runtimes", runtimeId, name);
+                if (File.Exists(packagedLegacy))
+                    return packagedLegacy;
+            }
+
+            // Next, check for a user-installed binary that our first-run wizard may have downloaded.
+            foreach (var name in candidateNames)
+            {
+                var userInstalled = Path.Combine(DataDirectory, "bin", runtimeId, "native", name);
+                if (File.Exists(userInstalled))
+                    return userInstalled;
+
+                var userInstalledLegacy = Path.Combine(DataDirectory, "bin", runtimeId, name);
+                if (File.Exists(userInstalledLegacy))
+                    return userInstalledLegacy;
+            }
+
+            // Finally, fall back to PATH resolution if the user installed it globally.
+            foreach (var name in candidateNames)
+            {
+                var resolved = ResolveFromPath(name);
+                if (!string.IsNullOrWhiteSpace(resolved))
+                    return resolved;
+            }
+
+            // Fallback to the expected packaged path (even if missing) for better error messages.
+            return Path.Combine(_appDirectory.Value, "runtimes", runtimeId, "native", candidateNames[0]);
         }
     }
     
@@ -89,5 +115,52 @@ public sealed class AppPaths : IAppPaths
         if (OperatingSystem.IsWindows()) return $"win-{arch}";
         if (OperatingSystem.IsMacOS()) return $"osx-{arch}";
         return $"linux-{arch}";
+    }
+
+    private static string[] GetProxyBinaryCandidateNames()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return
+            [
+                "cliproxy.exe",
+                "CLIProxyAPI.exe",
+                "cliproxyapi.exe"
+            ];
+        }
+
+        return
+        [
+            "cliproxy",
+            "CLIProxyAPI",
+            "cliproxyapi"
+        ];
+    }
+
+    private static string? ResolveFromPath(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return null;
+
+        var pathValue = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathValue))
+            return null;
+
+        var dirs = pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var dir in dirs)
+        {
+            try
+            {
+                var candidate = Path.Combine(dir, fileName);
+                if (File.Exists(candidate))
+                    return candidate;
+            }
+            catch
+            {
+                // Ignore invalid PATH entries.
+            }
+        }
+
+        return null;
     }
 }

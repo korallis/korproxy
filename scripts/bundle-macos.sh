@@ -56,12 +56,13 @@ create_bundle() {
     fi
     
     create_info_plist "$contents/Info.plist" "$arch"
-    
-    if [[ -f "$ROOT_DIR/assets/KorProxy.icns" ]]; then
-        cp "$ROOT_DIR/assets/KorProxy.icns" "$contents/Resources/"
-    else
-        create_placeholder_icon "$contents/Resources/KorProxy.icns"
+
+    if [[ ! -f "$ROOT_DIR/assets/KorProxy.icns" ]]; then
+        echo "Error: Missing icon file at $ROOT_DIR/assets/KorProxy.icns"
+        echo "Add a valid .icns file so the macOS app has a proper icon."
+        return 1
     fi
+    cp "$ROOT_DIR/assets/KorProxy.icns" "$contents/Resources/"
     
     chmod +x "$contents/MacOS/$APP_NAME"
     chmod +x "$contents/MacOS/runtimes"/*/* 2>/dev/null || true
@@ -127,12 +128,13 @@ create_universal() {
     cp -R "$x64_publish/runtimes/osx-x64/"* "$contents/MacOS/runtimes/osx-x64/" 2>/dev/null || true
     
     create_info_plist "$contents/Info.plist" "universal"
-    
-    if [[ -f "$ROOT_DIR/assets/KorProxy.icns" ]]; then
-        cp "$ROOT_DIR/assets/KorProxy.icns" "$contents/Resources/"
-    else
-        create_placeholder_icon "$contents/Resources/KorProxy.icns"
+
+    if [[ ! -f "$ROOT_DIR/assets/KorProxy.icns" ]]; then
+        echo "Error: Missing icon file at $ROOT_DIR/assets/KorProxy.icns"
+        echo "Add a valid .icns file so the macOS app has a proper icon."
+        return 1
     fi
+    cp "$ROOT_DIR/assets/KorProxy.icns" "$contents/Resources/"
     
     chmod +x "$contents/MacOS/$APP_NAME"
     chmod +x "$contents/MacOS/runtimes"/*/* 2>/dev/null || true
@@ -184,12 +186,6 @@ create_info_plist() {
 </dict>
 </plist>
 EOF
-}
-
-create_placeholder_icon() {
-    local icon_path=$1
-    mkdir -p "$(dirname "$icon_path")"
-    touch "$icon_path"
 }
 
 mkdir -p "$BUNDLE_DIR"

@@ -9,6 +9,13 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.0.2] — 2026‑01‑06
+
+### Fixed
+- **macOS launch**: Added the required Hardened Runtime entitlements for .NET (JIT), fixing macOS builds that wouldn’t open and failed with CoreCLR initialization errors.
+- **App icons (macOS + Windows)**: Restored proper `.icns`/`.ico` assets so both platforms display the correct KorProxy icon.
+- **Windows proxy start**: Fixed bundled proxy binary discovery (now resolves `runtimes/<rid>/native/cliproxy[.exe]`), and surfaced the real underlying error message instead of a generic “Error”.
+
 ## [2.0.1] — 2026‑01‑06
 
 ### Fixed

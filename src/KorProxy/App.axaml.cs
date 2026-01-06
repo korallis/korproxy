@@ -229,11 +229,26 @@ public partial class App : Application
                 try
                 {
                     startStopItem.Header = state == ProxyState.Running ? "Stop" : "Start";
+
+                    var status = _proxySupervisor?.GetStatus();
+                    var lastErrorMessage = status?.LastError?.Message;
+                    if (!string.IsNullOrWhiteSpace(lastErrorMessage))
+                    {
+                        // Keep tooltips short and single-line.
+                        var firstLine = lastErrorMessage.Split('\n', '\r')[0].Trim();
+                        lastErrorMessage = firstLine.Length > 120 ? firstLine[..120] + "…" : firstLine;
+                    }
+
                     _trayIcon.ToolTipText = state switch
                     {
                         ProxyState.Running => "KorProxy - Running",
-                        ProxyState.Error => "KorProxy - Error",
+                        ProxyState.Error => !string.IsNullOrWhiteSpace(lastErrorMessage)
+                            ? $"KorProxy - Error: {lastErrorMessage}"
+                            : "KorProxy - Error",
                         ProxyState.Starting => "KorProxy - Starting...",
+                        ProxyState.CircuitOpen => !string.IsNullOrWhiteSpace(lastErrorMessage)
+                            ? $"KorProxy - Circuit Open: {lastErrorMessage}"
+                            : "KorProxy - Circuit Open",
                         _ => "KorProxy - Stopped"
                     };
                 }

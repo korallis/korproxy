@@ -315,9 +315,13 @@ public partial class MainWindowViewModel : ViewModelBase
             ? status.EndpointUrl 
             : "";
 
-        StatusText = state == ProxyState.Running 
-            ? $"Proxy running on port {status?.EndpointUrl?.Split(':').LastOrDefault() ?? "8317"}"
-            : state.ToString();
+        StatusText = state switch
+        {
+            ProxyState.Running => $"Proxy running on port {status?.EndpointUrl?.Split(':').LastOrDefault() ?? "8317"}",
+            ProxyState.Error => status?.LastError?.Message ?? "Proxy error",
+            ProxyState.CircuitOpen => status?.LastError?.Message ?? "Circuit breaker is open",
+            _ => state.ToString()
+        };
     }
 
     [RelayCommand(CanExecute = nameof(CanToggleProxy))]

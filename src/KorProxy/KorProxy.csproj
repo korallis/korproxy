@@ -8,13 +8,16 @@
     <RootNamespace>KorProxy</RootNamespace>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+
+    <!-- Windows app icon -->
+    <ApplicationIcon>Assets\KorProxy.ico</ApplicationIcon>
     
     <!-- Assembly info -->
     <AssemblyName>KorProxy</AssemblyName>
     <Product>KorProxy</Product>
-    <Version>2.0.1</Version>
-    <AssemblyVersion>2.0.1.0</AssemblyVersion>
-    <FileVersion>2.0.1.0</FileVersion>
+    <Version>2.0.2</Version>
+    <AssemblyVersion>2.0.2.0</AssemblyVersion>
+    <FileVersion>2.0.2.0</FileVersion>
     <Description>Desktop GUI for CLIProxyAPI - AI CLI proxy manager</Description>
     <Copyright>Copyright 2025</Copyright>
     
@@ -22,8 +25,8 @@
     <CFBundleName>KorProxy</CFBundleName>
     <CFBundleDisplayName>KorProxy</CFBundleDisplayName>
     <CFBundleIdentifier>com.korproxy.app</CFBundleIdentifier>
-    <CFBundleVersion>2.0.1</CFBundleVersion>
-    <CFBundleShortVersionString>2.0.1</CFBundleShortVersionString>
+    <CFBundleVersion>2.0.2</CFBundleVersion>
+    <CFBundleShortVersionString>2.0.2</CFBundleShortVersionString>
     <NSHighResolutionCapable>true</NSHighResolutionCapable>
   </PropertyGroup>
 

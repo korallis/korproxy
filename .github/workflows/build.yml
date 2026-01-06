@@ -102,7 +102,7 @@ jobs:
             exit 1
           fi
           echo "Signing with identity: $IDENTITY"
-          codesign --deep --force --verify --verbose --sign "$IDENTITY" --options runtime "$APP_PATH"
+          codesign --deep --force --verify --verbose --timestamp --sign "$IDENTITY" --options runtime --entitlements "scripts/entitlements.mac.plist" "$APP_PATH"
 
       - name: Create DMG
         run: ./scripts/create-dmg.sh ${{ matrix.arch }}

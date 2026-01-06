@@ -97,17 +97,19 @@ public sealed class ProxySupervisor : IProxySupervisor, IDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        // Signal all background operations to stop and prevent restarts
-        _isDisposing = true;
-        
-        try
+        // Stop the proxy process and cancel any in-flight health checks/restart backoff.
+        // NOTE: This does NOT dispose the supervisor; the user should be able to start again later.
+
+        // Cancel pending restart backoff waits, then replace with a fresh CTS so future starts work.
+        CancellationTokenSource? oldShutdownCts;
+        lock (_stateLock)
         {
-            _shutdownCts?.Cancel();
+            oldShutdownCts = _shutdownCts;
+            _shutdownCts = new CancellationTokenSource();
         }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed
-        }
+
+        try { oldShutdownCts?.Cancel(); } catch { /* ignore */ }
+        try { oldShutdownCts?.Dispose(); } catch { /* ignore */ }
         
         _healthCheckCts?.Cancel();
         
