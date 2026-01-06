@@ -1,9 +1,21 @@
+"use client";
+
 import { ConvexReactClient } from "convex/react";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL!;
+let cachedClient: ConvexReactClient | null = null;
 
-if (!convexUrl) {
-  throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
+export function getConvexClient(): ConvexReactClient {
+  if (cachedClient) {
+    return cachedClient;
+  }
+
+  const defaultConvexUrl = "https://content-pig-658.convex.cloud";
+  const envConvexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  const convexUrl =
+    typeof envConvexUrl === "string" && envConvexUrl.trim().length > 0
+      ? envConvexUrl
+      : defaultConvexUrl;
+
+  cachedClient = new ConvexReactClient(convexUrl);
+  return cachedClient;
 }
-
-export const convex = new ConvexReactClient(convexUrl);
