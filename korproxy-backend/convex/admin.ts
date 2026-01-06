@@ -682,36 +682,79 @@ export const getAdminLogs = query({
       return { error: "Unauthorized - admin access required" };
     }
 
-    const limit = args.limit ?? 50;
+    const rawLimit = args.limit ?? 50;
+    const limit = Math.max(1, Math.min(rawLimit, 200));
 
-    let logs;
-    if (args.userId) {
-      const userId = args.userId;
-      logs = await ctx.db
-        .query("adminLogs")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .order("desc")
-        .take(limit);
-    } else {
-      logs = await ctx.db
-        .query("adminLogs")
-        .order("desc")
-        .take(limit);
+    let logs: Array<{
+      _id: Id<"adminLogs">;
+      _creationTime: number;
+      userId: Id<"users">;
+      adminId: Id<"users">;
+      action: string;
+      details: string;
+      timestamp: number;
+    }>;
+
+    try {
+      if (args.userId) {
+        const userId = args.userId;
+        logs = await ctx.db
+          .query("adminLogs")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .order("desc")
+          .take(limit);
+      } else {
+        logs = await ctx.db
+          .query("adminLogs")
+          .order("desc")
+          .take(limit);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      return { error: `Failed to load admin logs: ${message}` };
     }
 
     const logsWithEmails = await Promise.all(
       logs.map(async (log) => {
-        const user = await ctx.db.get(log.userId);
-        const admin = await ctx.db.get(log.adminId);
+        const userId = typeof log.userId === "string" && log.userId.length > 0 ? (log.userId as Id<"users">) : null;
+        const adminId = typeof log.adminId === "string" && log.adminId.length > 0 ? (log.adminId as Id<"users">) : null;
+
+        let userEmail: string | null = null;
+        if (userId) {
+          try {
+            const user = await ctx.db.get(userId);
+            userEmail = typeof user?.email === "string" ? user.email : null;
+          } catch {
+            userEmail = null;
+          }
+        }
+
+        let adminEmail: string | null = null;
+        if (adminId) {
+          try {
+            const admin = await ctx.db.get(adminId);
+            adminEmail = typeof admin?.email === "string" ? admin.email : null;
+          } catch {
+            adminEmail = null;
+          }
+        }
+
+        const action = typeof log.action === "string" ? log.action : "unknown";
+        const details = typeof log.details === "string" ? log.details : "";
+        const timestamp =
+          typeof log.timestamp === "number" && Number.isFinite(log.timestamp)
+            ? log.timestamp
+            : log._creationTime;
+
         return {
           id: log._id,
-          userId: log.userId,
-          userEmail: user?.email,
-          adminId: log.adminId,
-          adminEmail: admin?.email,
-          action: log.action,
-          details: log.details,
-          timestamp: log.timestamp,
+          userId: typeof log.userId === "string" ? log.userId : "",
+          adminId: typeof log.adminId === "string" ? log.adminId : "",
+          action,
+          details,
+          timestamp,
+          ...(userEmail ? { userEmail } : {}),
+          ...(adminEmail ? { adminEmail } : {}),
         };
       })
     );
