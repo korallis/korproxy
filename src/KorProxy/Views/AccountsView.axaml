@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             x:Class="KorProxy.Views.AccountsView"
+             x:DataType="vm:AccountsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid>
+        <!-- Loading Overlay -->
+        <Border IsVisible="{Binding IsLoading}"
+                Background="#80000000"
+                ZIndex="100">
+            <Border Classes="card" Padding="32" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Spacing="16" HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="120" />
+                    <TextBlock Text="Loading accounts..."
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24">
+            <StackPanel Spacing="24" MaxWidth="800">
+                
+                <!-- Page Header -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Accounts"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="Connect your AI provider accounts to route requests"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- Status Message -->
+                <Border Classes="card"
+                        IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                        Padding="16">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <mi:MaterialIcon Grid.Column="0"
+                                         Kind="CheckCircle"
+                                         Width="20" Height="20"
+                                         Foreground="{StaticResource StatusSuccessBrush}"
+                                         Margin="0,0,12,0"
+                                         VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding StatusMessage}"
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Account Cards -->
+                <ItemsControl ItemsSource="{Binding Accounts}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AccountCardViewModel">
+                            <Border Classes="card" Padding="20" Margin="0,0,0,12">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                                    <!-- Provider Icon with status color -->
+                                    <Grid Grid.Column="0" Width="48" Height="48">
+                                        <!-- Green background when connected -->
+                                        <Border Width="48" Height="48"
+                                                CornerRadius="12"
+                                                Opacity="0.15"
+                                                IsVisible="{Binding IsConnected}"
+                                                Background="{StaticResource StatusSuccessBrush}" />
+                                        <!-- Gray background when not connected -->
+                                        <Border Width="48" Height="48"
+                                                CornerRadius="12"
+                                                IsVisible="{Binding !IsConnected}"
+                                                Background="{StaticResource Surface2Brush}" />
+                                        <!-- Green icon when connected -->
+                                        <mi:MaterialIcon Kind="CloudCheckOutline"
+                                                         Width="24" Height="24"
+                                                         Foreground="{StaticResource StatusSuccessBrush}"
+                                                         IsVisible="{Binding IsConnected}" />
+                                        <!-- Gray icon when not connected -->
+                                        <mi:MaterialIcon Kind="CloudOutline"
+                                                         Width="24" Height="24"
+                                                         Foreground="{StaticResource TextSecondaryBrush}"
+                                                         IsVisible="{Binding !IsConnected}" />
+                                    </Grid>
+                                    
+                                    <!-- Provider Info -->
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                        <TextBlock Text="{Binding ProviderName}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <!-- Status with colored dot - Connected (green) -->
+                                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsConnected}">
+                                            <Ellipse Width="8" Height="8"
+                                                     VerticalAlignment="Center"
+                                                     Fill="{StaticResource StatusSuccessBrush}" />
+                                            <TextBlock Text="{Binding StatusText}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource StatusSuccessBrush}"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <!-- Status with colored dot - Not Connected (gray) -->
+                                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !IsConnected}">
+                                            <Ellipse Width="8" Height="8"
+                                                     VerticalAlignment="Center"
+                                                     Fill="{StaticResource TextTertiaryBrush}" />
+                                            <TextBlock Text="{Binding StatusText}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    
+                                    <!-- Actions -->
+                                    <Button Grid.Column="2"
+                                            Content="Connect"
+                                            Command="{Binding ConnectCommand}"
+                                            IsVisible="{Binding !IsConnected}"
+                                            VerticalAlignment="Center"
+                                            Padding="16,10" />
+                                    <Button Grid.Column="2"
+                                            Content="Disconnect"
+                                            Command="{Binding DisconnectCommand}"
+                                            IsVisible="{Binding IsConnected}"
+                                            VerticalAlignment="Center"
+                                            Padding="16,10" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

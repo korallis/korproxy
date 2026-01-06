@@ -5,14 +5,21 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      skip_signing:
+        description: 'Skip code signing (for testing)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+env:
+  DOTNET_VERSION: '8.0.x'
+
 jobs:
   # ============================================
   # macOS Builds - Parallelized with matrix
-  # Each architecture runs in its own job for faster builds
   # ============================================
   build-macos:
     runs-on: macos-latest
@@ -22,8 +29,10 @@ jobs:
         arch: [arm64, x64]
         include:
           - arch: arm64
+            rid: osx-arm64
             go_arch: arm64
           - arch: x64
+            rid: osx-x64
             go_arch: amd64
     steps:
       - name: Checkout
@@ -31,55 +40,105 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: korproxy-app/package-lock.json
-
-      - name: Install dependencies
-        working-directory: korproxy-app
-        run: npm ci
-
-      - name: Install backend dependencies (for TypeScript types)
-        working-directory: korproxy-backend
-        run: npm ci
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
           cache-dependency-path: CLIProxyAPI/go.sum
 
-      - name: Build Go binary (macOS ${{ matrix.arch }})
+      - name: Build CLIProxyAPI binary (macOS ${{ matrix.arch }})
         run: |
           cd CLIProxyAPI
-          mkdir -p ../korproxy-app/resources/binaries/darwin-${{ matrix.arch }}
-          GOOS=darwin GOARCH=${{ matrix.go_arch }} go build -o ../korproxy-app/resources/binaries/darwin-${{ matrix.arch }}/cliproxy ./cmd/server
+          mkdir -p ../runtimes/${{ matrix.rid }}/native
+          GOOS=darwin GOARCH=${{ matrix.go_arch }} go build -o ../runtimes/${{ matrix.rid }}/native/cliproxy ./cmd/server
+          chmod +x ../runtimes/${{ matrix.rid }}/native/cliproxy
 
-      - name: Build & Package macOS (${{ matrix.arch }})
-        working-directory: korproxy-app
+      - name: Get version from csproj
+        id: version
+        run: |
+          VERSION=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' src/KorProxy/KorProxy.csproj | head -1)
+          echo "VERSION=${VERSION:-1.0.0}" >> $GITHUB_OUTPUT
+
+      - name: Install Apple certificate
+        if: ${{ !inputs.skip_signing }}
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          
+          echo -n "$CSC_LINK" | base64 --decode -o $CERTIFICATE_PATH
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          security import $CERTIFICATE_PATH -P "$CSC_KEY_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Build and publish
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/publish.sh ${{ matrix.rid }}
+
+      - name: Bundle macOS app
+        run: ./scripts/bundle-macos.sh ${{ matrix.arch }}
+
+      - name: Sign app bundle
+        if: ${{ !inputs.skip_signing }}
+        run: |
+          APP_PATH="dist/KorProxy.app"
+          IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(Developer ID Application[^"]*\)".*/\1/')
+          if [ -z "$IDENTITY" ]; then
+            echo "Error: No Developer ID Application identity found"
+            exit 1
+          fi
+          echo "Signing with identity: $IDENTITY"
+          codesign --deep --force --verify --verbose --sign "$IDENTITY" --options runtime "$APP_PATH"
+
+      - name: Create DMG
+        run: ./scripts/create-dmg.sh ${{ matrix.arch }}
+
+      - name: Notarize DMG
+        if: ${{ !inputs.skip_signing }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run package:mac -- --${{ matrix.arch }}
+        run: |
+          DMG_PATH=$(ls dist/KorProxy-*-${{ matrix.arch }}.dmg | head -1)
+          xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG_PATH"
+
+      - name: Create ZIP archive
+        run: |
+          cd dist
+          zip -r "KorProxy-${{ steps.version.outputs.VERSION }}-${{ matrix.arch }}.zip" KorProxy.app
 
       - name: Upload macOS artifacts (${{ matrix.arch }})
         uses: actions/upload-artifact@v4
         with:
           name: macos-builds-${{ matrix.arch }}
           path: |
-            korproxy-app/release/*.dmg
-            korproxy-app/release/*.zip
-            korproxy-app/release/latest*.yml
-            korproxy-app/release/*.blockmap
+            dist/*.dmg
+            dist/*.zip
           retention-days: 5
 
+  # ============================================
+  # Windows Build
+  # ============================================
   build-windows:
     runs-on: windows-latest
     steps:
@@ -88,46 +147,93 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: korproxy-app/package-lock.json
-
-      - name: Install dependencies
-        working-directory: korproxy-app
-        run: npm ci
-
-      - name: Install backend dependencies (for TypeScript types)
-        working-directory: korproxy-backend
-        run: npm ci
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
           cache-dependency-path: CLIProxyAPI/go.sum
 
-      - name: Build Go binary (Windows)
+      - name: Build CLIProxyAPI binary (Windows x64)
         shell: bash
         run: |
           cd CLIProxyAPI
-          mkdir -p ../korproxy-app/resources/binaries/win32-x64
-          GOOS=windows GOARCH=amd64 go build -o ../korproxy-app/resources/binaries/win32-x64/cliproxy.exe ./cmd/server
+          mkdir -p ../runtimes/win-x64/native
+          GOOS=windows GOARCH=amd64 go build -o ../runtimes/win-x64/native/cliproxy.exe ./cmd/server
 
-      - name: Get version from package.json
+      - name: Get version from csproj
         id: version
         shell: bash
-        run: echo "VERSION=$(node -p "require('./korproxy-app/package.json').version")" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' src/KorProxy/KorProxy.csproj | head -1)
+          echo "VERSION=${VERSION:-1.0.0}" >> $GITHUB_OUTPUT
 
-      - name: Build & Package Windows (unsigned)
-        working-directory: korproxy-app
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run package:win
+      - name: Build and publish
+        shell: bash
+        run: |
+          dotnet restore KorProxy.sln
+          dotnet publish src/KorProxy/KorProxy.csproj \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -o publish/win-x64
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Compress-Archive -Path publish/win-x64/* -DestinationPath "dist/KorProxy-${{ steps.version.outputs.VERSION }}-win-x64-portable.zip"
+
+      - name: Install NSIS
+        shell: pwsh
+        run: |
+          choco install nsis -y
+
+      - name: Create NSIS installer
+        shell: bash
+        run: |
+          if [ ! -f "scripts/installer.nsi" ]; then
+            cat > scripts/installer.nsi << 'NSIS_EOF'
+          !include "MUI2.nsh"
+          
+          Name "KorProxy"
+          OutFile "..\dist\KorProxy-${VERSION}-setup.exe"
+          InstallDir "$PROGRAMFILES64\KorProxy"
+          RequestExecutionLevel admin
+          
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_LANGUAGE "English"
+          
+          Section "Install"
+            SetOutPath $INSTDIR
+            File /r "..\publish\win-x64\*.*"
+            CreateShortcut "$DESKTOP\KorProxy.lnk" "$INSTDIR\KorProxy.exe"
+            CreateShortcut "$SMPROGRAMS\KorProxy.lnk" "$INSTDIR\KorProxy.exe"
+            WriteUninstaller "$INSTDIR\Uninstall.exe"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\KorProxy" "DisplayName" "KorProxy"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\KorProxy" "UninstallString" "$INSTDIR\Uninstall.exe"
+          SectionEnd
+          
+          Section "Uninstall"
+            Delete "$DESKTOP\KorProxy.lnk"
+            Delete "$SMPROGRAMS\KorProxy.lnk"
+            RMDir /r "$INSTDIR"
+            DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\KorProxy"
+          SectionEnd
+          NSIS_EOF
+          fi
+          
+          makensis -DVERSION=${{ steps.version.outputs.VERSION }} scripts/installer.nsi
 
       - name: Sign Windows Installer with SSL.com
+        if: ${{ !inputs.skip_signing }}
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -135,7 +241,7 @@ jobs:
           password: ${{ secrets.ES_PASSWORD }}
           credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-          file_path: korproxy-app/release/KorProxy-${{ steps.version.outputs.VERSION }}-setup.exe
+          file_path: dist/KorProxy-${{ steps.version.outputs.VERSION }}-setup.exe
           override: true
           malware_block: false
           environment_name: PROD
@@ -145,12 +251,13 @@ jobs:
         with:
           name: windows-builds
           path: |
-            korproxy-app/release/*.exe
-            korproxy-app/release/*.zip
-            korproxy-app/release/latest*.yml
-            korproxy-app/release/*.blockmap
+            dist/*.exe
+            dist/*.zip
           retention-days: 5
 
+  # ============================================
+  # Linux Build
+  # ============================================
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -159,53 +266,57 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: korproxy-app/package-lock.json
-
-      - name: Install dependencies
-        working-directory: korproxy-app
-        run: npm ci
-
-      - name: Install backend dependencies (for TypeScript types)
-        working-directory: korproxy-backend
-        run: npm ci
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
           cache-dependency-path: CLIProxyAPI/go.sum
 
-      - name: Build Go binary (Linux)
+      - name: Build CLIProxyAPI binary (Linux x64)
         run: |
           cd CLIProxyAPI
-          mkdir -p ../korproxy-app/resources/binaries/linux-x64
-          GOOS=linux GOARCH=amd64 go build -o ../korproxy-app/resources/binaries/linux-x64/cliproxy ./cmd/server
+          mkdir -p ../runtimes/linux-x64/native
+          GOOS=linux GOARCH=amd64 go build -o ../runtimes/linux-x64/native/cliproxy ./cmd/server
+          chmod +x ../runtimes/linux-x64/native/cliproxy
 
-      - name: Build & Package Linux
-        working-directory: korproxy-app
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get version from csproj
+        id: version
         run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm
-          npm run build:vite
-          npx electron-builder --linux
+          VERSION=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' src/KorProxy/KorProxy.csproj | head -1)
+          echo "VERSION=${VERSION:-1.0.0}" >> $GITHUB_OUTPUT
+
+      - name: Build and publish
+        run: |
+          dotnet restore KorProxy.sln
+          dotnet publish src/KorProxy/KorProxy.csproj \
+            -c Release \
+            -r linux-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -o publish/linux-x64
+
+      - name: Create tarball
+        run: |
+          mkdir -p dist
+          cd publish/linux-x64
+          tar -czvf "../../dist/KorProxy-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz" .
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-builds
           path: |
-            korproxy-app/release/*.AppImage
-            korproxy-app/release/*.deb
-            korproxy-app/release/latest*.yml
+            dist/*.tar.gz
           retention-days: 5
 
+  # ============================================
+  # Create Release
+  # ============================================
   release:
     needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
@@ -217,18 +328,10 @@ jobs:
           path: artifacts
           merge-multiple: false
 
-      - name: Flatten and deduplicate artifacts
+      - name: Flatten artifacts
         run: |
           mkdir -p release-files
-          # Copy all unique files, handling duplicates (latest-mac.yml exists in both mac builds)
-          find artifacts -type f -name "*.dmg" -exec cp {} release-files/ \;
-          find artifacts -type f -name "*.zip" -exec cp {} release-files/ \;
-          find artifacts -type f -name "*.blockmap" -exec cp {} release-files/ \;
-          find artifacts -type f -name "*.exe" -exec cp {} release-files/ \;
-          find artifacts -type f -name "*.AppImage" -exec cp {} release-files/ \;
-          find artifacts -type f -name "*.deb" -exec cp {} release-files/ \;
-          # Copy yml files (will overwrite duplicates, keeping one copy)
-          find artifacts -type f -name "latest*.yml" -exec cp {} release-files/ \;
+          find artifacts -type f \( -name "*.dmg" -o -name "*.zip" -o -name "*.exe" -o -name "*.tar.gz" \) -exec cp {} release-files/ \;
           echo "Files to release:"
           ls -la release-files/
 
@@ -239,5 +342,19 @@ jobs:
           draft: false
           prerelease: false
           fail_on_unmatched_files: false
+          body: |
+            ## KorProxy Release
+            
+            Desktop application built with .NET 8 and Avalonia UI.
+            
+            ### Downloads
+            - **macOS (Apple Silicon)**: KorProxy-*-arm64.dmg
+            - **macOS (Intel)**: KorProxy-*-x64.dmg
+            - **Windows**: KorProxy-*-setup.exe (installer) or KorProxy-*-win-x64-portable.zip
+            - **Linux**: KorProxy-*-linux-x64.tar.gz
+            
+            ### Signing
+            - macOS builds are signed and notarized with Apple Developer ID
+            - Windows installer is signed with SSL.com EV certificate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

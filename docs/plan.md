@@ -1,274 +1,371 @@
-# KorProxy Release Preparation Plan
+# KorProxy - Project Plan
 
-> Generated: 2025-12-18
-> Status: In Progress
+> A native cross-platform desktop application for CLIProxyAPI management built with .NET Avalonia and SukiUI
 
-## Current State Summary
+## 📋 Project Overview
 
-### Completed
-- [x] Validated korproxy-app (typecheck, lint, tests pass)
-- [x] Validated korproxy-web (build passes)
-- [x] Validated korproxy-backend (typecheck passes)
-- [x] Fixed 26 lint errors in korproxy-web
-- [x] Committed lint fixes (`e5d1250`)
-
-### Blocking Issues
-- [ ] ~150 uncommitted files from previous agent work
-- [ ] CLIProxyAPI submodule in messy state (uncommitted changes, 24 commits behind upstream)
+**Project Name:** KorProxy  
+**Framework:** .NET 8 LTS + Avalonia UI 11.3  
+**Theme:** SukiUI (modern glassmorphism)  
+**Target Platforms:** macOS (arm64, x64), Windows (x64, arm64)  
+**CLIProxyAPI Bundling:** Included in installer (standalone)
 
 ---
 
-## Phase 1: Commit Remaining Changes (Priority: HIGH)
+## 🎯 Project Goals
 
-### 1.1 Review and Stage korproxy-app Changes
-```bash
-# Review changes
-git diff korproxy-app/
-
-# Stage all korproxy-app changes
-git add korproxy-app/
-```
-
-**Files include:**
-- Electron main process updates (IPC, tray, sidecar)
-- New components (analytics, billing, diagnostics, feedback, onboarding)
-- New hooks (useEntitlements, useHealthStatus, useMetrics, etc.)
-- New stores (entitlementStore, onboardingStore, profileStore)
-- E2E test files
-- Package updates
-
-### 1.2 Review and Stage korproxy-backend Changes
-```bash
-git add korproxy-backend/
-```
-
-**Files include:**
-- New Convex functions (devices, entitlements, feedback, invites, members, teams, users)
-- Schema updates
-- RBAC library
-
-### 1.3 Review and Stage korproxy-web Changes
-```bash
-git add korproxy-web/
-```
-
-**Files include:**
-- New pages (blog, changelog, billing, teams, roadmap, invite)
-- New components (Analytics, UTMCapture, admin tools, MDX)
-- New Convex functions
-- Content files
-
-### 1.4 Stage Supporting Files
-```bash
-git add .github/workflows/ci.yml
-git add docs/
-git add examples/
-git add amp-os/
-git add opencode-os/
-git add .claude/
-git add .opencode/
-```
-
-### 1.5 Commit All Changes
-```bash
-git commit -m "feat: add teams, billing, analytics, and onboarding features
-
-- Add team management with invites and RBAC
-- Add billing integration with Stripe
-- Add analytics and UTM tracking
-- Add onboarding flow for new users
-- Add device sync and entitlements
-- Add feedback collection system
-- Add health monitoring and diagnostics
-- Add blog and changelog content system
-- Update CI workflow"
-```
+1. Build a native, high-performance GUI for CLIProxyAPI
+2. Provide seamless cross-platform experience on macOS and Windows
+3. Modern, stylish UI with dark mode default using SukiUI
+4. Full feature parity with CLIProxyAPI Management API
+5. System tray integration for background operation
+6. Bundle CLIProxyAPI binary for standalone installation
 
 ---
 
-## Phase 2: Stabilize CLIProxyAPI Submodule (Priority: HIGH)
+## 🔧 Technology Stack
 
-### 2.1 Commit Local Changes as Patch Stack
+### Core Framework
+| Component | Technology | Version |
+|-----------|------------|---------|
+| Runtime | .NET | 8.0 LTS |
+| UI Framework | Avalonia UI | 11.3.0 |
+| Theme | SukiUI | 6.x |
+| MVVM Toolkit | CommunityToolkit.Mvvm | 8.4.0 |
 
-The submodule has significant uncommitted work that needs to be preserved:
+### Additional Libraries
+| Purpose | Package |
+|---------|---------|
+| HTTP Client | System.Net.Http.Json |
+| YAML Parsing | YamlDotNet |
+| JSON | System.Text.Json (built-in) |
+| Dependency Injection | Microsoft.Extensions.DependencyInjection |
 
-```bash
-cd CLIProxyAPI
-
-# Stage and commit correlation ID changes
-git add internal/api/middleware/correlation.go
-git add internal/api/middleware/correlation_test.go
-git add internal/logging/request_logger.go
-git commit -m "feat(correlation): add request correlation ID middleware"
-
-# Stage and commit v1 API handlers
-git add internal/api/handlers/v1/
-git add internal/routing/
-git commit -m "feat(v1): add profiles, routing rules, and diagnostics API"
-
-# Stage and commit supporting packages
-git add internal/errors/
-git add internal/metrics/
-git add internal/pool/
-git add internal/ratelimit/
-git commit -m "feat(infra): add error handling, metrics, pooling, and rate limiting"
-
-# Stage and commit SDK extensions
-git add sdk/cliproxy/auth/group_selector.go
-git add sdk/cliproxy/auth/group_selector_test.go
-git add sdk/cliproxy/auth/health.go
-git add sdk/cliproxy/auth/health_test.go
-git commit -m "feat(sdk): add group selector and health check utilities"
-
-# Stage and commit korproxy command
-git add cmd/korproxy/
-git commit -m "feat(cmd): add korproxy command entry point"
-
-# Stage modified files
-git add internal/api/modules/amp/proxy.go
-git add internal/api/modules/amp/routes_test.go
-git add internal/api/server.go
-git commit -m "feat(server): integrate v1 API routes and correlation middleware"
-```
-
-### 2.2 Update Parent Repository Submodule Reference
-
-```bash
-cd ..
-git add CLIProxyAPI
-git commit -m "chore: update CLIProxyAPI submodule with v1 API and correlation features"
-```
-
-### 2.3 (Optional) Merge Upstream Changes
-
-**Risk: MEDIUM-HIGH** - Upstream has 24 commits with potential conflicts in:
-- Watcher refactoring
-- Gemini 3 support
-- Antigravity executor changes
-
-```bash
-cd CLIProxyAPI
-
-# Create backup branch
-git branch backup-korproxy-integration
-
-# Fetch and rebase
-git fetch origin
-git rebase origin/main
-
-# Resolve conflicts if any, then:
-git push origin korproxy-integration --force-with-lease
-
-cd ..
-git add CLIProxyAPI
-git commit -m "chore: rebase CLIProxyAPI on upstream main"
-```
-
-**Recommendation:** Defer upstream merge to a separate PR after the current changes are stable.
+### Development Tools
+| Tool | Purpose |
+|------|---------|
+| .NET 8 SDK | Build and compile |
+| Avalonia Templates | Project scaffolding |
+| VS Code / Rider | IDE |
 
 ---
 
-## Phase 3: Security Hardening (Priority: MEDIUM)
+## 🏗️ Architecture
 
-Based on Oracle security review:
-
-### 3.1 Amp Management Proxy Security
-- [ ] Ensure `restrict-management-to-localhost` defaults to `true`
-- [ ] Consider adding local secret header requirement
-- [ ] Audit proxied route allowlist
-
-### 3.2 Diagnostics Endpoint Security
-- [ ] Add authentication to `/v1/diagnostics/bundle`
-- [ ] Rate limit diagnostics endpoints
-- [ ] Remove detailed version/commit info from unauthenticated responses
-
-### 3.3 Build Integrity
-- [ ] Add CI check for clean submodule state
-- [ ] Generate checksums for Go binary
-- [ ] Document submodule workflow in CONTRIBUTING.md
-
----
-
-## Phase 4: Pre-Push Verification (Priority: HIGH)
-
-### 4.1 Run Full Test Suite
-```bash
-# korproxy-app
-cd korproxy-app && npm run typecheck && npm run lint && npm test
-
-# korproxy-web
-cd ../korproxy-web && npm run lint && npm run build
-
-# korproxy-backend
-cd ../korproxy-backend && npx tsc --noEmit
-
-# CLIProxyAPI
-cd ../CLIProxyAPI && go build ./... && go test ./...
+### Solution Structure
+```
+KorProxy/
+├── KorProxy.sln
+├── docs/
+│   ├── PLAN.md                         # This file
+│   ├── TASKS.md                        # Task tracking
+│   └── API.md                          # CLIProxyAPI endpoints reference
+├── src/
+│   ├── KorProxy/                       # Main Avalonia Desktop App
+│   │   ├── KorProxy.csproj
+│   │   ├── App.axaml                   # Application + SukiUI theme
+│   │   ├── App.axaml.cs
+│   │   ├── Program.cs                  # Entry point
+│   │   ├── ViewLocator.cs              # MVVM view resolution
+│   │   ├── Assets/                     # Icons, images, bundled CLI
+│   │   │   ├── Icons/
+│   │   │   ├── cli-proxy-api           # macOS binary
+│   │   │   ├── cli-proxy-api.exe       # Windows binary
+│   │   │   └── config.example.yaml
+│   │   ├── Views/                      # AXAML UI definitions
+│   │   │   ├── MainWindow.axaml
+│   │   │   ├── LoginView.axaml
+│   │   │   ├── DashboardView.axaml
+│   │   │   ├── ProvidersView.axaml
+│   │   │   ├── ApiKeysView.axaml
+│   │   │   ├── AuthFilesView.axaml
+│   │   │   ├── SettingsView.axaml
+│   │   │   ├── LogsView.axaml
+│   │   │   └── UsageView.axaml
+│   │   ├── ViewModels/                 # MVVM ViewModels
+│   │   │   ├── MainWindowViewModel.cs
+│   │   │   ├── LoginViewModel.cs
+│   │   │   ├── DashboardViewModel.cs
+│   │   │   ├── ProvidersViewModel.cs
+│   │   │   ├── ApiKeysViewModel.cs
+│   │   │   ├── AuthFilesViewModel.cs
+│   │   │   ├── SettingsViewModel.cs
+│   │   │   ├── LogsViewModel.cs
+│   │   │   └── UsageViewModel.cs
+│   │   ├── Models/                     # Data models
+│   │   │   ├── AppConfig.cs
+│   │   │   ├── ConnectionMode.cs
+│   │   │   ├── ServerStatus.cs
+│   │   │   └── Dto/                    # API DTOs
+│   │   ├── Services/                   # Business logic
+│   │   │   ├── ICLIProxyApiClient.cs
+│   │   │   ├── CLIProxyApiClient.cs
+│   │   │   ├── IProcessManager.cs
+│   │   │   ├── ProcessManager.cs
+│   │   │   ├── IConfigurationService.cs
+│   │   │   ├── ConfigurationService.cs
+│   │   │   └── TrayService.cs
+│   │   └── Controls/                   # Custom Avalonia controls
+│   │       ├── StatusIndicator.axaml
+│   │       └── ProviderCard.axaml
+│   │
+│   └── KorProxy.Core/                  # Shared library (optional)
+│       ├── KorProxy.Core.csproj
+│       └── ...
+│
+├── tests/
+│   └── KorProxy.Tests/
+│       └── KorProxy.Tests.csproj
+│
+└── build/
+    ├── macos/
+    │   └── Info.plist
+    └── windows/
+        └── installer.wxs
 ```
 
-### 4.2 Verify Build Artifacts
-```bash
-cd korproxy-app
-npm run package:mac  # or appropriate platform
-```
+### MVVM Pattern
+- **Models**: Pure data classes, DTOs for API responses
+- **ViewModels**: CommunityToolkit.Mvvm with [ObservableProperty], [RelayCommand]
+- **Views**: AXAML with data binding to ViewModels
+- **Services**: Injectable services for API calls, process management
 
-### 4.3 Final Git Status Check
-```bash
-git status  # Should show clean working tree
-git log --oneline -10  # Review commit history
+### Dependency Injection
+```csharp
+services.AddSingleton<ICLIProxyApiClient, CLIProxyApiClient>();
+services.AddSingleton<IProcessManager, ProcessManager>();
+services.AddSingleton<IConfigurationService, ConfigurationService>();
+services.AddSingleton<MainWindowViewModel>();
+// ... more registrations
 ```
 
 ---
 
-## Phase 5: Push to Remote (Priority: HIGH)
+## 🎨 UI Design
 
-### 5.1 Sync with Remote
-```bash
-# Your branch is behind origin/main by 4 commits
-git pull --rebase origin main
+### Theme Configuration
+- **Base Theme**: SukiUI Dark mode
+- **Background Style**: Gradient or Bubble (glassmorphism)
+- **Accent Color**: Blue (customizable)
+- **Window Style**: SukiWindow with native title bar
+
+### Navigation Structure
+```
+┌─────────────────────────────────────────────────┐
+│  KorProxy                              ─ □ ✕    │
+├───────────┬─────────────────────────────────────┤
+│           │                                     │
+│  🏠 Home  │     [Content Area]                  │
+│           │                                     │
+│  🔐 Auth  │     Dashboard / Providers /         │
+│           │     API Keys / Settings / etc.      │
+│  🔑 Keys  │                                     │
+│           │                                     │
+│  ⚙️ Setup │                                     │
+│           │                                     │
+│  📊 Stats │                                     │
+│           │                                     │
+│  📜 Logs  │                                     │
+│           │                                     │
+├───────────┴─────────────────────────────────────┤
+│  [Status Bar: Server Status | Connection Mode]  │
+└─────────────────────────────────────────────────┘
 ```
 
-### 5.2 Push Changes
-```bash
-git push origin main
+### Key Screens
+
+#### 1. Login View
+- Mode toggle: Local / Remote
+- Remote fields: Base URL, Management Key
+- Local: Auto-start option, bundled CLI path display
+- Connect button with loading state
+
+#### 2. Dashboard
+- Server status card (running/stopped)
+- Start/Stop/Restart buttons
+- Quick stats: requests, tokens, errors
+- Provider status grid (small cards)
+
+#### 3. Providers View
+- List/Grid of providers
+- Each provider: name, status, login button, auth expiry
+- Supported: Gemini CLI, Claude Code, Codex, Qwen, iFlow, Antigravity
+
+#### 4. API Keys View
+- Tabbed: Gemini | Claude | Codex | OpenAI Compat
+- DataGrid with: Key (masked), Base URL, Proxy, Actions
+- Add/Edit/Delete dialogs
+
+#### 5. Auth Files View
+- DataGrid: Name, Provider, Email, Status, Actions
+- Upload button (file picker)
+- Download/Delete per row
+
+#### 6. Settings View
+- Form-based settings
+- Sections: Server, Logging, Proxy, Remote Management
+
+#### 7. Usage View
+- Charts: Requests/day, Tokens/day
+- Tables: By API, By Model
+- Time range selector
+
+#### 8. Logs View
+- Real-time log streaming
+- Filter by level (debug, info, warn, error)
+- Search functionality
+
+---
+
+## 🔌 CLIProxyAPI Integration
+
+### Management API Base
+```
+http://localhost:8317/v0/management/
 ```
 
-### 5.3 Push Submodule (if on fork)
-```bash
-cd CLIProxyAPI
-git push origin korproxy-integration
+### Key Endpoints to Implement
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| /config | GET | Get full configuration |
+| /config.yaml | GET/PUT | Download/upload YAML |
+| /debug | GET/PUT | Toggle debug mode |
+| /usage | GET | Get usage statistics |
+| /api-keys | GET/PUT/DELETE | Manage API keys |
+| /auth-files | GET/POST/DELETE | Manage auth files |
+| /gemini-api-key | GET/PUT/PATCH/DELETE | Gemini keys |
+| /claude-api-key | GET/PUT/PATCH/DELETE | Claude keys |
+| /codex-api-key | GET/PUT/PATCH/DELETE | Codex keys |
+| /openai-compatibility | GET/PUT/PATCH/DELETE | OpenAI providers |
+| /anthropic-auth-url | GET | Start Claude OAuth |
+| /codex-auth-url | GET | Start Codex OAuth |
+| /gemini-cli-auth-url | GET | Start Gemini OAuth |
+| /qwen-auth-url | GET | Start Qwen OAuth |
+| /iflow-auth-url | GET | Start iFlow OAuth |
+| /get-auth-status | GET | Poll OAuth status |
+| /logs | GET/DELETE | Log management |
+| /latest-version | GET | Check for updates |
+
+### Authentication
+All requests require:
+```
+Authorization: Bearer <management-key>
+```
+or
+```
+X-Management-Key: <management-key>
 ```
 
 ---
 
-## Risk Assessment
+## 📦 Bundling Strategy
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Merge conflicts with upstream CLIProxyAPI | High | Medium | Defer to separate PR |
-| CI failures on push | Medium | Low | Run full test suite locally first |
-| Submodule reference mismatch | Medium | High | Verify submodule SHA matches |
-| Breaking changes in new features | Low | High | E2E tests cover critical paths |
+### CLIProxyAPI Binaries
+1. Download latest release from GitHub during build
+2. Include platform-specific binaries in Assets:
+   - `cli-proxy-api` (macOS universal or arch-specific)
+   - `cli-proxy-api.exe` (Windows)
+3. Mark as Content, Copy to output
 
----
+### Runtime Location
+- **macOS**: `~/Library/Application Support/KorProxy/`
+- **Windows**: `%LOCALAPPDATA%\KorProxy\`
 
-## Timeline Estimate
-
-| Phase | Estimated Time |
-|-------|----------------|
-| Phase 1: Commit remaining changes | 30 min |
-| Phase 2: Stabilize submodule | 1-2 hours |
-| Phase 3: Security hardening | 2-4 hours (can defer) |
-| Phase 4: Pre-push verification | 30 min |
-| Phase 5: Push to remote | 15 min |
-
-**Total:** 2-4 hours (excluding optional security hardening)
+Contains:
+- `cli-proxy-api[.exe]` (copied from bundle on first run)
+- `config.yaml`
+- `auths/` directory
 
 ---
 
-## Notes
+## 🚀 Development Phases
 
-- The `restrict-management-to-localhost` is already defaulted to `true` in recent commits
-- korproxy-app tests pass with only warnings (act() warnings are non-blocking)
-- korproxy-web lint has 18 warnings remaining (all non-blocking)
-- CLIProxyAPI Go tests all pass
+### Phase 1: Foundation (Priority: HIGH)
+- [ ] Install .NET 8 SDK
+- [ ] Install Avalonia templates
+- [ ] Create solution structure
+- [ ] Configure SukiUI theme
+- [ ] Set up DI container
+- [ ] Implement navigation shell
+
+### Phase 2: Core Services (Priority: HIGH)
+- [ ] CLIProxyApiClient - full API coverage
+- [ ] ProcessManager - start/stop/monitor CLI
+- [ ] ConfigurationService - app settings
+- [ ] Connection management (Local/Remote)
+
+### Phase 3: Main Views (Priority: HIGH)
+- [ ] LoginView - mode selection
+- [ ] DashboardView - status overview
+- [ ] ProvidersView - OAuth management
+- [ ] AuthFilesView - file management
+
+### Phase 4: Configuration Views (Priority: MEDIUM)
+- [ ] ApiKeysView - all key types
+- [ ] SettingsView - configuration
+- [ ] Implement all CRUD operations
+
+### Phase 5: Monitoring (Priority: MEDIUM)
+- [ ] UsageView - statistics display
+- [ ] LogsView - real-time logs
+- [ ] System tray integration
+
+### Phase 6: Packaging (Priority: LOW)
+- [ ] Bundle CLI binaries
+- [ ] macOS app bundle + DMG
+- [ ] Windows installer
+- [ ] GitHub Actions CI/CD
+
+---
+
+## 🧪 Testing Strategy
+
+### Unit Tests
+- ViewModel logic
+- Service methods
+- API client (with mocked HTTP)
+
+### Integration Tests
+- End-to-end with real CLIProxyAPI instance
+
+### Manual Testing
+- macOS: Apple Silicon + Intel
+- Windows: x64 + ARM64
+
+---
+
+## 📅 Timeline Estimate
+
+| Phase | Duration | Status |
+|-------|----------|--------|
+| Phase 1: Foundation | 3-4 days | 🔜 Next |
+| Phase 2: Core Services | 4-5 days | Pending |
+| Phase 3: Main Views | 5-6 days | Pending |
+| Phase 4: Config Views | 3-4 days | Pending |
+| Phase 5: Monitoring | 3-4 days | Pending |
+| Phase 6: Packaging | 2-3 days | Pending |
+
+**Total Estimated Time**: ~3-4 weeks
+
+---
+
+## 📝 Notes
+
+### Known Considerations
+1. OAuth flows require external browser - open URL, poll for completion
+2. Process management needs platform-specific handling
+3. System tray APIs differ between macOS and Windows
+4. File paths need platform abstraction
+
+### Future Enhancements
+- Auto-update functionality
+- Multiple server profiles
+- Import/export settings
+- Keyboard shortcuts
+- Localization
+
+---
+
+*Document Created: December 19, 2025*  
+*Last Updated: December 19, 2025*

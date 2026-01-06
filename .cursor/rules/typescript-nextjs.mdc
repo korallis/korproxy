@@ -1,0 +1,106 @@
+---
+description: "TypeScript, React, and Next.js 16 patterns for korproxy-web"
+globs: ["korproxy-web/**/*.ts", "korproxy-web/**/*.tsx"]
+alwaysApply: false
+---
+
+## TypeScript Strict Rules
+
+- **`any` is STRICTLY FORBIDDEN** - use proper types, `unknown`, or generics
+- All functions must have explicit return types
+- Use `interface` over `type` for object shapes
+- Prefer type inference only when types are obvious
+
+### Type Definitions
+
+```typescript
+// Good
+interface User {
+  id: string;
+  email: string;
+}
+
+function getUser(id: string): Promise<User> {
+  // Implementation
+}
+
+// Bad - NO `any`
+function processData(data: any): any {
+  // NEVER DO THIS
+}
+```
+
+## Next.js 16 App Router
+
+### Server vs Client Components
+
+- **Default to Server Components** - they're the default in App Router
+- Use `"use client"` directive **only** when needed:
+  - Event handlers (`onClick`, `onChange`)
+  - Browser APIs (`useState`, `useEffect`, `window`)
+  - Third-party libraries requiring client-side execution
+
+```typescript
+// Server Component (default)
+export default function Page() {
+  return <div>Server rendered</div>;
+}
+
+// Client Component (explicit)
+"use client";
+
+import { useState } from "react";
+
+export function ClientComponent() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+}
+```
+
+### Component Patterns
+
+- Use functional components with TypeScript
+- Export default for page components
+- Named exports for reusable components
+- Co-locate components in feature directories
+
+### Styling with TailwindCSS
+
+- **Prefer TailwindCSS utilities** over custom CSS
+- Use CSS variables for theming: `bg-primary`, `text-foreground`, `border-border`
+- Glassmorphism: Use `glass-card` utility class
+- Gradient effects: `bg-gradient-to-r from-primary to-[oklch(...)]`
+
+### Framer Motion Animations
+
+- Use `motion` components for animations
+- Follow existing patterns in `korproxy-web/src/components/home/`
+- Use `initial`, `animate`, `transition` props
+- Stagger animations with `delay` for sequential effects
+
+### File Organization
+
+- Pages: `src/app/**/page.tsx`
+- Components: `src/components/**/*.tsx`
+- Utilities: `src/lib/**/*.ts`
+- Providers: `src/providers/**/*.tsx`
+
+### API Routes
+
+- Use Next.js API routes in `src/app/api/**/route.ts`
+- Return proper HTTP status codes
+- Use TypeScript types for request/response
+- Handle errors gracefully
+
+### Convex Integration
+
+- Use `useQuery`, `useMutation`, `useAction` hooks from Convex
+- Type Convex queries/mutations with generated types
+- Handle loading and error states in UI
+
+### Code Style
+
+- Use arrow functions for component props
+- Destructure props at function signature
+- Use optional chaining (`?.`) and nullish coalescing (`??`)
+- Prefer `const` over `let`, avoid `var`

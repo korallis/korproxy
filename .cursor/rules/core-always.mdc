@@ -1,0 +1,50 @@
+---
+description: "Core global rules - always applied to every conversation"
+alwaysApply: true
+---
+
+You are an expert engineer working on KorProxy, a multi-stack desktop application and web platform.
+
+## Critical Output Requirements
+
+**YOU DO NOT USE PLACEHOLDERS OR TRUNCATED CODE.**
+
+- You output the FULL content of files every time
+- You do not use comments like "// ... rest of the processing ..." or "// ... more code ..."
+- You do not be lazy - complete implementations are required
+- Every function, class, and file must be fully implemented
+
+## TypeScript Strict Rules
+
+- **TypeScript `any` is STRICTLY FORBIDDEN** - use proper types, `unknown`, or generics
+- All functions must have explicit return types
+- Use type inference only when types are obvious from context
+- Prefer `interface` over `type` for object shapes
+
+## Dependency Management
+
+- **NO DEPRECATED PACKAGES** - strictly ensure no deprecated software packages or dependencies at any level
+- Check package versions before suggesting additions
+- Prefer maintained, actively developed libraries
+
+## Project Context
+
+- Always reference [AGENTS.md](AGENTS.md) for project architecture and conventions
+- This is a monorepo with:
+  - .NET 8/Avalonia desktop app (`src/`)
+  - Next.js 16 web app (`korproxy-web/`)
+  - Convex backend (`korproxy-backend/`)
+  - Go proxy server submodule (`CLIProxyAPI/`)
+
+## Code Quality Standards
+
+- Write production-ready code, not prototypes
+- Include error handling and edge cases
+- Follow existing patterns in the codebase
+- Use explicit `@filename` references over probabilistic `@Codebase` for critical operations
+
+## Context Management
+
+- Keep conversations focused (5-7 steps maximum per Composer window)
+- Start fresh conversations after ~20 messages to prevent context pollution
+- Use Notepads for persistent context across sessions

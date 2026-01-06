@@ -78,8 +78,8 @@ graph LR
 - [ ] Add `PROVIDER_DEFAULT_MODELS` config map
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "ipc-types"`
-- [ ] TypeScript compiles: `npm run typecheck`
+- [ ] Run tests: `bun run test -- --grep "ipc-types"`
+- [ ] TypeScript compiles: `bun run typecheck`
 
 ### Acceptance Criteria
 - All new types exported and usable in main/renderer
@@ -127,7 +127,7 @@ graph LR
   - `LOGS_CLEAR` → `logManager.clear()`
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "log-manager"`
+- [ ] Run tests: `bun run test -- --grep "log-manager"`
 - [ ] Manual: Check log file created in correct location
 - [ ] Manual: Verify JSON format is valid
 
@@ -178,7 +178,7 @@ graph LR
 - [ ] Integrate with app lifecycle (clean shutdown)
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "health-monitor"`
+- [ ] Run tests: `bun run test -- --grep "health-monitor"`
 - [ ] Manual: Start proxy, verify health shows green
 - [ ] Manual: Kill sidecar process, verify auto-restart
 
@@ -230,7 +230,7 @@ graph LR
 - [ ] Log test results via `logManager`
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "provider-test"`
+- [ ] Run tests: `bun run test -- --grep "provider-test"`
 - [ ] Manual: Run test for connected provider, verify success
 - [ ] Manual: Disconnect provider, run test, verify clear error
 
@@ -290,7 +290,7 @@ graph LR
   - `TOOL_INTEGRATION_COPY` → copy snippet to clipboard via `clipboard.writeText()`
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "tool-integration"`
+- [ ] Run tests: `bun run test -- --grep "tool-integration"`
 - [ ] Manual: Copy Cline config, paste into VS Code
 - [ ] Manual: Verify detection when VS Code installed
 
@@ -345,7 +345,7 @@ graph LR
   - Export button
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "components"`
+- [ ] Run tests: `bun run test -- --grep "components"`
 - [ ] Visual: Verify all health states render correctly
 - [ ] Manual: Full UI walkthrough
 
@@ -383,8 +383,8 @@ graph LR
 - [ ] Documentation: Add troubleshooting section
 
 ### Verification
-- [ ] Run E2E: `npm run test:e2e`
-- [ ] Run full test suite: `npm run test`
+- [ ] Run E2E: `bun run test:e2e`
+- [ ] Run full test suite: `bun run test`
 - [ ] Manual walkthrough of all features
 
 ### Acceptance Criteria
@@ -397,9 +397,9 @@ graph LR
 ## Final Checklist
 
 - [ ] All task groups complete
-- [ ] All tests passing: `npm run test && npm run test:e2e`
-- [ ] TypeScript compiles: `npm run typecheck`
-- [ ] Lint passes: `npm run lint`
+- [ ] All tests passing: `bun run test && bun run test:e2e`
+- [ ] TypeScript compiles: `bun run typecheck`
+- [ ] Lint passes: `bun run lint`
 - [ ] Code reviewed
 - [ ] Documentation updated
 - [ ] Ready for verification phase

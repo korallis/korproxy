@@ -1,0 +1,364 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             x:Class="KorProxy.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <UserControl.Styles>
+        <!-- Status pulse animation -->
+        <Style Selector="Ellipse.status-pulse">
+            <Style.Animations>
+                <Animation Duration="0:0:2" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="0.4" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        
+        <!-- Card style -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24">
+        <StackPanel Spacing="24" MaxWidth="1200">
+            
+            <!-- Page Header -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Dashboard"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="Monitor your AI gateway performance"
+                           FontSize="14"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- Hero Card - Proxy Status -->
+            <Border Classes="card" Padding="24">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="24">
+                    <!-- Status Orb -->
+                    <Grid Grid.Column="0" Width="80" Height="80">
+                        <Ellipse Width="80" Height="80"
+                                 StrokeThickness="3"
+                                 Opacity="0.2">
+                            <Ellipse.Stroke>
+                                <SolidColorBrush Color="{Binding ProxyStateColor}" />
+                            </Ellipse.Stroke>
+                        </Ellipse>
+                        <Ellipse Width="56" Height="56"
+                                 Classes="status-pulse">
+                            <Ellipse.Fill>
+                                <SolidColorBrush Color="{Binding ProxyStateColor}" />
+                            </Ellipse.Fill>
+                        </Ellipse>
+                    </Grid>
+                    
+                    <!-- Status Info -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                        <TextBlock Text="{Binding StateText}"
+                                   FontSize="24"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="{Binding UptimeText}"
+                                   FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <Border Background="{StaticResource Surface2Brush}"
+                                CornerRadius="6"
+                                Padding="10,6"
+                                HorizontalAlignment="Left"
+                                Margin="0,4,0,0">
+                            <TextBlock Text="localhost:1337"
+                                       FontFamily="{StaticResource FontFamilyMono}"
+                                       FontSize="12"
+                                       Foreground="{StaticResource BrandPrimaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                    
+                    <!-- Mini Chart -->
+                    <Border Grid.Column="2"
+                            Width="140" Height="56"
+                            VerticalAlignment="Center">
+                        <Path Data="M 0,50 Q 20,48 35,42 T 60,35 T 85,28 T 110,22 T 140,12"
+                              Stroke="{StaticResource BrandPrimaryBrush}"
+                              StrokeThickness="2.5"
+                              StrokeLineCap="Round"
+                              Stretch="Uniform" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Stats Grid -->
+            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="16">
+                <!-- Requests Card -->
+                <Border Grid.Column="0" Classes="card" Padding="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="REQUESTS"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   LetterSpacing="1" />
+                        <TextBlock Text="{Binding RangeRequests}"
+                                   FontSize="32"
+                                   FontWeight="Light"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontFamily="{StaticResource FontFamilyMono}" />
+                        <Path Data="M 0,20 Q 12,18 24,14 T 48,10 T 72,7 T 90,4"
+                              Stroke="{StaticResource BrandPrimaryBrush}"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              Stretch="Uniform"
+                              Height="20"
+                              Margin="0,4,0,0" />
+                        <TextBlock Text="Last 7 days"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextTertiaryBrush}" />
+                    </StackPanel>
+                </Border>
+                
+                <!-- Tokens Card -->
+                <Border Grid.Column="1" Classes="card" Padding="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="TOKENS"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   LetterSpacing="1" />
+                        <TextBlock Text="{Binding RangeTokens, StringFormat={}{0:N0}}"
+                                   FontSize="32"
+                                   FontWeight="Light"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontFamily="{StaticResource FontFamilyMono}" />
+                        <Path Data="M 0,20 Q 15,16 30,11 T 60,8 T 90,3"
+                              Stroke="{StaticResource BrandSecondaryBrush}"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              Stretch="Uniform"
+                              Height="20"
+                              Margin="0,4,0,0" />
+                        <TextBlock Text="Last 7 days"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextTertiaryBrush}" />
+                    </StackPanel>
+                </Border>
+                
+                <!-- Success Rate Card -->
+                <Border Grid.Column="2" Classes="card" Padding="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="SUCCESS RATE"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   LetterSpacing="1" />
+                        <TextBlock Text="{Binding SuccessRateText}"
+                                   FontSize="32"
+                                   FontWeight="Light"
+                                   FontFamily="{StaticResource FontFamilyMono}"
+                                   Foreground="{StaticResource StatusSuccessBrush}" />
+                        <TextBlock Text="{Binding TotalRequests, StringFormat={}{0:N0} total}"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   Margin="0,12,0,0" />
+                    </StackPanel>
+                </Border>
+                
+                <!-- Connected Card -->
+                <Border Grid.Column="3" Classes="card" Padding="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="CONNECTED"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   LetterSpacing="1" />
+                        <TextBlock Text="{Binding ConnectedAccounts}"
+                                   FontSize="32"
+                                   FontWeight="Light"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontFamily="{StaticResource FontFamilyMono}" />
+                        <TextBlock Text="Active providers"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   Margin="0,12,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Providers Section -->
+            <StackPanel Spacing="16">
+                <TextBlock Text="Providers"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                
+                <!-- Provider Cards -->
+                <ItemsControl ItemsSource="{Binding ProviderStatuses}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card" Padding="16" Margin="0,0,12,12">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                                    <Grid Grid.Column="0" Width="44" Height="44">
+                                        <Border Width="44" Height="44"
+                                                CornerRadius="12"
+                                                Opacity="0.15">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding StatusColor}" />
+                                            </Border.Background>
+                                        </Border>
+                                        <mi:MaterialIcon Kind="CloudOutline"
+                                                         Width="22" Height="22"
+                                                         HorizontalAlignment="Center"
+                                                         VerticalAlignment="Center">
+                                            <mi:MaterialIcon.Foreground>
+                                                <SolidColorBrush Color="{Binding StatusColor}" />
+                                            </mi:MaterialIcon.Foreground>
+                                        </mi:MaterialIcon>
+                                    </Grid>
+                                    
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                        <TextBlock Text="{Binding ProviderName}"
+                                                   FontSize="14"
+                                                   FontWeight="Medium"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Ellipse Width="6" Height="6"
+                                                     VerticalAlignment="Center">
+                                                <Ellipse.Fill>
+                                                    <SolidColorBrush Color="{Binding StatusColor}" />
+                                                </Ellipse.Fill>
+                                            </Ellipse>
+                                            <TextBlock Text="{Binding StatusText}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding RequestCount}"
+                                                   FontSize="18"
+                                                   FontWeight="Light"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontFamily="{StaticResource FontFamilyMono}"
+                                                   HorizontalAlignment="Right" />
+                                        <TextBlock Text="requests"
+                                                   FontSize="10"
+                                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                                   HorizontalAlignment="Right" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                
+                <!-- Empty State -->
+                <Border Classes="card"
+                        IsVisible="{Binding !ProviderStatuses.Count}"
+                        Padding="32,48"
+                        HorizontalAlignment="Stretch">
+                    <StackPanel Spacing="16" HorizontalAlignment="Center">
+                        <Border Width="56" Height="56"
+                                CornerRadius="14"
+                                HorizontalAlignment="Center"
+                                Background="{StaticResource Surface2Brush}">
+                            <mi:MaterialIcon Kind="CloudPlusOutline"
+                                             Width="24" Height="24"
+                                             Foreground="{StaticResource TextTertiaryBrush}" />
+                        </Border>
+                        <TextBlock Text="No providers connected"
+                                   FontSize="14"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                        <Button Content="Connect account"
+                                Command="{Binding GoToAccountsCommand}"
+                                HorizontalAlignment="Center"
+                                Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Lifetime Statistics -->
+            <Border Classes="card" Padding="24">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Lifetime Statistics"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    
+                    <Grid ColumnDefinitions="*,*,*,*">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="TOTAL REQUESTS"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                       LetterSpacing="1" />
+                            <TextBlock Text="{Binding TotalRequests, StringFormat={}{0:N0}}"
+                                       FontSize="24"
+                                       FontWeight="Light"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       FontFamily="{StaticResource FontFamilyMono}" />
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="TOTAL TOKENS"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                       LetterSpacing="1" />
+                            <TextBlock Text="{Binding TotalTokens, StringFormat={}{0:N0}}"
+                                       FontSize="24"
+                                       FontWeight="Light"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       FontFamily="{StaticResource FontFamilyMono}" />
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="SUCCESS RATE"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                       LetterSpacing="1" />
+                            <TextBlock Text="{Binding SuccessRateText}"
+                                       FontSize="24"
+                                       FontWeight="Light"
+                                       FontFamily="{StaticResource FontFamilyMono}"
+                                       Foreground="{StaticResource StatusSuccessBrush}" />
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="3" Spacing="4">
+                            <TextBlock Text="FAILED"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                       LetterSpacing="1" />
+                            <TextBlock Text="{Binding FailedRequests}"
+                                       FontSize="24"
+                                       FontWeight="Light"
+                                       FontFamily="{StaticResource FontFamilyMono}"
+                                       Foreground="{StaticResource StatusErrorBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

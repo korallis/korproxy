@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:KorProxy.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
+        x:Class="KorProxy.Views.FirstRunWizardWindow"
+        x:DataType="vm:FirstRunWizardViewModel"
+        Title="Welcome to KorProxy"
+        Width="600" Height="450"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Design.DataContext>
+        <vm:FirstRunWizardViewModel/>
+    </Design.DataContext>
+
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="Black"
+                    TintOpacity="1"
+                    MaterialOpacity="0.85" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <Grid RowDefinitions="Auto,*,Auto" Margin="30">
+            <!-- Header -->
+            <TextBlock Text="Welcome Setup" Classes="h1" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+            <!-- Content -->
+            <Carousel Grid.Row="1" SelectedIndex="{Binding CurrentStep}">
+                <!-- Step 0: Welcome -->
+                <StackPanel Spacing="20" VerticalAlignment="Center">
+                    <TextBlock Text="Welcome to KorProxy" Classes="h2" HorizontalAlignment="Center"/>
+                    <TextBlock Text="This wizard will help you set up the CLIProxyAPI backend." 
+                               TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Step 1: Binary -->
+                <StackPanel Spacing="20" VerticalAlignment="Center">
+                    <TextBlock Text="Backend Setup" Classes="h2" HorizontalAlignment="Center"/>
+                    <TextBlock Text="We need the 'cliproxyapi' binary to continue." 
+                             HorizontalAlignment="Center"/>
+                    
+                    <StackPanel IsVisible="{Binding IsBrewInstalled}" Spacing="10">
+                        <TextBlock Text="Homebrew Detected!" Foreground="Green" HorizontalAlignment="Center"/>
+                        <Button Command="{Binding InstallViaBrewCommand}" 
+                                Content="Install via Homebrew" 
+                                HorizontalAlignment="Center"
+                                IsEnabled="{Binding !IsInstalling}"/>
+                        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsInstalling}"/>
+                        <TextBlock Text="{Binding InstallStatus}" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Button Command="{Binding BrowseForBinaryCommand}" 
+                            Content="Browse for Binary..." 
+                            HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Step 2: API Key -->
+                <StackPanel Spacing="20" VerticalAlignment="Center">
+                     <TextBlock Text="API Configuration" Classes="h2" HorizontalAlignment="Center"/>
+                     <TextBlock Text="Enter your main API key (optional for now):" HorizontalAlignment="Center"/>
+                     <TextBox Text="{Binding ApiKey}" Watermark="sk-..." Width="300"/>
+                </StackPanel>
+            </Carousel>
+
+            <!-- Navigation -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button Command="{Binding NextCommand}" Content="Next" IsEnabled="{Binding CanGoNext}"/>
+            </StackPanel>
+        </Grid>
+    </Panel>
+</Window>

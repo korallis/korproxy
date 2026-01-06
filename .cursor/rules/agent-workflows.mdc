@@ -1,0 +1,142 @@
+---
+alwaysApply: true
+---
+## Agent Mode Guidelines
+
+These rules apply when using Cursor's Agent mode (Cmd+. / Ctrl+.) for autonomous code generation.
+
+## Plan-Before-Execute Pattern
+
+**Always plan before executing complex changes:**
+
+1. **Plan Phase** (use reasoning model like Claude 4.5):
+   - Analyze the request
+   - Create a numbered plan listing affected files
+   - Identify potential edge cases
+   - Ask clarifying questions if needed
+
+2. **Critique Phase** (optional, different model):
+   - Review plan for gaps
+   - Check for efficiency issues
+   - Validate approach
+
+3. **Execute Phase** (use fast model like Composer):
+   - Implement plan step-by-step
+   - Run tests after each step
+   - Verify changes before proceeding
+
+4. **Verify Phase**:
+   - Review git diff line-by-line
+   - Run full test suite
+   - Check for regressions
+
+## Checkpoint Before Destructive Changes
+
+**Always commit before Agent sessions:**
+
+```bash
+git add -A && git commit -m "checkpoint: before agent session"
+```
+
+- Agent may delete and recreate files instead of editing
+- Use checkpoints for instant rollback
+- Commit frequently during long sessions
+- Review diffs before accepting changes
+
+## TDD with YOLO Mode
+
+**Enable YOLO mode with this allowlist:**
+
+```
+Any kind of tests are always allowed (vitest, npm test, nr test, dotnet test, etc.)
+Basic build commands like build, tsc, prettier, eslint are always ok.
+Creating files and directories (touch, mkdir) is always permitted.
+```
+
+Workflow:
+1. Write tests first
+2. Let Agent implement code
+3. Agent runs tests automatically
+4. Agent fixes failures iteratively
+5. Continue until all tests pass
+
+## Multi-File Operations
+
+**Structure multi-file prompts explicitly:**
+
+Instead of: "Add a login page"
+
+Use:
+```
+Implement a login route:
+- Reference @user_model.ts @auth_service.ts @routes.json
+- Use Zod for validation matching existing patterns
+- Match error format in @errors.ts
+- Create unit test in tests/auth/
+```
+
+- Use `@filename` references for precision
+- Reference existing patterns with `@similar_file.ts`
+- Specify test locations explicitly
+- Review unified diff before accepting
+
+## Context Management
+
+**Prevent context pollution:**
+
+- Keep conversations to 5-7 steps maximum per Composer window
+- Start fresh conversations after ~20 messages
+- Begin new conversations with brief summary:
+  ```
+  "I'm debugging authentication in @auth_service.ts. 
+  Previous attempts revealed the issue is in token validation. 
+  Here's current state..."
+  ```
+
+## Batch Editing (20+ Files)
+
+1. Open Composer (Cmd+I / Ctrl+I)
+2. Use `@Codebase` with change description: `@Codebase rename Store to Shop across all files`
+3. Review unified diff across all affected files
+4. Accept with Cmd/Ctrl+Shift+K after verification
+
+## Model Selection Strategy
+
+- **Planning**: Claude 4.5 or Opus (superior reasoning)
+- **Implementation**: Composer (4x faster, ~250 tokens/sec)
+- **Large context**: Gemini 3 Pro (1M+ context window)
+- **Budget tasks**: Kimi k2 via OpenRouter
+- **Difficult bugs**: GPT-5.1 High Max
+
+**Critical**: Never switch models mid-conversation. Start a new conversation if you need different model strengths.
+
+## Pre-PR Workflow
+
+**Before creating PRs:**
+
+```
+Run nr pre-pr (which runs tsc, prettier, eslint). 
+Fix any errors and repeat until all checks pass.
+```
+
+Or for .NET:
+```
+Run dotnet build && dotnet test
+Fix any errors and repeat until all checks pass.
+```
+
+## File Size Limits
+
+- Keep files under 500-600 lines
+- Files exceeding 4000 lines cause AI comprehension degradation
+- Break large files into modular components
+- Use clear boundaries between modules
+
+## Review Everything
+
+**Treat AI output like a PR code review:**
+
+- Review all diffs line-by-line
+- Verify correctness, not just functionality
+- Ask "explain why you approached it this way" for complex logic
+- You own correctness, AI provides speed

@@ -1,0 +1,17 @@
+version: 1.0.0
+profile: droid
+
+# Project metadata
+project_name: "KorProxy"
+platform: droid
+installed: 2025-12-19T16:03:21+00:00
+
+# Installation settings
+use_symlinks: true
+
+# Active standards (enable/disable per project)
+standards:
+  global: true
+  backend: true
+  frontend: true
+  testing: true

@@ -1,0 +1,244 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             x:Class="KorProxy.Views.MainView"
+             x:DataType="vm:MainWindowViewModel"
+             Background="{StaticResource Surface0Brush}">
+
+    <UserControl.Styles>
+        <!-- Status pulse animation -->
+        <Style Selector="Ellipse.status-pulse">
+            <Style.Animations>
+                <Animation Duration="0:0:2" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="0.4" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        
+        <!-- Navigation Button Style -->
+        <Style Selector="Button.nav-item">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.nav-item:pointerover">
+            <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+        </Style>
+        <Style Selector="Button.nav-item:pressed">
+            <Setter Property="Background" Value="{StaticResource Surface4Brush}" />
+        </Style>
+        <Style Selector="Button.nav-item.selected">
+            <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid ColumnDefinitions="260,*">
+        
+        <!-- ═══ SIDEBAR ═══ -->
+        <Border Grid.Column="0" 
+                Background="{StaticResource Surface1Brush}"
+                BorderBrush="{StaticResource BorderSubtleBrush}"
+                BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
+                
+                <!-- Logo Section -->
+                <StackPanel Grid.Row="0" Margin="20,20,20,16" Orientation="Horizontal" Spacing="12">
+                    <Border Width="40" Height="40"
+                            CornerRadius="10"
+                            Background="{StaticResource BrandGradientBrush}">
+                        <TextBlock Text="K"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="KorProxy"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="AI Gateway"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextTertiaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+                
+                <!-- Proxy Status Section -->
+                <StackPanel Grid.Row="1" Margin="16,0,16,16" Spacing="12">
+                    <!-- Status Card -->
+                    <Border Background="{StaticResource Surface2Brush}"
+                            CornerRadius="10"
+                            Padding="14">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Grid Grid.Column="0" Width="36" Height="36">
+                                <Ellipse Width="36" Height="36"
+                                         StrokeThickness="2"
+                                         Opacity="0.3">
+                                    <Ellipse.Stroke>
+                                        <SolidColorBrush Color="{Binding ProxyStateColor}" />
+                                    </Ellipse.Stroke>
+                                </Ellipse>
+                                <Ellipse Width="24" Height="24"
+                                         Classes="status-pulse">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="{Binding ProxyStateColor}" />
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                            </Grid>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="{Binding ProxyStateText}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding StatusText}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextTertiaryBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Start/Stop Button -->
+                    <Button Content="{Binding StartStopButtonText}"
+                            Command="{Binding ToggleProxyCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            FontWeight="SemiBold"
+                            Padding="16,12" />
+                </StackPanel>
+                
+                <!-- Navigation Menu -->
+                <ScrollViewer Grid.Row="2" Margin="8,0">
+                    <StackPanel Spacing="4">
+                        <ItemsControl ItemsSource="{Binding NavigationItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:NavigationItem">
+                                    <Button Classes="nav-item"
+                                            Classes.selected="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectedNavItem, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={Binding}}"
+                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectNavItemCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" 
+                                                      Data="{Binding Icon}" 
+                                                      Width="20" Height="20" 
+                                                      Foreground="{StaticResource TextSecondaryBrush}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Title}"
+                                                       FontSize="14"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="12,0,0,0" />
+                                            <!-- Selection indicator -->
+                                            <Ellipse Grid.Column="2"
+                                                     Width="6" Height="6"
+                                                     Fill="{StaticResource BrandPrimaryBrush}"
+                                                     VerticalAlignment="Center"
+                                                     IsVisible="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectedNavItem, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={Binding}}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <!-- Footer Section -->
+                <StackPanel Grid.Row="3" Margin="16,16" Spacing="12">
+                    <!-- User Profile -->
+                    <Border Background="{StaticResource Surface2Brush}"
+                            CornerRadius="10"
+                            Padding="12">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0"
+                                    Width="36" Height="36"
+                                    CornerRadius="18"
+                                    Background="{StaticResource BrandPrimaryBrush}">
+                                <TextBlock Text="{Binding UserInitials}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="{Binding UserEmail}"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding SubscriptionPlan}"
+                                           FontSize="10"
+                                           Foreground="{StaticResource TextTertiaryBrush}" />
+                            </StackPanel>
+                            <Button Grid.Column="2"
+                                    Command="{Binding LogoutCommand}"
+                                    ToolTip.Tip="Sign Out"
+                                    Padding="8"
+                                    Background="Transparent">
+                                <mi:MaterialIcon Kind="Logout" Width="16" Height="16" Foreground="{StaticResource TextTertiaryBrush}" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- ═══ MAIN CONTENT ═══ -->
+        <ContentControl Grid.Column="1"
+                        Content="{Binding CurrentPage}"
+                        Margin="0">
+            <ContentControl.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </ContentControl.Transitions>
+        </ContentControl>
+        
+        <!-- Upgrade Modal -->
+        <Border Grid.ColumnSpan="2"
+                IsVisible="{Binding ShowUpgradePrompt}"
+                Background="#80000000"
+                ZIndex="100">
+            <Border Padding="32"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    MaxWidth="420"
+                    Background="{StaticResource Surface1Brush}"
+                    CornerRadius="16"
+                    BorderBrush="{StaticResource BorderDefaultBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Upgrade Required"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding UpgradePromptMessage}"
+                               TextWrapping="Wrap"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               LineHeight="22" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Content="Dismiss"
+                                Command="{Binding DismissUpgradePromptCommand}" />
+                        <Button Content="Upgrade"
+                                Command="{Binding OpenUpgradeCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

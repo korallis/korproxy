@@ -1,3 +1,4 @@
+<coding_guidelines>
 # KorProxy Development Guide
 
 ## Overview
@@ -6,20 +7,39 @@ KorProxy is a desktop application that acts as a local AI gateway, allowing user
 ## Project Structure
 ```
 KorProxy/
-├── korproxy-app/          # Electron + React + TypeScript desktop app
+├── src/                   # .NET/Avalonia desktop app
+│   ├── KorProxy/          # Main Avalonia UI application
+│   ├── KorProxy.Core/     # Domain models and service interfaces
+│   ├── KorProxy.Infrastructure/  # Service implementations
+│   └── KorProxy.Tests/    # Unit tests
 ├── korproxy-web/          # Next.js marketing website & dashboard
 ├── korproxy-backend/      # Convex backend for auth & subscriptions
 ├── CLIProxyAPI/           # Go proxy server binary (git submodule)
+├── scripts/               # Build and packaging scripts
+├── runtimes/              # Platform-specific native binaries
 ├── docs/                  # Documentation
 └── .github/workflows/     # CI/CD workflows
 ```
 
-### korproxy-app/ (Electron Desktop App)
-- **Stack:** Electron 33, React 18, TypeScript, Vite, Zustand, TailwindCSS, Radix UI
-- **Main Process:** `electron/main/` - app lifecycle, tray, IPC handlers
-- **Preload:** `electron/preload/index.cjs` - bridge between main/renderer (CommonJS required)
-- **Renderer:** `src/` - React UI components and pages
-- **Config:** `electron-builder.yml` - build and signing configuration
+### src/KorProxy/ (Main Avalonia App)
+- **Stack:** .NET 8, Avalonia 11, CommunityToolkit.Mvvm, Microsoft.Extensions.DI
+- **Views:** `Views/*.axaml` - XAML UI definitions
+- **ViewModels:** `ViewModels/*.cs` - MVVM view models
+- **Services:** `Services/*.cs` - App-specific services (navigation, proxy hosting)
+- **Entry Point:** `Program.cs` - Application startup and DI configuration
+
+### src/KorProxy.Core/ (Domain Layer)
+- **Models:** `Models/*.cs` - Domain entities (AuthSession, ProxyState, LogEntry, etc.)
+- **Services:** `Services/I*.cs` - Service interfaces (IAuthService, IProxySupervisor, etc.)
+
+### src/KorProxy.Infrastructure/ (Infrastructure Layer)
+- **Services:** `Services/*.cs` - Concrete service implementations
+- **Key Services:**
+  - `AuthService` - OAuth authentication with Convex
+  - `ProxySupervisor` - CLIProxyAPI process management
+  - `SecureStorage` - Cross-platform credential storage
+  - `ManagementApiClient` - Proxy management API client
+  - `DeviceService` - Device identity and heartbeat
 
 ### korproxy-web/ (Marketing Website & Dashboard)
 - **Stack:** Next.js 16, React 18, TypeScript, TailwindCSS, Framer Motion
@@ -39,43 +59,53 @@ KorProxy/
 ### CLIProxyAPI/ (Go Proxy Server)
 - **Note:** Git submodule - do not modify directly
 - **Binary:** Compiled per-platform during build
-- **Port:** Runs on localhost:1337
+- **Port:** Runs on localhost:1337 (management API on 8317)
 
 ## Commands
 
-### korproxy-app/
+### .NET Desktop App
 ```bash
-npm run dev              # Start Vite dev server + Electron
-npm run typecheck        # TypeScript check
-npm run lint             # ESLint
-npm run test             # Run Vitest tests
-npm run package:mac      # Build macOS (signed/notarized if env vars set)
-npm run package:win      # Build Windows (unsigned locally)
-npm run package:linux    # Build Linux
+dotnet restore                           # Restore NuGet packages
+dotnet build                             # Build all projects
+dotnet run --project src/KorProxy        # Run the app
+dotnet test                              # Run unit tests
+dotnet publish src/KorProxy -c Release   # Publish for current platform
+```
+
+### Build Scripts
+```bash
+./scripts/publish.sh osx-arm64           # Publish for macOS ARM64
+./scripts/publish.sh osx-x64             # Publish for macOS Intel
+./scripts/publish.sh win-x64             # Publish for Windows
+./scripts/publish.sh linux-x64           # Publish for Linux
+./scripts/bundle-macos.sh arm64          # Create macOS .app bundle
+./scripts/create-dmg.sh arm64            # Create macOS DMG installer
 ```
 
 ### korproxy-web/
 ```bash
-npm run dev              # Start Next.js dev server
-npm run build            # Production build
-npm run lint             # ESLint
+bun install
+bun run dev              # Start Next.js dev server
+bun run build            # Production build
+bun run lint             # ESLint
 vercel --prod            # Deploy to production
 ```
 
 ### korproxy-backend/
 ```bash
-npm run dev              # Start Convex dev server (syncs schema/functions)
-npm run deploy           # Deploy to Convex production
+bun install
+bun run dev              # Start Convex dev server (syncs schema/functions)
+bun run deploy           # Deploy to Convex production
+bun run codegen          # Generate Convex types
 ```
 
 ## CI/CD & Releases
 
 ### GitHub Actions Workflows
-- **`.github/workflows/ci.yml`** - Runs on all pushes: lint, typecheck, tests
-- **`.github/workflows/build.yml`** - Runs on version tags (v*): builds & releases
+- **`.github/workflows/build.yml`** - Builds & releases on version tags (v*)
 
 ### Release Process
-1. Bump version: `cd korproxy-app && npm version patch`
+1. Update version in `src/KorProxy/KorProxy.csproj`
 2. Commit: `git add -A && git commit -m "chore: bump version to X.Y.Z"`
 3. Tag: `git tag vX.Y.Z`
 4. Push: `git push && git push origin vX.Y.Z`
@@ -83,14 +113,14 @@ npm run deploy           # Deploy to Convex production
 
 ### Build Artifacts
 - **macOS:** `.dmg` and `.zip` (arm64 + x64), signed & notarized
-- **Windows:** `.exe` installer and `.zip` (x64), signed with SSL.com
-- **Linux:** `.AppImage` and `.deb` (x64)
+- **Windows:** `.exe` installer (NSIS) and portable `.zip`, signed with SSL.com
+- **Linux:** `.tar.gz` (x64)
 
 ## Code Signing
 
 ### macOS (Apple Developer)
 - **Certificate:** Developer ID Application certificate
-- **Notarization:** Apple notary service via `notarize.cjs`
+- **Notarization:** Apple notary service
 - **Secrets Required:**
   - `APPLE_ID` - Apple Developer email
   - `APPLE_APP_SPECIFIC_PASSWORD` - App-specific password
@@ -101,37 +131,31 @@ npm run deploy           # Deploy to Convex production
 ### Windows (SSL.com eSigner EV Certificate)
 - **Method:** SSL.com eSigner cloud signing via GitHub Action
 - **Action:** `sslcom/esigner-codesign@develop`
-- **Process:** Signs the final `.exe` installer after electron-builder creates it
 - **Secrets Required:**
   - `ES_USERNAME` - SSL.com account email
   - `ES_PASSWORD` - SSL.com account password
   - `ES_CREDENTIAL_ID` - eSigner credential ID
   - `ES_TOTP_SECRET` - TOTP secret for 2FA
 
-**Important:** Windows signing happens AFTER the build, not during. The `electron-builder.yml` does NOT use a custom sign script - signing is handled by the GitHub Action.
-
 ## Code Style
 
-### TypeScript
-- Strict mode enabled, ESM modules (`"type": "module"`)
-- Prefer absolute imports with `@/` alias
-- Use Zod for runtime validation
+### C# / .NET
+- Target framework: .NET 8.0
+- Nullable reference types enabled
+- Use `CommunityToolkit.Mvvm` for MVVM patterns ([ObservableProperty], [RelayCommand])
+- Dependency injection via `Microsoft.Extensions.DependencyInjection`
+- Async/await patterns with CancellationToken support
 
-### React
-- Components in `src/components/`
-- Pages in `src/pages/` (app) or `src/app/` (web)
-- Hooks in `src/hooks/`
-- State management: Zustand (app), React Context (web)
+### Avalonia XAML
+- Use `x:DataType` for compiled bindings
+- Theme resources defined in `App.axaml`
+- Design system: "Midnight Aurora" dark theme with teal accent (#00D4AA)
+- Glassmorphism styling with `KorGlassBase`, `KorGlassBorder` colors
 
-### Electron
-- Main process: `electron/main/` (ESM)
-- Preload scripts: Must be `.cjs` (CommonJS) - Electron requirement
-- IPC: Type-safe handlers in `electron/main/ipc.ts`
-
-### Styling
-- TailwindCSS with custom theme
-- CSS variables for theming (dark mode default)
-- Glassmorphism effects using `glass-card` utility class
+### Project Organization
+- **Core:** Domain models and interfaces only (no external dependencies)
+- **Infrastructure:** Service implementations, API clients, platform-specific code
+- **App:** Views, ViewModels, and app-level orchestration
 
 ## Supported AI Models
 
@@ -160,19 +184,42 @@ Models must match CLIProxyAPI registry. See `CLIProxyAPI/internal/registry/model
 **IMPORTANT:** When creating or modifying any Convex code, ALWAYS read [docs/convex-llms-reference.md](docs/convex-llms-reference.md) first.
 Full docs: https://docs.convex.dev/llms.txt
 
+## Architecture Notes
+
+### Proxy Lifecycle
+1. App starts → `ProxyHostedService` checks for auto-start
+2. User signs in → `SessionStore` persists JWT tokens
+3. Proxy starts → `ProxySupervisor` spawns CLIProxyAPI process
+4. Management API → `ManagementApiClient` communicates on port 8317
+5. AI requests → CLIProxyAPI handles on port 1337
+
+### Secure Storage
+- **macOS:** Keychain via `security` command
+- **Windows:** DPAPI (`ProtectedData`)
+- **Linux:** AES-encrypted file with machine-derived key
+
+### Device Identity
+- Unique device ID generated per installation
+- Heartbeat service reports to Convex backend
+- Enables multi-device management in dashboard
+
 ## Troubleshooting
 
-### Windows Build "Unknown Publisher"
-- Ensure `ES_*` secrets are set in GitHub repository settings
-- Check that `sslcom/esigner-codesign` action runs successfully
-- The signing step must complete AFTER `npm run package:win`
+### App Won't Start
+- Check .NET 8 SDK is installed: `dotnet --version`
+- Verify all NuGet packages restored: `dotnet restore`
+- Check console output for exceptions
 
-### macOS Notarization Fails
-- Verify Apple credentials are correct
-- Check `notarize.cjs` script for errors
-- Ensure app is signed before notarization
+### Proxy Connection Refused
+- Ensure CLIProxyAPI binary exists in `runtimes/{rid}/native/`
+- Check port 1337 is not in use
+- Verify management API on port 8317 is responding
 
-### Electron Preload Script Errors
-- Preload scripts MUST use `.cjs` extension
-- Cannot use ESM imports in preload
-- Use `require()` syntax in preload scripts
+### Build Fails on macOS
+- Install Xcode command line tools: `xcode-select --install`
+- For code signing, ensure certificate is in keychain
+
+### Tests Fail
+- Run `dotnet test --logger "console;verbosity=detailed"` for more info
+- Check that mock services are properly configured
+</coding_guidelines>

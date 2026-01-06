@@ -1,0 +1,126 @@
+---
+description: "Convex backend patterns and conventions"
+globs: ["korproxy-backend/convex/**/*.ts"]
+alwaysApply: false
+---
+
+## Critical Reference
+
+**ALWAYS read [docs/convex-llms-reference.md](docs/convex-llms-reference.md) before creating or modifying Convex code.**
+
+Full Convex LLM docs: https://docs.convex.dev/llms.txt
+
+## Schema Definitions
+
+### Validators
+
+- Use proper validators: `v.string()`, `v.number()`, `v.object()`, `v.array()`, `v.union()`
+- Define optional fields with `v.optional()`
+- Use `v.id("tableName")` for foreign key references
+- Use `v.literal()` for string enums
+
+```typescript
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  users: defineTable({
+    email: v.string(),
+    role: v.union(v.literal("user"), v.literal("admin")),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"]),
+});
+```
+
+### Indexes
+
+- **Always define indexes** for fields used in queries
+- Use compound indexes for multi-field queries: `.index("by_user_date", ["userId", "createdAt"])`
+- Index foreign keys: `.index("by_user", ["userId"])`
+
+## Function Types
+
+### Queries (Read Operations)
+
+- Use `query` for read-only operations
+- Can be called from client with `useQuery`
+- Must be deterministic (no side effects)
+- Use indexes for efficient lookups
+
+```typescript
+import { query } from "./_generated/server";
+import { v } from "convex/values";
+
+export const getUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId);
+  },
+});
+```
+
+### Mutations (Write Operations)
+
+- Use `mutation` for write operations
+- Can be called from client with `useMutation`
+- Can modify database state
+- Use `ctx.db.insert()`, `ctx.db.patch()`, `ctx.db.delete()`
+
+```typescript
+import { mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+export const updateUser = mutation({
+  args: {
+    userId: v.id("users"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { name: args.name });
+  },
+});
+```
+
+### Actions (External APIs)
+
+- Use `action` for external API calls, file uploads, or non-deterministic operations
+- Can call external APIs, use npm packages
+- Cannot directly access database (must call queries/mutations)
+- Use `ctx.runQuery()` or `ctx.runMutation()` internally
+
+```typescript
+import { action } from "./_generated/server";
+import { v } from "convex/values";
+
+export const fetchExternalData = action({
+  args: { url: v.string() },
+  handler: async (ctx, args) => {
+    const response = await fetch(args.url);
+    return await response.json();
+  },
+});
+```
+
+## Best Practices
+
+- **Never use raw database access** - always use queries/mutations/actions
+- Use `ctx.auth.getUserIdentity()` for authentication
+- Validate all inputs with validators
+- Handle errors gracefully with try-catch
+- Use `ctx.scheduler.runAfter()` for delayed operations
+- Use `ctx.scheduler.runAt()` for scheduled tasks
+
+## Schema Patterns
+
+- Store timestamps as Unix milliseconds: `createdAt: v.number()`
+- Use `v.optional()` for nullable fields
+- Use `v.union()` for discriminated unions
+- Store related data in separate tables with foreign keys
+
+## Error Handling
+
+- Throw descriptive errors: `throw new Error("User not found")`
+- Use Convex error types when appropriate
+- Validate inputs before processing
+- Return meaningful error messages to client

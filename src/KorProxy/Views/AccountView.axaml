@@ -1,0 +1,596 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:conv="using:KorProxy.Converters"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             x:Class="KorProxy.Views.AccountView"
+             x:DataType="vm:AccountViewModel">
+
+    <Design.DataContext>
+        <vm:AccountViewModel />
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <!-- ═══════════════════════════════════════════════════════════════════
+             ACCOUNT VIEW STYLES
+             ═══════════════════════════════════════════════════════════════════ -->
+        
+        <!-- Auth Card with Glass Effect -->
+        <Style Selector="Border.auth-card">
+            <Setter Property="Background" Value="{StaticResource MidnightCardBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="40,36" />
+        </Style>
+        
+        <!-- Profile Card -->
+        <Style Selector="Border.profile-card">
+            <Setter Property="Background" Value="{StaticResource MidnightCardBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="24" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Border.profile-card:pointerover">
+            <Setter Property="BorderBrush" Value="{StaticResource BorderAccentBrush}" />
+        </Style>
+        
+        <!-- Stat Card -->
+        <Style Selector="Border.stat-card">
+            <Setter Property="Background" Value="{StaticResource MidnightElevatedBrush}" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20,16" />
+        </Style>
+        
+        <!-- Device Row -->
+        <Style Selector="Border.device-row">
+            <Setter Property="Background" Value="{StaticResource MidnightElevatedBrush}" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="18,16" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Border.device-row:pointerover">
+            <Setter Property="Background" Value="{StaticResource MidnightSurfaceBrush}" />
+        </Style>
+        
+        <!-- Auth Input -->
+        <Style Selector="TextBox.auth-input">
+            <Setter Property="Background" Value="{StaticResource MidnightElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="16,14" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="TextBox.auth-input:focus">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentPrimaryBrush}" />
+        </Style>
+        
+        <!-- Field Label -->
+        <Style Selector="TextBlock.field-label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        
+        <!-- Stat Label -->
+        <Style Selector="TextBlock.stat-label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="LetterSpacing" Value="0.8" />
+        </Style>
+        
+        <!-- Stat Value -->
+        <Style Selector="TextBlock.stat-value">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid>
+        <!-- ═══════════════════════════════════════════════════════════════════
+             AUTHENTICATED STATE
+             ═══════════════════════════════════════════════════════════════════ -->
+        <Grid RowDefinitions="Auto,*" IsVisible="{Binding IsAuthenticated}">
+            
+            <!-- Page Header -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,28">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Account" Classes="kor-heading-xl" />
+                    <TextBlock Text="Manage your subscription and devices"
+                               Classes="kor-body"
+                               Margin="0,6,0,0" />
+                </StackPanel>
+                <Button DockPanel.Dock="Right"
+                        Command="{Binding RefreshCommand}"
+                        Classes="kor-secondary"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <mi:MaterialIcon Kind="Refresh"
+                                         Width="16" Height="16"
+                                         Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock Text="Refresh" FontWeight="Medium" />
+                    </StackPanel>
+                </Button>
+            </DockPanel>
+
+            <!-- Loading Indicator -->
+            <ProgressBar Grid.Row="0" 
+                         IsIndeterminate="True"
+                         IsVisible="{Binding IsBusy}"
+                         Classes="kor-progress"
+                         Margin="0,70,0,0"
+                         VerticalAlignment="Top" />
+
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="24">
+                    
+                    <!-- ─────────────────────────────────────────────────────────────
+                         TOP SECTION: Profile & Subscription
+                         ───────────────────────────────────────────────────────────── -->
+                    <Grid ColumnDefinitions="*,20,*">
+                        
+                        <!-- Profile Card -->
+                        <Border Grid.Column="0" Classes="profile-card">
+                            <StackPanel Spacing="20">
+                                <DockPanel>
+                                    <!-- Avatar -->
+                                    <Border DockPanel.Dock="Left"
+                                            Width="56" Height="56"
+                                            CornerRadius="28"
+                                            ClipToBounds="True"
+                                            Margin="0,0,18,0">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                                <GradientStop Color="{StaticResource AccentPrimary}" Offset="0" />
+                                                <GradientStop Color="{StaticResource AccentSecondary}" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <mi:MaterialIcon Kind="Account"
+                                                           Width="28" Height="28"
+                                                           Foreground="#0A0B0F"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                    </Border>
+                                    
+                                    <!-- User Info -->
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding UserEmail}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="KorProxy Account"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                                   Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+                                
+                                <!-- Divider -->
+                                <Border Classes="kor-divider" />
+                                
+                                <!-- Sign Out Button -->
+                                <Button Command="{Binding LogoutCommand}"
+                                        Classes="kor-secondary"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <mi:MaterialIcon Kind="Logout"
+                                                         Width="16" Height="16"
+                                                         Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock Text="Sign Out" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Subscription Card -->
+                        <Border Grid.Column="2" Classes="profile-card">
+                            <StackPanel Spacing="16">
+                                <DockPanel>
+                                    <TextBlock Text="Subscription"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextTertiaryBrush}"
+                                               LetterSpacing="0.5"
+                                               DockPanel.Dock="Left" />
+                                    <Border DockPanel.Dock="Right"
+                                            Classes="kor-badge-success"
+                                            HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding SubscriptionStatus}"
+                                                   FontSize="11"
+                                                   FontWeight="Bold"
+                                                   Foreground="{StaticResource StatusSuccessBrush}" />
+                                    </Border>
+                                </DockPanel>
+                                
+                                <!-- Plan Name -->
+                                <TextBlock Text="{Binding SubscriptionPlan}"
+                                           FontSize="28"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource AccentPrimaryBrush}"
+                                           LetterSpacing="-0.5" />
+                                
+                                <!-- Grace Period Info -->
+                                <StackPanel Orientation="Horizontal" Spacing="10"
+                                            IsVisible="{Binding GracePeriod, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <mi:MaterialIcon Kind="ClockOutline"
+                                                     Width="16" Height="16"
+                                                     Foreground="{StaticResource TextTertiaryBrush}" />
+                                    <TextBlock Text="{Binding GracePeriod}"
+                                               FontSize="13"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    
+                    <!-- ─────────────────────────────────────────────────────────────
+                         ENTITLEMENTS SECTION
+                         ───────────────────────────────────────────────────────────── -->
+                    <Border Classes="kor-card-static">
+                        <StackPanel Spacing="24">
+                            <!-- Section Header -->
+                            <DockPanel>
+                                <TextBlock Text="Entitlements"
+                                           Classes="kor-heading-lg"
+                                           DockPanel.Dock="Left" />
+                                <Button Command="{Binding SyncEntitlementsCommand}"
+                                        Classes="kor-ghost"
+                                        DockPanel.Dock="Right"
+                                        HorizontalAlignment="Right">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <mi:MaterialIcon Kind="Sync"
+                                                         Width="14" Height="14"
+                                                         Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock Text="Sync" FontSize="13" />
+                                    </StackPanel>
+                                </Button>
+                            </DockPanel>
+                            
+                            <!-- Stats Grid -->
+                            <Grid ColumnDefinitions="*,*,*,*" RowSpacing="20">
+                                <!-- Plan -->
+                                <Border Grid.Column="0" Classes="stat-card">
+                                    <StackPanel>
+                                        <TextBlock Text="PLAN" Classes="stat-label" />
+                                        <TextBlock Text="{Binding EntitlementPlan}" Classes="stat-value" />
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Scope -->
+                                <Border Grid.Column="1" Classes="stat-card" Margin="12,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="SCOPE" Classes="stat-label" />
+                                        <TextBlock Text="{Binding EntitlementScope}" Classes="stat-value" />
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Status -->
+                                <Border Grid.Column="2" Classes="stat-card" Margin="12,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="STATUS" Classes="stat-label" />
+                                        <TextBlock Text="{Binding EntitlementStatus}" 
+                                                   Classes="stat-value"
+                                                   Foreground="{StaticResource StatusSuccessBrush}" />
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Offline -->
+                                <Border Grid.Column="3" Classes="stat-card" Margin="12,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="OFFLINE ACCESS" Classes="stat-label" />
+                                        <TextBlock Text="{Binding OfflineGrace}" 
+                                                   Classes="stat-value"
+                                                   FontSize="13"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            
+                            <!-- Limits Info -->
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="USAGE LIMITS"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           LetterSpacing="0.8" />
+                                <TextBlock Text="{Binding EntitlementLimits}"
+                                           Classes="kor-body"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- ─────────────────────────────────────────────────────────────
+                         DEVICES SECTION
+                         ───────────────────────────────────────────────────────────── -->
+                    <Border Classes="kor-card-static">
+                        <StackPanel Spacing="20">
+                            <!-- Section Header -->
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Left">
+                                    <TextBlock Text="Authorized Devices"
+                                               Classes="kor-heading-lg" />
+                                    <TextBlock Text="Manage devices connected to your account"
+                                               Classes="kor-caption"
+                                               Margin="0,4,0,0" />
+                                </StackPanel>
+                                <Button Command="{Binding RegisterDeviceCommand}"
+                                        Classes="kor-primary"
+                                        DockPanel.Dock="Right"
+                                        HorizontalAlignment="Right">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <mi:MaterialIcon Kind="Plus"
+                                                         Width="16" Height="16"
+                                                         Foreground="#0A0B0F" />
+                                        <TextBlock Text="Register Device" />
+                                    </StackPanel>
+                                </Button>
+                            </DockPanel>
+                            
+                            <!-- Device List -->
+                            <ItemsControl ItemsSource="{Binding Devices}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:DeviceItemViewModel">
+                                        <Border Classes="device-row">
+                                            <DockPanel>
+                                                <!-- Device Icon -->
+                                                <Border DockPanel.Dock="Left"
+                                                        Width="44" Height="44"
+                                                        CornerRadius="10"
+                                                        Background="{StaticResource MidnightSurfaceBrush}"
+                                                        Margin="0,0,16,0">
+                                                    <mi:MaterialIcon Kind="Monitor"
+                                                                     Width="22" Height="22"
+                                                                     Foreground="{StaticResource TextSecondaryBrush}"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center" />
+                                                </Border>
+                                                
+                                                <!-- Remove Button -->
+                                                <Button DockPanel.Dock="Right"
+                                                        Command="{Binding RemoveCommand}"
+                                                        Classes="kor-ghost"
+                                                        VerticalAlignment="Center">
+                                                    <mi:MaterialIcon Kind="Delete"
+                                                                     Width="16" Height="16"
+                                                                     Foreground="{StaticResource StatusErrorBrush}" />
+                                                </Button>
+                                                
+                                                <!-- Device Info -->
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DisplayName}"
+                                                               FontSize="14"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource TextPrimaryBrush}" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                                        <TextBlock Text="{Binding Platform}"
+                                                                   FontSize="12"
+                                                                   Foreground="{StaticResource TextTertiaryBrush}" />
+                                                        <Ellipse Width="4" Height="4"
+                                                                 Fill="{StaticResource BorderDefaultBrush}"
+                                                                 VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding LastSeen, StringFormat='Last seen: {0}'}"
+                                                                   FontSize="12"
+                                                                   Foreground="{StaticResource TextTertiaryBrush}" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            
+                            <!-- Empty State -->
+                            <Border IsVisible="{Binding !Devices.Count}"
+                                    Background="{StaticResource MidnightElevatedBrush}"
+                                    CornerRadius="12"
+                                    Padding="40,30"
+                                    HorizontalAlignment="Center">
+                                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                                    <mi:MaterialIcon Kind="Monitor"
+                                                     Width="32" Height="32"
+                                                     Foreground="{StaticResource TextMutedBrush}" />
+                                    <TextBlock Text="No devices registered"
+                                               FontSize="14"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Status Message -->
+                    <Border IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="{StaticResource StatusInfoBgBrush}"
+                            BorderBrush="{StaticResource StatusInfoBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="16,12">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <mi:MaterialIcon Kind="InformationOutline"
+                                             Width="18" Height="18"
+                                             Foreground="{StaticResource StatusInfoBrush}" />
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════════════════════════════
+             UNAUTHENTICATED STATE - Login/Register Form
+             ═══════════════════════════════════════════════════════════════════ -->
+        <Grid IsVisible="{Binding IsAuthenticated, Converter={x:Static conv:BoolConverters.Not}}">
+            <Border Classes="auth-card"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Width="420">
+                <StackPanel Spacing="28">
+                    
+                    <!-- Header -->
+                    <StackPanel Spacing="12" HorizontalAlignment="Center">
+                        <!-- Logo Icon -->
+                        <Border Width="64" Height="64"
+                                CornerRadius="16"
+                                HorizontalAlignment="Center">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                    <GradientStop Color="{StaticResource AccentPrimary}" Offset="0" />
+                                    <GradientStop Color="{StaticResource AccentSecondary}" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="K"
+                                       FontSize="28"
+                                       FontWeight="Bold"
+                                       Foreground="#0A0B0F"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        
+                        <!-- Title -->
+                        <StackPanel Spacing="6" Margin="0,8,0,0">
+                            <Panel>
+                                <TextBlock Text="Welcome Back"
+                                           IsVisible="{Binding IsRegisterMode, Converter={x:Static conv:BoolConverters.Not}}"
+                                           Classes="kor-heading-xl"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="Create Account"
+                                           IsVisible="{Binding IsRegisterMode}"
+                                           Classes="kor-heading-xl"
+                                           HorizontalAlignment="Center" />
+                            </Panel>
+                            <TextBlock Text="Sign in to manage your KorProxy subscription"
+                                       FontSize="14"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <!-- Form Fields -->
+                    <StackPanel Spacing="20">
+                        <!-- Name (Register only) -->
+                        <StackPanel Spacing="0" IsVisible="{Binding IsRegisterMode}">
+                            <TextBlock Text="Name" Classes="field-label" />
+                            <TextBox Text="{Binding Name}"
+                                     Watermark="Your name (optional)"
+                                     Classes="auth-input" />
+                        </StackPanel>
+                        
+                        <!-- Email -->
+                        <StackPanel Spacing="0">
+                            <TextBlock Text="Email" Classes="field-label" />
+                            <TextBox Text="{Binding Email}"
+                                     Watermark="you@example.com"
+                                     Classes="auth-input" />
+                        </StackPanel>
+                        
+                        <!-- Password -->
+                        <StackPanel Spacing="0">
+                            <TextBlock Text="Password" Classes="field-label" />
+                            <TextBox Text="{Binding Password}"
+                                     PasswordChar="•"
+                                     Watermark="Enter your password"
+                                     Classes="auth-input" />
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <!-- Action Buttons -->
+                    <StackPanel Spacing="16">
+                        <!-- Sign In Button -->
+                        <Button Command="{Binding LoginCommand}"
+                                IsVisible="{Binding IsRegisterMode, Converter={x:Static conv:BoolConverters.Not}}"
+                                Classes="kor-primary"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Height="44">
+                            <TextBlock Text="Sign In" FontWeight="SemiBold" FontSize="14" />
+                        </Button>
+                        
+                        <!-- Register Button -->
+                        <Button Command="{Binding RegisterCommand}"
+                                IsVisible="{Binding IsRegisterMode}"
+                                Classes="kor-primary"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Height="44">
+                            <TextBlock Text="Create Account" FontWeight="SemiBold" FontSize="14" />
+                        </Button>
+                        
+                        <!-- Toggle Mode -->
+                        <Button Command="{Binding ToggleModeCommand}"
+                                Classes="kor-ghost"
+                                HorizontalAlignment="Center">
+                            <Panel>
+                                <TextBlock Text="Don't have an account? Create one"
+                                           IsVisible="{Binding IsRegisterMode, Converter={x:Static conv:BoolConverters.Not}}"
+                                           FontSize="13"
+                                           Foreground="{StaticResource AccentSecondaryBrush}" />
+                                <TextBlock Text="Already have an account? Sign in"
+                                           IsVisible="{Binding IsRegisterMode}"
+                                           FontSize="13"
+                                           Foreground="{StaticResource AccentSecondaryBrush}" />
+                            </Panel>
+                        </Button>
+                    </StackPanel>
+                    
+                    <!-- Error Message -->
+                    <Border IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Background="{StaticResource StatusWarningBgBrush}"
+                            CornerRadius="10"
+                            Padding="16,12">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <mi:MaterialIcon Kind="AlertCircleOutline"
+                                             Width="18" Height="18"
+                                             Foreground="{StaticResource StatusWarningBrush}" />
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       FontSize="13"
+                                       Foreground="{StaticResource StatusWarningBrush}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Loading Indicator -->
+                    <ProgressBar IsIndeterminate="True"
+                                 IsVisible="{Binding IsBusy}"
+                                 Classes="kor-progress"
+                                 Margin="0,-10,0,0" />
+                    
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

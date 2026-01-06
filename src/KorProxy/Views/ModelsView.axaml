@@ -1,0 +1,148 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             x:Class="KorProxy.Views.ModelsView"
+             x:DataType="vm:ModelsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*" Margin="24">
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,20">
+            <TextBlock Text="Models"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+            <TextBlock Text="Available AI models from connected providers"
+                       FontSize="14"
+                       Foreground="{StaticResource TextSecondaryBrush}" />
+        </StackPanel>
+
+        <!-- Loading State -->
+        <Border Grid.Row="1"
+                IsVisible="{Binding IsLoading}"
+                Classes="card"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Padding="32">
+            <StackPanel Spacing="16" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="120" />
+                <TextBlock Text="Loading models..."
+                           FontSize="14"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Models List -->
+        <ScrollViewer Grid.Row="1"
+                      IsVisible="{Binding !IsLoading}"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding ModelGroups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ModelGroupViewModel">
+                            <StackPanel Margin="0,0,0,20">
+                                <!-- Group Header -->
+                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+                                    <Border Grid.Column="0"
+                                            Width="40" Height="40"
+                                            CornerRadius="10"
+                                            Background="{StaticResource Surface2Brush}"
+                                            Margin="0,0,12,0">
+                                        <mi:MaterialIcon Kind="CloudOutline"
+                                                         Width="20" Height="20"
+                                                         Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </Border>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding ProviderName}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center" />
+                                    <Border Grid.Column="2"
+                                            Padding="8,4"
+                                            CornerRadius="4"
+                                            Background="{StaticResource Surface2Brush}"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ModelCount, StringFormat={}{0} models}"
+                                                   FontSize="11"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </Border>
+                                </Grid>
+                                
+                                <!-- Models in Group -->
+                                <Border Classes="card" Padding="0">
+                                    <ItemsControl ItemsSource="{Binding Models}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ModelItemViewModel">
+                                                <Border Padding="16" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <StackPanel Grid.Column="0" Spacing="4">
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                       FontSize="14"
+                                                                       FontWeight="Medium"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                            <TextBlock Text="{Binding Id}"
+                                                                       FontSize="11"
+                                                                       FontFamily="{StaticResource FontFamilyMono}"
+                                                                       Foreground="{StaticResource TextTertiaryBrush}" />
+                                                        </StackPanel>
+                                                        <Border Grid.Column="1"
+                                                                Padding="6,2"
+                                                                CornerRadius="4"
+                                                                Background="{StaticResource Surface2Brush}"
+                                                                VerticalAlignment="Center"
+                                                                IsVisible="{Binding Type, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                            <TextBlock Text="{Binding Type}"
+                                                                       FontSize="10"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                
+                <!-- Empty State -->
+                <Border Classes="card"
+                        IsVisible="{Binding !ModelGroups.Count}"
+                        Padding="48"
+                        HorizontalAlignment="Center">
+                    <StackPanel Spacing="16" HorizontalAlignment="Center">
+                        <Border Width="56" Height="56"
+                                CornerRadius="14"
+                                Background="{StaticResource Surface2Brush}"
+                                HorizontalAlignment="Center">
+                            <mi:MaterialIcon Kind="CubeOutline"
+                                             Width="24" Height="24"
+                                             Foreground="{StaticResource TextTertiaryBrush}" />
+                        </Border>
+                        <TextBlock Text="No models available"
+                                   FontSize="14"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Connect an AI provider to see available models"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -1,0 +1,92 @@
+---
+description: "C# .NET 8 and Avalonia UI patterns and conventions"
+globs: ["src/**/*.cs", "src/**/*.axaml"]
+alwaysApply: false
+---
+
+## .NET 8 / C# Standards
+
+### Target Framework
+- Target framework: .NET 8.0
+- Nullable reference types **MUST** be enabled
+- Use modern C# features (records, pattern matching, file-scoped namespaces)
+
+### MVVM Patterns (CommunityToolkit.Mvvm)
+
+**Always use CommunityToolkit.Mvvm attributes:**
+
+```csharp
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+public partial class MyViewModel : ViewModelBase
+{
+    [ObservableProperty]
+    private string _name = string.Empty;
+    
+    [RelayCommand]
+    private async Task DoSomethingAsync()
+    {
+        // Implementation
+    }
+}
+```
+
+- Use `[ObservableProperty]` for properties that need to notify changes
+- Use `[RelayCommand]` for command methods
+- Use `[NotifyPropertyChangedFor(nameof(OtherProperty))]` when one property affects another
+- Inherit from `ViewModelBase` for all view models
+
+### Dependency Injection
+
+- Use `Microsoft.Extensions.DependencyInjection`
+- Register services in `Program.cs` or `App.axaml.cs`
+- Use constructor injection with `[ActivatorUtilitiesConstructor]` for DI
+- Provide parameterless constructor for design-time support
+
+### Async/Await Patterns
+
+- **Always** use `CancellationToken` in async methods:
+```csharp
+public async Task DoWorkAsync(CancellationToken ct = default)
+{
+    await SomeOperationAsync(ct);
+}
+```
+
+- Use `CancellationTokenSource.CreateLinkedTokenSource()` when combining tokens
+- Properly dispose `CancellationTokenSource` instances
+- Use `Dispatcher.UIThread.InvokeAsync()` for UI thread marshaling
+
+### Avalonia XAML
+
+- **Always** use `x:DataType` for compiled bindings:
+```xml
+<UserControl x:DataType="local:MyViewModel">
+    <TextBlock Text="{Binding Name}" />
+</UserControl>
+```
+
+- Use theme resources defined in `App.axaml`
+- Design system: "Midnight Aurora" dark theme with teal accent (#00D4AA)
+- Glassmorphism styling with `KorGlassBase`, `KorGlassBorder` colors
+
+### Project Organization
+
+- **Core** (`KorProxy.Core/`): Domain models and interfaces only (no external dependencies)
+- **Infrastructure** (`KorProxy.Infrastructure/`): Service implementations, API clients, platform-specific code
+- **App** (`KorProxy/`): Views, ViewModels, and app-level orchestration
+
+### Code Style
+
+- Use file-scoped namespaces: `namespace KorProxy.ViewModels;`
+- Use `required` keyword for required properties in records/classes
+- Use `init` accessors for immutable properties
+- Prefer `record` types for data transfer objects
+
+### Error Handling
+
+- Use try-catch blocks for async operations
+- Log errors appropriately
+- Handle `OperationCanceledException` separately from other exceptions
+- Return meaningful error states to UI

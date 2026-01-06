@@ -402,8 +402,8 @@ The core API remains the same as Framer Motion v11:
 Before implementing Phase B features, migrate all 19 existing files from `framer-motion` to `motion/react`:
 ```bash
 # In korproxy-app/
-npm uninstall framer-motion
-npm install motion
+bun remove framer-motion
+bun add motion
 # Then update imports in all files
 ```
 

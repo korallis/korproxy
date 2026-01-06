@@ -114,7 +114,7 @@ const itemVariants = {
 
 **Install dependency**:
 ```bash
-npm install framer-motion
+bun add framer-motion
 ```
 
 ### 1.4 Provider Gradient Colors
@@ -508,9 +508,9 @@ Show:
 ### 5.1 New Dependencies
 
 ```bash
-npm install framer-motion
-npm install @radix-ui/react-accordion  # For FAQ
-npm install @radix-ui/react-tabs       # For model filters
+bun add framer-motion
+bun add @radix-ui/react-accordion  # For FAQ
+bun add @radix-ui/react-tabs       # For model filters
 ```
 
 ### 5.2 New Components to Create

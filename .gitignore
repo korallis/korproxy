@@ -1,36 +1,112 @@
-# Dependencies
-node_modules/
+# ══════════════════════════════════════════════════════════════════════════════
+# KorProxy .gitignore - .NET/Avalonia Desktop App
+# ══════════════════════════════════════════════════════════════════════════════
 
-# Build outputs
+# ─────────────────────────────────────────────────────────────────────────────
+# .NET Build Outputs
+# ─────────────────────────────────────────────────────────────────────────────
+bin/
+obj/
+publish/
 dist/
-dist-electron/
-release/
-.next/
 out/
 
-# Playwright
-playwright-report/
-test-results/
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
 
-# Environment files
+# MSBuild
+*.log
+msbuild.binlog
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IDE & Editors
+# ─────────────────────────────────────────────────────────────────────────────
+.idea/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+*.code-workspace
+
+# ─────────────────────────────────────────────────────────────────────────────
+# macOS
+# ─────────────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Windows
+# ─────────────────────────────────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Environment & Secrets
+# ─────────────────────────────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
+*.env
+appsettings.Development.json
+appsettings.Local.json
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Results
+# ─────────────────────────────────────────────────────────────────────────────
+TestResults/
+*.trx
+coverage/
+*.coverage
+*.coveragexml
 
-# Logs
-*.log
-npm-debug.log*
+# ─────────────────────────────────────────────────────────────────────────────
+# Velopack / Updates
+# ─────────────────────────────────────────────────────────────────────────────
+releases/
+*.nupkg
 
-# TypeScript cache
-*.tsbuildinfo
-
-# Convex
+# ─────────────────────────────────────────────────────────────────────────────
+# Node.js (for korproxy-web and korproxy-backend)
+# ─────────────────────────────────────────────────────────────────────────────
+node_modules/
+.next/
 .convex/
-korproxy-app/CLIProxyAPI/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Archived folders
+# ─────────────────────────────────────────────────────────────────────────────
+*-archived/
+korproxy-app-electron-archived/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLIProxyAPI (Go submodule - binaries only)
+# ─────────────────────────────────────────────────────────────────────────────
+runtimes/*/CLIProxyAPI
+runtimes/*/CLIProxyAPI.exe
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────────────────────────────────────
+*.log
+logs/

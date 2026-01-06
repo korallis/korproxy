@@ -1,0 +1,150 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:KorProxy"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:views="using:KorProxy.Views"
+             x:Class="KorProxy.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- 
+            ═══════════════════════════════════════════════════════════════
+            KORPROXY DESIGN SYSTEM
+            Based on WCAG 2.1 guidelines for dark themes
+            ═══════════════════════════════════════════════════════════════
+            -->
+            
+            <!-- ═══ BRAND COLORS ═══ -->
+            <Color x:Key="BrandPrimary">#2DD4BF</Color>
+            <Color x:Key="BrandSecondary">#818CF8</Color>
+            
+            <!-- ═══ SURFACE COLORS (Dark Theme) ═══ -->
+            <!-- Layered surfaces: darker = further back, lighter = elevated -->
+            <Color x:Key="SurfaceBase">#0D0D12</Color>        <!-- Window background -->
+            <Color x:Key="Surface0">#14141B</Color>           <!-- Main content area -->
+            <Color x:Key="Surface1">#1C1C26</Color>           <!-- Cards, sidebar -->
+            <Color x:Key="Surface2">#252532</Color>           <!-- Elevated cards, inputs -->
+            <Color x:Key="Surface3">#2E2E3D</Color>           <!-- Hover states -->
+            <Color x:Key="Surface4">#383848</Color>           <!-- Active/pressed states -->
+            
+            <!-- ═══ TEXT COLORS ═══ -->
+            <!-- Following WCAG 2.1 contrast ratios for dark backgrounds -->
+            <Color x:Key="TextPrimary">#FFFFFF</Color>        <!-- Main text - 100% white -->
+            <Color x:Key="TextSecondary">#B4B4C0</Color>      <!-- Secondary text - ~70% -->
+            <Color x:Key="TextTertiary">#8A8A99</Color>       <!-- Muted text - ~50% -->
+            <Color x:Key="TextDisabled">#5C5C6B</Color>       <!-- Disabled text - ~35% -->
+            
+            <!-- ═══ BORDER COLORS ═══ -->
+            <Color x:Key="BorderSubtle">#2A2A38</Color>       <!-- Subtle borders -->
+            <Color x:Key="BorderDefault">#3A3A4D</Color>      <!-- Default borders -->
+            <Color x:Key="BorderStrong">#4A4A5F</Color>       <!-- Strong borders -->
+            
+            <!-- ═══ STATUS COLORS ═══ -->
+            <Color x:Key="StatusSuccess">#22C55E</Color>
+            <Color x:Key="StatusWarning">#F59E0B</Color>
+            <Color x:Key="StatusError">#EF4444</Color>
+            <Color x:Key="StatusInfo">#3B82F6</Color>
+            
+            <!-- Status background colors (10% opacity) -->
+            <Color x:Key="StatusSuccessBg">#1A22C55E</Color>
+            <Color x:Key="StatusWarningBg">#1AF59E0B</Color>
+            <Color x:Key="StatusErrorBg">#1AEF4444</Color>
+            <Color x:Key="StatusInfoBg">#1A3B82F6</Color>
+            
+            <!-- ═══ BRUSHES ═══ -->
+            <!-- Brand -->
+            <SolidColorBrush x:Key="BrandPrimaryBrush" Color="{StaticResource BrandPrimary}" />
+            <SolidColorBrush x:Key="BrandSecondaryBrush" Color="{StaticResource BrandSecondary}" />
+            
+            <!-- Surfaces -->
+            <SolidColorBrush x:Key="SurfaceBaseBrush" Color="{StaticResource SurfaceBase}" />
+            <SolidColorBrush x:Key="Surface0Brush" Color="{StaticResource Surface0}" />
+            <SolidColorBrush x:Key="Surface1Brush" Color="{StaticResource Surface1}" />
+            <SolidColorBrush x:Key="Surface2Brush" Color="{StaticResource Surface2}" />
+            <SolidColorBrush x:Key="Surface3Brush" Color="{StaticResource Surface3}" />
+            <SolidColorBrush x:Key="Surface4Brush" Color="{StaticResource Surface4}" />
+            
+            <!-- Text -->
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}" />
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}" />
+            <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiary}" />
+            <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabled}" />
+            
+            <!-- Borders -->
+            <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtle}" />
+            <SolidColorBrush x:Key="BorderDefaultBrush" Color="{StaticResource BorderDefault}" />
+            <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrong}" />
+            
+            <!-- Status -->
+            <SolidColorBrush x:Key="StatusSuccessBrush" Color="{StaticResource StatusSuccess}" />
+            <SolidColorBrush x:Key="StatusWarningBrush" Color="{StaticResource StatusWarning}" />
+            <SolidColorBrush x:Key="StatusErrorBrush" Color="{StaticResource StatusError}" />
+            <SolidColorBrush x:Key="StatusInfoBrush" Color="{StaticResource StatusInfo}" />
+            <SolidColorBrush x:Key="StatusSuccessBgBrush" Color="{StaticResource StatusSuccessBg}" />
+            <SolidColorBrush x:Key="StatusWarningBgBrush" Color="{StaticResource StatusWarningBg}" />
+            <SolidColorBrush x:Key="StatusErrorBgBrush" Color="{StaticResource StatusErrorBg}" />
+            <SolidColorBrush x:Key="StatusInfoBgBrush" Color="{StaticResource StatusInfoBg}" />
+            
+            <!-- Gradients -->
+            <LinearGradientBrush x:Key="BrandGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="{StaticResource BrandPrimary}" />
+                <GradientStop Offset="1" Color="{StaticResource BrandSecondary}" />
+            </LinearGradientBrush>
+            
+            <!-- ═══ TYPOGRAPHY ═══ -->
+            <FontFamily x:Key="FontFamilySans">Inter, Segoe UI, San Francisco, Helvetica Neue, Arial, sans-serif</FontFamily>
+            <FontFamily x:Key="FontFamilyMono">JetBrains Mono, Cascadia Code, Consolas, SF Mono, monospace</FontFamily>
+            
+            <!-- Legacy aliases for backward compatibility -->
+            <SolidColorBrush x:Key="AccentPrimaryBrush" Color="{StaticResource BrandPrimary}" />
+            <SolidColorBrush x:Key="AccentSecondaryBrush" Color="{StaticResource BrandSecondary}" />
+            <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="{StaticResource BrandPrimary}" />
+                <GradientStop Offset="1" Color="{StaticResource BrandSecondary}" />
+            </LinearGradientBrush>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <!-- Avalonia Fluent Theme -->
+        <FluentTheme />
+    </Application.Styles>
+
+    <Application.DataTemplates>
+        <DataTemplate DataType="vm:LoginViewModel">
+            <views:LoginView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:RegisterViewModel">
+            <views:RegisterView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:OnboardingViewModel">
+            <views:OnboardingView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:MainWindowViewModel">
+            <views:MainView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:DashboardViewModel">
+            <views:DashboardView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:AccountsViewModel">
+            <views:AccountsView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:AccountViewModel">
+            <views:AccountView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:SettingsViewModel">
+            <views:SettingsView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:LogsViewModel">
+            <views:LogsView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:ModelsViewModel">
+            <views:ModelsView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:IntegrationsViewModel">
+            <views:IntegrationsView />
+        </DataTemplate>
+    </Application.DataTemplates>
+
+</Application>

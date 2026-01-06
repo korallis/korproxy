@@ -1,0 +1,450 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             x:Class="KorProxy.Views.IntegrationsView"
+             x:DataType="vm:IntegrationsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24">
+        <StackPanel Spacing="24" MaxWidth="800">
+            
+            <!-- Page Header -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Integrations"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="Configure your AI coding tools to use KorProxy"
+                           FontSize="14"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- Loading State -->
+            <Border Classes="card"
+                    IsVisible="{Binding IsLoading}"
+                    Padding="24"
+                    HorizontalAlignment="Center">
+                <StackPanel Spacing="12" Orientation="Horizontal">
+                    <ProgressBar IsIndeterminate="True" Width="80" />
+                    <TextBlock Text="Loading..."
+                               FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- Status Message -->
+            <Border Classes="card"
+                    IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Padding="16">
+                <Grid ColumnDefinitions="Auto,*">
+                    <mi:MaterialIcon Grid.Column="0"
+                                     Kind="CheckCircle"
+                                     Width="20" Height="20"
+                                     Foreground="{StaticResource StatusSuccessBrush}"
+                                     Margin="0,0,12,0"
+                                     VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding StatusMessage}"
+                               FontSize="13"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+
+            <!-- Endpoint Info -->
+            <Border Classes="card" Padding="20">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Proxy Endpoint"
+                               FontSize="14"
+                               FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="Use this endpoint in your coding tools"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <Border Background="{StaticResource Surface2Brush}"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            Margin="0,8,0,0">
+                        <TextBlock Text="{Binding ProxyEndpoint}"
+                                   FontFamily="{StaticResource FontFamilyMono}"
+                                   FontSize="13"
+                                   Foreground="{StaticResource BrandPrimaryBrush}" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!-- AMP CLI CONFIGURATION - ONE CLICK SETUP -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="AMP CLI SETUP"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextTertiaryBrush}"
+                           LetterSpacing="1"
+                           Margin="4,0,0,0" />
+                
+                <Border Classes="card" Padding="24">
+                    <StackPanel Spacing="20">
+                        <!-- Header -->
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                            <Border Grid.Column="0"
+                                    Width="52" Height="52"
+                                    CornerRadius="12"
+                                    Background="{StaticResource Surface2Brush}">
+                                <mi:MaterialIcon Kind="LightningBolt"
+                                                 Width="26" Height="26"
+                                                 Foreground="{StaticResource StatusInfoBrush}" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="Amp CLI Integration"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="One-click setup for ampcode.com"
+                                           FontSize="13"
+                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- How it works explanation -->
+                        <Border Background="{StaticResource Surface2Brush}"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="How it works"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="12"
+                                           LineHeight="18"
+                                           Foreground="{StaticResource TextSecondaryBrush}">
+                                    <Run Text="KorProxy acts as a bridge between your local Amp CLI and the Amp servers. When you save this configuration:" />
+                                </TextBlock>
+                                <StackPanel Spacing="8" Margin="8,0,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="1."
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BrandPrimaryBrush}" />
+                                        <TextBlock Text="Your Amp CLI will route requests through KorProxy"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="2."
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BrandPrimaryBrush}" />
+                                        <TextBlock Text="KorProxy forwards requests to Amp's servers using your API key"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="3."
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BrandPrimaryBrush}" />
+                                        <TextBlock Text="Your connected AI providers (Claude, Codex, etc.) become available in Amp"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- API Key Input -->
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="Amp API Key"
+                                           FontSize="13"
+                                           FontWeight="Medium"
+                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                <Button Grid.Column="1"
+                                        Content="Get API Key"
+                                        Command="{Binding OpenAmpSettingsCommand}"
+                                        Padding="8,4"
+                                        FontSize="11" />
+                            </Grid>
+                            <TextBox Text="{Binding AmpUpstreamApiKey}"
+                                     Watermark="Enter your Amp API key from ampcode.com/settings"
+                                     PasswordChar="•" />
+                            <TextBlock Text="Required: Get your API key from ampcode.com/settings → API Keys"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextTertiaryBrush}" />
+                        </StackPanel>
+                        
+                        <!-- Upstream URL (Advanced) -->
+                        <Expander Header="Advanced Settings" Padding="0">
+                            <StackPanel Spacing="16" Margin="0,12,0,0">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Upstream URL"
+                                               FontSize="13"
+                                               FontWeight="Medium"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                    <TextBox Text="{Binding AmpUpstreamUrl}"
+                                             Watermark="https://ampcode.com" />
+                                    <TextBlock TextWrapping="Wrap"
+                                               FontSize="11"
+                                               Foreground="{StaticResource TextTertiaryBrush}">
+                                        <Run Text="The Amp server URL. Default is https://ampcode.com. Only change this if you're using a self-hosted or enterprise Amp instance." />
+                                    </TextBlock>
+                                </StackPanel>
+                                <StackPanel Spacing="6">
+                                    <CheckBox IsChecked="{Binding AmpRestrictToLocalhost}"
+                                              Content="Restrict management API to localhost" />
+                                    <TextBlock Text="When enabled, only local connections can access the management API. Recommended for security."
+                                               FontSize="11"
+                                               Foreground="{StaticResource TextTertiaryBrush}"
+                                               TextWrapping="Wrap"
+                                               Margin="24,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Expander>
+                        
+                        <!-- What happens when you save -->
+                        <Border Background="{StaticResource StatusInfoBgBrush}"
+                                CornerRadius="6"
+                                Padding="12">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <mi:MaterialIcon Grid.Column="0"
+                                                 Kind="InformationOutline"
+                                                 Width="18" Height="18"
+                                                 Foreground="{StaticResource StatusInfoBrush}"
+                                                 VerticalAlignment="Top"
+                                                 Margin="0,2,0,0" />
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Clicking Save will automatically update:"
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                    <TextBlock Text="~/.config/amp/settings.json"
+                                               FontSize="11"
+                                               FontFamily="{StaticResource FontFamilyMono}"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="~/.local/share/amp/secrets.json"
+                                               FontSize="11"
+                                               FontFamily="{StaticResource FontFamilyMono}"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Save Button -->
+                        <Button Command="{Binding SaveAmpConfigCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Padding="16,12"
+                                IsEnabled="{Binding !IsLoading}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <mi:MaterialIcon Kind="ContentSave" Width="18" Height="18" />
+                                <TextBlock Text="Save &amp; Configure Amp CLI"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                        
+                        <!-- Unsaved Changes Indicator -->
+                        <Border IsVisible="{Binding HasChanges}"
+                                Background="{StaticResource StatusWarningBgBrush}"
+                                CornerRadius="6"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <mi:MaterialIcon Kind="AlertCircleOutline"
+                                                 Width="16" Height="16"
+                                                 Foreground="{StaticResource StatusWarningBrush}" />
+                                <TextBlock Text="You have unsaved changes"
+                                           FontSize="12"
+                                           Foreground="{StaticResource StatusWarningBrush}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!-- QUICK COPY CONFIGURATIONS -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="QUICK SETUP"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextTertiaryBrush}"
+                           LetterSpacing="1"
+                           Margin="4,0,0,0" />
+                
+                <!-- Claude Code -->
+                <Border Classes="card" Padding="20">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                        <Border Grid.Column="0"
+                                Width="44" Height="44"
+                                CornerRadius="10"
+                                Background="{StaticResource Surface2Brush}">
+                            <mi:MaterialIcon Kind="Console"
+                                             Width="22" Height="22"
+                                             Foreground="{StaticResource BrandPrimaryBrush}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Claude Code"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Anthropic CLI"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Command="{Binding CopyClaudeCodeConfigCommand}"
+                                VerticalAlignment="Center"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <mi:MaterialIcon Kind="ContentCopy" Width="14" Height="14" />
+                                <TextBlock Text="Copy Config" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Codex -->
+                <Border Classes="card" Padding="20">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                        <Border Grid.Column="0"
+                                Width="44" Height="44"
+                                CornerRadius="10"
+                                Background="{StaticResource Surface2Brush}">
+                            <mi:MaterialIcon Kind="RobotOutline"
+                                             Width="22" Height="22"
+                                             Foreground="{StaticResource BrandSecondaryBrush}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Codex"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="OpenAI CLI"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Command="{Binding CopyCodexConfigCommand}"
+                                VerticalAlignment="Center"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <mi:MaterialIcon Kind="ContentCopy" Width="14" Height="14" />
+                                <TextBlock Text="Copy Config" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Gemini CLI -->
+                <Border Classes="card" Padding="20">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                        <Border Grid.Column="0"
+                                Width="44" Height="44"
+                                CornerRadius="10"
+                                Background="{StaticResource Surface2Brush}">
+                            <mi:MaterialIcon Kind="StarFourPoints"
+                                             Width="22" Height="22"
+                                             Foreground="{StaticResource StatusWarningBrush}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Gemini CLI"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Google AI"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Command="{Binding CopyGeminiCliConfigCommand}"
+                                VerticalAlignment="Center"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <mi:MaterialIcon Kind="ContentCopy" Width="14" Height="14" />
+                                <TextBlock Text="Copy Config" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Amp CLI (Copy Only) -->
+                <Border Classes="card" Padding="20">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                        <Border Grid.Column="0"
+                                Width="44" Height="44"
+                                CornerRadius="10"
+                                Background="{StaticResource Surface2Brush}">
+                            <mi:MaterialIcon Kind="LightningBolt"
+                                             Width="22" Height="22"
+                                             Foreground="{StaticResource StatusInfoBrush}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Amp CLI"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Manual config (copy to clipboard)"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Command="{Binding CopyAmpCliConfigCommand}"
+                                VerticalAlignment="Center"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <mi:MaterialIcon Kind="ContentCopy" Width="14" Height="14" />
+                                <TextBlock Text="Copy Config" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Factory -->
+                <Border Classes="card" Padding="20">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                        <Border Grid.Column="0"
+                                Width="44" Height="44"
+                                CornerRadius="10"
+                                Background="{StaticResource Surface2Brush}">
+                            <mi:MaterialIcon Kind="Factory"
+                                             Width="22" Height="22"
+                                             Foreground="{StaticResource StatusSuccessBrush}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Factory"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Droid Configuration"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Command="{Binding CopyFactoryConfigCommand}"
+                                VerticalAlignment="Center"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <mi:MaterialIcon Kind="ContentCopy" Width="14" Height="14" />
+                                <TextBlock Text="Copy Config" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+            </StackPanel>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

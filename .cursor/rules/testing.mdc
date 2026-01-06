@@ -1,0 +1,126 @@
+---
+description: "Testing patterns and TDD workflows"
+globs: ["**/*.test.ts", "**/*.test.tsx", "**/Tests/**/*.cs"]
+alwaysApply: false
+---
+
+## Test-Driven Development (TDD) Workflow
+
+**Preferred workflow pattern:**
+
+1. Write tests first (describe expected behavior)
+2. Write implementation to pass tests
+3. Run tests and fix failures
+4. Refactor while keeping tests green
+5. Repeat until all tests pass
+
+## C# / .NET Testing (xUnit)
+
+### Test Structure
+
+```csharp
+using Xunit;
+using Moq;
+
+public class MyServiceTests
+{
+    private readonly Mock<IDependency> _mockDependency;
+    private readonly MyService _service;
+
+    public MyServiceTests()
+    {
+        _mockDependency = new Mock<IDependency>();
+        _service = new MyService(_mockDependency.Object);
+    }
+
+    [Fact]
+    public async Task DoSomething_WhenCalled_ReturnsExpectedResult()
+    {
+        // Arrange
+        var expected = "result";
+        _mockDependency.Setup(x => x.GetData()).ReturnsAsync(expected);
+
+        // Act
+        var result = await _service.DoSomethingAsync();
+
+        // Assert
+        Assert.Equal(expected, result);
+        _mockDependency.Verify(x => x.GetData(), Times.Once);
+    }
+}
+```
+
+### Patterns
+
+- Use `[Fact]` for parameterless tests
+- Use `[Theory]` with `[InlineData]` for parameterized tests
+- Use `Moq` for mocking dependencies
+- Follow Arrange-Act-Assert (AAA) structure
+- Test async methods with `async Task` return type
+- Use `CancellationToken.None` in tests unless testing cancellation
+
+## TypeScript / React Testing (Vitest)
+
+### Test Structure
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+describe("MyComponent", () => {
+  beforeEach(() => {
+    // Setup
+  });
+
+  it("should render correctly", () => {
+    // Arrange
+    const props = { name: "Test" };
+
+    // Act
+    const result = renderComponent(props);
+
+    // Assert
+    expect(result).toBeInTheDocument();
+  });
+});
+```
+
+### Patterns
+
+- Use `describe` blocks to group related tests
+- Use `it` or `test` for individual test cases
+- Use `vi.mock()` for mocking modules
+- Use `vi.fn()` for function mocks
+- Test user interactions with `@testing-library/react`
+- Test async operations with `await` and `waitFor`
+
+## YOLO Mode Allowlist
+
+When using Agent mode with YOLO enabled, these commands are always allowed:
+
+```
+Any kind of tests are always allowed (vitest, npm test, nr test, dotnet test, etc.)
+Basic build commands like build, tsc, prettier, eslint are always ok.
+Creating files and directories (touch, mkdir) is always permitted.
+```
+
+## Test Coverage Goals
+
+- Unit tests for all service classes
+- Integration tests for critical workflows
+- Component tests for complex UI interactions
+- Test edge cases and error conditions
+
+## Mocking Guidelines
+
+- Mock external dependencies (APIs, databases, file system)
+- Don't mock the code under test
+- Use realistic test data
+- Verify mock interactions when important
+- Clean up mocks between tests
+
+## Test Naming
+
+- Use descriptive names: `MethodName_WhenCondition_ReturnsExpectedResult`
+- For C#: `DoSomething_WhenCalled_ReturnsExpectedResult`
+- For TypeScript: `should return expected result when called`
+- Group related tests in `describe` blocks

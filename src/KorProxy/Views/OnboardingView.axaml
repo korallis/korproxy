@@ -1,0 +1,130 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             x:Class="KorProxy.Views.OnboardingView"
+             x:DataType="vm:OnboardingViewModel"
+             Background="{StaticResource Surface0Brush}">
+
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Padding="48"
+                Background="{StaticResource Surface1Brush}"
+                CornerRadius="20"
+                BorderBrush="{StaticResource BorderSubtleBrush}"
+                BorderThickness="1"
+                MaxWidth="500"
+                MinWidth="420">
+            <StackPanel Spacing="32">
+                <!-- Logo and Title -->
+                <StackPanel Spacing="16" HorizontalAlignment="Center">
+                    <Border Width="72" Height="72"
+                            CornerRadius="18"
+                            Background="{StaticResource BrandGradientBrush}"
+                            HorizontalAlignment="Center">
+                        <TextBlock Text="K"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Welcome to KorProxy"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="Your local AI gateway for coding tools"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Features -->
+                <StackPanel Spacing="16">
+                    <Border Background="{StaticResource Surface2Brush}"
+                            CornerRadius="10"
+                            Padding="16">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <mi:MaterialIcon Grid.Column="0"
+                                             Kind="ShieldCheckOutline"
+                                             Width="24" Height="24"
+                                             Foreground="{StaticResource BrandPrimaryBrush}"
+                                             Margin="0,0,16,0" />
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Use Your Own Subscriptions"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="Connect Claude Pro, ChatGPT Plus, or Google AI subscriptions"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <Border Background="{StaticResource Surface2Brush}"
+                            CornerRadius="10"
+                            Padding="16">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <mi:MaterialIcon Grid.Column="0"
+                                             Kind="CodeBraces"
+                                             Width="24" Height="24"
+                                             Foreground="{StaticResource BrandPrimaryBrush}"
+                                             Margin="0,0,16,0" />
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Works with Any Tool"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="Use Cursor, Cline, Windsurf, Continue, and more"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <Border Background="{StaticResource Surface2Brush}"
+                            CornerRadius="10"
+                            Padding="16">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <mi:MaterialIcon Grid.Column="0"
+                                             Kind="Lock"
+                                             Width="24" Height="24"
+                                             Foreground="{StaticResource BrandPrimaryBrush}"
+                                             Margin="0,0,16,0" />
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Private &amp; Secure"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="All requests are handled locally on your machine"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel Spacing="12">
+                    <Button Command="{Binding NextStepCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Padding="16,14">
+                        <TextBlock Text="Get Started"
+                                   FontWeight="SemiBold"
+                                   FontSize="14" />
+                    </Button>
+                    <Button Content="Skip for now"
+                            Command="{Binding SkipOnboardingCommand}"
+                            HorizontalAlignment="Center"
+                            Classes="Hyperlink"
+                            Padding="0" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

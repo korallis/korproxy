@@ -43,14 +43,14 @@ graph LR
 **Files**: `package.json`, 19 source files with `framer-motion` imports
 
 ### Background
-As of November 2024, Framer Motion was renamed to **Motion** and became independent from Framer. The library is now published as `motion` on npm with React imports from `motion/react`. The API remains compatible with Framer Motion v11.
+As of November 2024, Framer Motion was renamed to **Motion** and became independent from Framer. The library is now published as `motion` with React imports from `motion/react`. The API remains compatible with Framer Motion v11.
 
 ### Implementation
 - [ ] Update `package.json`:
   ```bash
   cd korproxy-app
-  npm uninstall framer-motion
-  npm install motion
+  bun remove framer-motion
+  bun add motion
   ```
 - [ ] Update all imports (19 files):
   ```typescript
@@ -82,8 +82,8 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
   - `src/components/settings/ConfigEditor.tsx`
 
 ### Verification
-- [ ] Run build: `npm run build`
-- [ ] Run tests: `npm run test`
+- [ ] Run build: `bun run build`
+- [ ] Run tests: `bun run test`
 - [ ] Manual: Verify animations work (theme toggle, page transitions, modals)
 
 ### Acceptance Criteria
@@ -156,8 +156,8 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
 - [ ] Add IPC handlers in `electron/main/ipc.ts`
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "onboarding"`
-- [ ] TypeScript compiles: `npm run typecheck`
+- [ ] Run tests: `bun run test -- --grep "onboarding"`
+- [ ] TypeScript compiles: `bun run typecheck`
 
 ### Acceptance Criteria
 - All types exported and usable
@@ -210,7 +210,7 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
 - [ ] Add title bar theme toggle to window chrome
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "theme"`
+- [ ] Run tests: `bun run test -- --grep "theme"`
 - [ ] Manual: Restart app, verify no flash
 - [ ] Manual: Toggle theme, verify smooth transition
 
@@ -271,7 +271,7 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
   - Escape to close (with confirmation)
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "wizard"`
+- [ ] Run tests: `bun run test -- --grep "wizard"`
 - [ ] Manual: Fresh install, complete wizard flow
 - [ ] Manual: Skip at each step, verify behavior
 
@@ -325,7 +325,7 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
 - [ ] Add disconnect confirmation modal
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "auth"`
+- [ ] Run tests: `bun run test -- --grep "auth"`
 - [ ] Manual: Trigger each error state (disconnect internet, etc.)
 - [ ] Manual: Wait for token expiry, verify auto-refresh
 
@@ -385,7 +385,7 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
   ```
 
 ### Verification
-- [ ] Run tests: `npm run test -- --grep "transitions"`
+- [ ] Run tests: `bun run test -- --grep "transitions"`
 - [ ] Manual: Navigate between pages, verify animations
 - [ ] Manual: Enable reduced motion, verify static UI
 
@@ -485,8 +485,8 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
   - Measure wizard render time (target: < 100ms)
 
 ### Verification
-- [ ] Run E2E: `npm run test:e2e`
-- [ ] Run full test suite: `npm run test`
+- [ ] Run E2E: `bun run test:e2e`
+- [ ] Run full test suite: `bun run test`
 - [ ] Manual walkthrough of all features
 
 ### Acceptance Criteria
@@ -499,9 +499,9 @@ As of November 2024, Framer Motion was renamed to **Motion** and became independ
 ## Final Checklist
 
 - [ ] All task groups complete
-- [ ] All tests passing: `npm run test && npm run test:e2e`
-- [ ] TypeScript compiles: `npm run typecheck`
-- [ ] Lint passes: `npm run lint`
+- [ ] All tests passing: `bun run test && bun run test:e2e`
+- [ ] TypeScript compiles: `bun run typecheck`
+- [ ] Lint passes: `bun run lint`
 - [ ] Code reviewed
 - [ ] Documentation updated
 - [ ] Ready for verification phase

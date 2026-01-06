@@ -1,0 +1,101 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:KorProxy.ViewModels"
+        xmlns:views="using:KorProxy.Views"
+        xmlns:mi="using:Material.Icons.Avalonia"
+        x:Class="KorProxy.Views.AppShellView"
+        x:DataType="vm:AppShellViewModel"
+        Title="KorProxy"
+        Width="1200" Height="780"
+        MinWidth="900" MinHeight="650"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SurfaceBaseBrush}">
+
+    <Design.DataContext>
+        <vm:AppShellViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- Pulse animation for status indicators -->
+        <Style Selector="Ellipse.status-pulse">
+            <Style.Animations>
+                <Animation Duration="0:0:2" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="0.4" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <!-- Loading State -->
+        <Border IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:AppState.Loading}}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Padding="48"
+                Background="{StaticResource Surface1Brush}"
+                CornerRadius="16"
+                BorderBrush="{StaticResource BorderSubtleBrush}"
+                BorderThickness="1">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
+                <Border Width="64" Height="64"
+                        CornerRadius="16"
+                        Background="{StaticResource BrandGradientBrush}"
+                        HorizontalAlignment="Center">
+                    <TextBlock Text="K"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+                
+                <ProgressBar IsIndeterminate="True" Width="120" />
+                
+                <TextBlock Text="Initializing..."
+                           FontSize="14"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <!-- Content Area -->
+        <ContentControl Content="{Binding CurrentView}"
+                        IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:AppState.Loading}}">
+            <ContentControl.ContentTemplate>
+                <DataTemplate>
+                    <ContentControl Content="{Binding}">
+                        <ContentControl.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                            </Transitions>
+                        </ContentControl.Transitions>
+                    </ContentControl>
+                </DataTemplate>
+            </ContentControl.ContentTemplate>
+        </ContentControl>
+
+        <!-- Error Banner -->
+        <Border IsVisible="{Binding InitializationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                Background="{StaticResource StatusErrorBgBrush}"
+                BorderBrush="{StaticResource StatusErrorBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                VerticalAlignment="Top"
+                Margin="24,12"
+                Padding="16,12"
+                ZIndex="50">
+            <TextBlock Text="{Binding InitializationError}"
+                       Foreground="{StaticResource StatusErrorBrush}"
+                       HorizontalAlignment="Center" />
+        </Border>
+    </Grid>
+
+</Window>
