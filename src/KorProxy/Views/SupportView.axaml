@@ -1,0 +1,540 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:KorProxy.ViewModels"
+             xmlns:mi="using:Material.Icons.Avalonia"
+             xmlns:conv="using:KorProxy.Converters"
+             x:Class="KorProxy.Views.SupportView"
+             x:DataType="vm:SupportViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+        <Style Selector="Button.link-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.link-button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24">
+        <StackPanel Spacing="24" MaxWidth="800">
+            
+            <!-- Page Header -->
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock Text="Support"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="Get help from our support team"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+                
+                <!-- Sync Button -->
+                <Button Grid.Column="1"
+                        Command="{Binding SyncTicketsCommand}"
+                        IsEnabled="{Binding IsSyncing, Converter={x:Static conv:BoolConverters.Not}}"
+                        Padding="12,8"
+                        Margin="0,0,12,0"
+                        ToolTip.Tip="Sync tickets with GitHub for new responses">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <mi:MaterialIcon Kind="Sync" Width="16" Height="16" 
+                                         Classes.spinning="{Binding IsSyncing}" />
+                        <TextBlock Text="Sync" />
+                    </StackPanel>
+                </Button>
+                
+                <!-- New Ticket Button -->
+                <Button Grid.Column="2"
+                        Command="{Binding NewTicketCommand}"
+                        IsVisible="{Binding ShowNewTicketForm, Converter={x:Static conv:BoolConverters.Not}}"
+                        Padding="16,10">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Plus" Width="18" Height="18" />
+                        <TextBlock Text="New Ticket" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Status Message -->
+            <Border Classes="card"
+                    IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Padding="16"
+                    MaxWidth="800">
+                <Grid ColumnDefinitions="Auto,*">
+                    <mi:MaterialIcon Grid.Column="0"
+                                     Kind="InformationOutline"
+                                     Width="20" Height="20"
+                                     Foreground="{StaticResource StatusInfoBrush}"
+                                     Margin="0,0,12,0"
+                                     VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding StatusMessage}"
+                               FontSize="13"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextTrimming="CharacterEllipsis"
+                               MaxLines="3" />
+                </Grid>
+            </Border>
+            
+            <!-- Last Sync Message -->
+            <TextBlock Text="{Binding LastSyncMessage}"
+                       IsVisible="{Binding LastSyncMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       FontSize="12"
+                       Foreground="{StaticResource TextTertiaryBrush}"
+                       HorizontalAlignment="Right"
+                       TextTrimming="CharacterEllipsis"
+                       Margin="0,-16,0,0" />
+
+            <!-- Create + Tickets side-by-side (prevents 'YOUR TICKETS' being hidden) -->
+            <Grid IsVisible="{Binding ShowNewTicketForm}" ColumnDefinitions="*,*" ColumnSpacing="24">
+                <!-- New Ticket Form -->
+                <Border Grid.Column="0" Classes="card" Padding="24">
+                    <StackPanel Spacing="20">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Create Support Ticket"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Describe your issue and we'll help you resolve it"
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+
+                        <!-- Subject -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Subject"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBox Text="{Binding Subject}"
+                                     Watermark="Brief summary of your issue" />
+                        </StackPanel>
+
+                        <!-- Description -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Description"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBox Text="{Binding Description}"
+                                     Watermark="Please describe your issue in detail..."
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="90" />
+                        </StackPanel>
+
+                        <!-- Priority -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Priority"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <ComboBox ItemsSource="{Binding PriorityOptions}"
+                                      SelectedItem="{Binding SelectedPriority}"
+                                      Width="150" />
+                        </StackPanel>
+                        
+                        <!-- Attachments -->
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="Attachments"
+                                           FontSize="13"
+                                           FontWeight="Medium"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" />
+                                <Button Grid.Column="1"
+                                        Command="{Binding AttachFilesCommand}"
+                                        Padding="12,6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <mi:MaterialIcon Kind="Paperclip" Width="16" Height="16" />
+                                        <TextBlock Text="Attach Files" FontSize="13" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                            
+                            <!-- Attached Files List -->
+                        <ItemsControl ItemsSource="{Binding AttachedFiles}"
+                                      IsVisible="{Binding AttachedFiles.Count, Converter={x:Static conv:GreaterThanZeroConverter.Instance}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource Surface2Brush}"
+                                                CornerRadius="6"
+                                                Padding="12,8"
+                                                Margin="0,4">
+                                            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                                <mi:MaterialIcon Grid.Column="0"
+                                                                 Kind="File"
+                                                                 Width="16" Height="16"
+                                                                 Foreground="{StaticResource TextTertiaryBrush}"
+                                                                 Margin="0,0,8,0" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding FileName}"
+                                                           FontSize="13"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding FileSize}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextTertiaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="12,0" />
+                                                <Button Grid.Column="3"
+                                                        Command="{Binding $parent[ItemsControl].((vm:SupportViewModel)DataContext).RemoveAttachmentCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="4">
+                                                    <mi:MaterialIcon Kind="Close"
+                                                                     Width="14" Height="14"
+                                                                     Foreground="{StaticResource TextTertiaryBrush}" />
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            
+                            <TextBlock Text="Max 5 files, 5MB each. Supports images and text files."
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                   IsVisible="{Binding AttachedFiles.Count, Converter={x:Static conv:IsEqualConverter.Instance}, ConverterParameter=0}" />
+                        </StackPanel>
+
+                        <!-- Include Diagnostics -->
+                        <Border Background="{StaticResource Surface2Brush}"
+                                CornerRadius="8"
+                                Padding="16">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Include diagnostics"
+                                               FontSize="14"
+                                               FontWeight="Medium"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="Attach recent error logs, app version, and system info."
+                                               TextWrapping="Wrap"
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1"
+                                              IsChecked="{Binding IncludeDiagnostics}"
+                                              OnContent=""
+                                              OffContent=""
+                                              VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Submit Button -->
+                        <Button Command="{Binding SubmitTicketCommand}"
+                                HorizontalAlignment="Left"
+                                Padding="20,12"
+                                IsEnabled="{Binding IsSubmitting, Converter={x:Static conv:BoolConverters.Not}}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <mi:MaterialIcon Kind="Send" Width="18" Height="18" />
+                                <TextBlock Text="Submit Ticket" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Tickets -->
+                <StackPanel Grid.Column="1" Spacing="8">
+                    <TextBlock Text="YOUR TICKETS"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextTertiaryBrush}"
+                               LetterSpacing="1"
+                               Margin="4,0,0,0" />
+
+                    <!-- Loading -->
+                    <Border Classes="card"
+                            IsVisible="{Binding IsLoading}"
+                            Padding="24"
+                            HorizontalAlignment="Center">
+                        <StackPanel Spacing="12" Orientation="Horizontal">
+                            <ProgressBar IsIndeterminate="True" Width="80" />
+                            <TextBlock Text="Loading tickets..."
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Empty State -->
+                    <Border Classes="card"
+                            Padding="24"
+                            IsVisible="{Binding Tickets.Count, Converter={x:Static conv:IsEqualConverter.Instance}, ConverterParameter=0}">
+                        <StackPanel Spacing="8" HorizontalAlignment="Center">
+                            <mi:MaterialIcon Kind="TicketOutline"
+                                             Width="32" Height="32"
+                                             Foreground="{StaticResource TextTertiaryBrush}" />
+                            <TextBlock Text="No tickets yet"
+                                       FontSize="14"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Ticket List -->
+                    <ItemsControl ItemsSource="{Binding Tickets}"
+                                  IsVisible="{Binding Tickets.Count, Converter={x:Static conv:GreaterThanZeroConverter.Instance}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Padding="16"
+                                        Margin="0,4"
+                                        Background="{StaticResource Surface1Brush}"
+                                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding $parent[ItemsControl].((vm:SupportViewModel)DataContext).ViewTicketCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding Subject}"
+                                                           FontSize="14"
+                                                           FontWeight="Medium"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <Border IsVisible="{Binding HasNewReply}"
+                                                        Background="{StaticResource StatusSuccessBgBrush}"
+                                                        CornerRadius="4"
+                                                        Padding="6,2">
+                                                    <TextBlock Text="New Reply"
+                                                               FontSize="10"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource StatusSuccessBrush}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding CreatedAt}"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource TextTertiaryBrush}" />
+                                                <TextBlock Text="{Binding GitHubIssueNumber, StringFormat='#{0}'}"
+                                                           IsVisible="{Binding GitHubIssueNumber, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource BrandPrimaryBrush}"
+                                                           FontFamily="{StaticResource FontFamilyMono}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <Border Grid.Column="1"
+                                                Padding="8,4"
+                                                CornerRadius="4"
+                                                Background="{StaticResource StatusInfoBgBrush}"
+                                                VerticalAlignment="Center"
+                                                Margin="12,0">
+                                            <TextBlock Text="{Binding Status}"
+                                                       FontSize="11"
+                                                       FontWeight="Medium"
+                                                       Foreground="{StaticResource StatusInfoBrush}" />
+                                        </Border>
+                                        <mi:MaterialIcon Grid.Column="2"
+                                                         Kind="ChevronRight"
+                                                         Width="18" Height="18"
+                                                         Foreground="{StaticResource TextTertiaryBrush}" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+
+            <!-- Ticket Detail View -->
+            <StackPanel Spacing="16" IsVisible="{Binding SelectedTicket, Converter={x:Static ObjectConverters.IsNotNull}}">
+                
+                <!-- Back Button -->
+                <Button Command="{Binding BackToListCommand}"
+                        Padding="8,6"
+                        HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <mi:MaterialIcon Kind="ArrowLeft" Width="16" Height="16" />
+                        <TextBlock Text="Back to tickets" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Ticket Header -->
+                <Border Classes="card" Padding="24">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding SelectedTicket.Subject}"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       TextWrapping="Wrap" />
+                            <Border Grid.Column="1"
+                                    Padding="10,5"
+                                    CornerRadius="4"
+                                    Background="{StaticResource StatusInfoBgBrush}"
+                                    VerticalAlignment="Top">
+                                <TextBlock Text="{Binding SelectedTicket.Status}"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{StaticResource StatusInfoBrush}" />
+                            </Border>
+                        </Grid>
+                        
+                        <!-- Meta Info Row -->
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <TextBlock Text="{Binding SelectedTicket.CreatedAt, StringFormat='Created {0}'}"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextTertiaryBrush}" />
+                            
+                            <!-- GitHub Issue Link -->
+                            <Button Classes="link-button"
+                                    IsVisible="{Binding SelectedTicket.GitHubIssueUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                    Command="{Binding OpenGitHubIssueCommand}"
+                                    CommandParameter="{Binding SelectedTicket.GitHubIssueUrl}">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <mi:MaterialIcon Kind="Github" Width="14" Height="14"
+                                                     Foreground="{StaticResource BrandPrimaryBrush}" />
+                                    <TextBlock Text="{Binding SelectedTicket.GitHubIssueNumber, StringFormat='Issue #{0}'}"
+                                               FontSize="12"
+                                               Foreground="{StaticResource BrandPrimaryBrush}"
+                                               TextDecorations="Underline" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        
+                        <Border Background="{StaticResource Surface2Brush}"
+                                CornerRadius="8"
+                                Padding="16"
+                                Margin="0,8,0,0">
+                            <TextBlock Text="{Binding SelectedTicket.Body}"
+                                       FontSize="14"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       LineHeight="22" />
+                        </Border>
+                        
+                        <!-- Attachments -->
+                        <StackPanel Spacing="8"
+                            IsVisible="{Binding SelectedTicket.Attachments.Count, Converter={x:Static conv:GreaterThanZeroConverter.Instance}}">
+                            <TextBlock Text="Attachments"
+                                       FontSize="12"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                       Margin="0,8,0,0" />
+                            <ItemsControl ItemsSource="{Binding SelectedTicket.Attachments}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource Surface3Brush}"
+                                                CornerRadius="4"
+                                                Padding="8,4"
+                                                Margin="0,0,8,4">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <mi:MaterialIcon Kind="File" Width="14" Height="14"
+                                                                 Foreground="{StaticResource TextTertiaryBrush}" />
+                                                <TextBlock Text="{Binding FileName}"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <TextBlock Text="{Binding FileSize}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextTertiaryBrush}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Messages -->
+                <ItemsControl ItemsSource="{Binding SelectedTicket.Messages}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card"
+                                    Padding="16"
+                                    Margin="0,8">
+                                <StackPanel Spacing="8">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding AuthorRole}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <!-- Support Badge -->
+                                            <Border IsVisible="{Binding IsSupport}"
+                                                    Background="{StaticResource StatusSuccessBgBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="6,2">
+                                                <TextBlock Text="SUPPORT"
+                                                           FontSize="9"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource StatusSuccessBrush}" />
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding CreatedAt}"
+                                                   FontSize="11"
+                                                   Foreground="{StaticResource TextTertiaryBrush}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Message}"
+                                               FontSize="13"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               LineHeight="20" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Reply Form -->
+                <Border Classes="card" Padding="20">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Reply"
+                                   FontSize="14"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBox Text="{Binding ReplyMessage}"
+                                 Watermark="Type your reply..."
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 Height="80" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button Command="{Binding SendReplyCommand}"
+                                    Padding="16,10"
+                            IsEnabled="{Binding IsSubmitting, Converter={x:Static conv:BoolConverters.Not}}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <mi:MaterialIcon Kind="Send" Width="16" Height="16" />
+                                    <TextBlock Text="Send Reply" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding CloseTicketCommand}"
+                                    Padding="16,10"
+                            IsEnabled="{Binding IsSubmitting, Converter={x:Static conv:BoolConverters.Not}}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <mi:MaterialIcon Kind="Check" Width="16" Height="16" />
+                                    <TextBlock Text="Close Ticket" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

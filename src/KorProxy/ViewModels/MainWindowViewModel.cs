@@ -136,7 +136,8 @@ public partial class MainWindowViewModel : ViewModelBase
             new NavigationItem { Title = "Integrations", Tag = "integrations", Icon = NavigationItem.Icons.Integrations, Group = NavigationGroup.Configuration },
             new NavigationItem { Title = "Settings", Tag = "settings", Icon = NavigationItem.Icons.Settings, Group = NavigationGroup.Configuration },
             // Diagnostics Group
-            new NavigationItem { Title = "Logs", Tag = "logs", Icon = NavigationItem.Icons.Logs, Group = NavigationGroup.Diagnostics }
+            new NavigationItem { Title = "Logs", Tag = "logs", Icon = NavigationItem.Icons.Logs, Group = NavigationGroup.Diagnostics },
+            new NavigationItem { Title = "Support", Tag = "support", Icon = NavigationItem.Icons.Support, Group = NavigationGroup.Diagnostics }
         ];
 
         SelectedNavItem = NavigationItems.FirstOrDefault();
@@ -249,6 +250,7 @@ public partial class MainWindowViewModel : ViewModelBase
             "integrations" => GetViewModel<IntegrationsViewModel>(),
             "settings" => GetViewModel<SettingsViewModel>(),
             "logs" => GetViewModel<LogsViewModel>(),
+            "support" => GetViewModel<SupportViewModel>(),
             _ => null
         };
 

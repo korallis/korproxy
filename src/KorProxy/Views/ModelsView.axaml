@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:KorProxy.ViewModels"
              xmlns:mi="using:Material.Icons.Avalonia"
+             xmlns:conv="using:KorProxy.Converters"
              x:Class="KorProxy.Views.ModelsView"
              x:DataType="vm:ModelsViewModel">
 
@@ -43,7 +44,7 @@
 
         <!-- Models List -->
         <ScrollViewer Grid.Row="1"
-                      IsVisible="{Binding !IsLoading}"
+                      IsVisible="{Binding IsLoading, Converter={x:Static conv:BoolConverters.Not}}"
                       HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel>
@@ -119,7 +120,7 @@
                 
                 <!-- Empty State -->
                 <Border Classes="card"
-                        IsVisible="{Binding !ModelGroups.Count}"
+                        IsVisible="{Binding ModelGroups.Count, Converter={x:Static conv:IsEqualConverter.Instance}, ConverterParameter=0}"
                         Padding="48"
                         HorizontalAlignment="Center">
                     <StackPanel Spacing="16" HorizontalAlignment="Center">

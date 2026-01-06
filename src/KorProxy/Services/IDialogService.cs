@@ -1,3 +1,5 @@
+using Avalonia.Platform.Storage;
+
 namespace KorProxy.Services;
 
 /// <summary>
@@ -10,7 +12,7 @@ public enum DialogResult
 }
 
 /// <summary>
-/// Service for showing dialog boxes (message boxes, confirmations, etc.)
+/// Service for showing dialog boxes (message boxes, confirmations, file pickers, etc.)
 /// </summary>
 public interface IDialogService
 {
@@ -40,4 +42,10 @@ public interface IDialogService
     /// </summary>
     /// <returns>DialogResult indicating user's choice.</returns>
     Task<DialogResult> ShowConfirmAsync(string title, string message, string confirmText, string cancelText);
+    
+    /// <summary>
+    /// Shows a file picker dialog to select files.
+    /// </summary>
+    /// <returns>List of selected files, or empty list if cancelled.</returns>
+    Task<IReadOnlyList<IStorageFile>> OpenFilePickerAsync(FilePickerOpenOptions options);
 }

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:KorProxy.ViewModels"
              xmlns:mi="using:Material.Icons.Avalonia"
+             xmlns:conv="using:KorProxy.Converters"
              x:Class="KorProxy.Views.AccountsView"
              x:DataType="vm:AccountsViewModel">
 
@@ -29,8 +30,9 @@
             </Border>
         </Border>
 
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24">
-            <StackPanel Spacing="24" MaxWidth="800">
+        <!-- Extra bottom padding prevents last controls from being clipped by window bounds -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24,24,24,56">
+            <StackPanel Spacing="24" MaxWidth="900" HorizontalAlignment="Center">
                 
                 <!-- Page Header -->
                 <StackPanel Spacing="4">
@@ -62,83 +64,218 @@
                     </Grid>
                 </Border>
 
-                <!-- Account Cards -->
-                <ItemsControl ItemsSource="{Binding Accounts}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:AccountCardViewModel">
-                            <Border Classes="card" Padding="20" Margin="0,0,0,12">
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
-                                    <!-- Provider Icon with status color -->
-                                    <Grid Grid.Column="0" Width="48" Height="48">
-                                        <!-- Green background when connected -->
-                                        <Border Width="48" Height="48"
-                                                CornerRadius="12"
-                                                Opacity="0.15"
+                <!-- OAuth Provider Cards -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="OAUTH PROVIDERS"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextTertiaryBrush}"
+                               LetterSpacing="1"
+                               Margin="4,0,0,0" />
+                    
+                    <ItemsControl ItemsSource="{Binding Accounts}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <!-- Wrap into multiple columns on wider windows -->
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AccountCardViewModel">
+                                <!-- OAuth Provider Card -->
+                                <Border Classes="card" Padding="20" Margin="0,0,16,16" Width="420"
+                                        IsVisible="{Binding IsApiKeyProvider, Converter={x:Static conv:BoolConverters.Not}}">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                                        <!-- Provider Icon with status color -->
+                                        <Grid Grid.Column="0" Width="48" Height="48">
+                                            <Border Width="48" Height="48"
+                                                    CornerRadius="12"
+                                                    Opacity="0.15"
+                                                    IsVisible="{Binding IsConnected}"
+                                                    Background="{StaticResource StatusSuccessBrush}" />
+                                            <Border Width="48" Height="48"
+                                                    CornerRadius="12"
+                                                    IsVisible="{Binding IsConnected, Converter={x:Static conv:BoolConverters.Not}}"
+                                                    Background="{StaticResource Surface2Brush}" />
+                                            <mi:MaterialIcon Kind="CloudCheckOutline"
+                                                             Width="24" Height="24"
+                                                             HorizontalAlignment="Center"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource StatusSuccessBrush}"
+                                                             IsVisible="{Binding IsConnected}" />
+                                            <!-- Use a widely-supported glyph name and center it -->
+                                            <mi:MaterialIcon Kind="Cloud"
+                                                             Width="24" Height="24"
+                                                             HorizontalAlignment="Center"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource TextSecondaryBrush}"
+                                                             IsVisible="{Binding IsConnected, Converter={x:Static conv:BoolConverters.Not}}" />
+                                        </Grid>
+                                        
+                                        <!-- Provider Info -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                            <TextBlock Text="{Binding ProviderName}"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsConnected}">
+                                                <Ellipse Width="8" Height="8"
+                                                         VerticalAlignment="Center"
+                                                         Fill="{StaticResource StatusSuccessBrush}" />
+                                                <TextBlock Text="{Binding StatusText}"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource StatusSuccessBrush}"
+                                                           VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="6"
+                                                    IsVisible="{Binding IsConnected, Converter={x:Static conv:BoolConverters.Not}}">
+                                                <Ellipse Width="8" Height="8"
+                                                         VerticalAlignment="Center"
+                                                         Fill="{StaticResource TextTertiaryBrush}" />
+                                                <TextBlock Text="{Binding StatusText}"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource TextTertiaryBrush}"
+                                                           VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        
+                                        <!-- Actions -->
+                                        <Button Grid.Column="2"
+                                                Content="Connect"
+                                                Command="{Binding ConnectCommand}"
+                                                IsVisible="{Binding IsConnected, Converter={x:Static conv:BoolConverters.Not}}"
+                                                VerticalAlignment="Center"
+                                                Padding="16,10" />
+                                        <Button Grid.Column="2"
+                                                Content="Disconnect"
+                                                Command="{Binding DisconnectCommand}"
                                                 IsVisible="{Binding IsConnected}"
-                                                Background="{StaticResource StatusSuccessBrush}" />
-                                        <!-- Gray background when not connected -->
-                                        <Border Width="48" Height="48"
-                                                CornerRadius="12"
-                                                IsVisible="{Binding !IsConnected}"
-                                                Background="{StaticResource Surface2Brush}" />
-                                        <!-- Green icon when connected -->
-                                        <mi:MaterialIcon Kind="CloudCheckOutline"
-                                                         Width="24" Height="24"
-                                                         Foreground="{StaticResource StatusSuccessBrush}"
-                                                         IsVisible="{Binding IsConnected}" />
-                                        <!-- Gray icon when not connected -->
-                                        <mi:MaterialIcon Kind="CloudOutline"
-                                                         Width="24" Height="24"
-                                                         Foreground="{StaticResource TextSecondaryBrush}"
-                                                         IsVisible="{Binding !IsConnected}" />
+                                                VerticalAlignment="Center"
+                                                Padding="16,10" />
                                     </Grid>
-                                    
-                                    <!-- Provider Info -->
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                        <TextBlock Text="{Binding ProviderName}"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                                        <!-- Status with colored dot - Connected (green) -->
-                                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsConnected}">
-                                            <Ellipse Width="8" Height="8"
-                                                     VerticalAlignment="Center"
-                                                     Fill="{StaticResource StatusSuccessBrush}" />
-                                            <TextBlock Text="{Binding StatusText}"
-                                                       FontSize="12"
-                                                       Foreground="{StaticResource StatusSuccessBrush}"
-                                                       VerticalAlignment="Center" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                
+                <!-- API Key Provider Cards -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="API KEY PROVIDERS"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextTertiaryBrush}"
+                               LetterSpacing="1"
+                               Margin="4,16,0,0" />
+                    
+                    <ItemsControl ItemsSource="{Binding Accounts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AccountCardViewModel">
+                                <!-- API Key Provider Card -->
+                                <Border Classes="card" Padding="20" Margin="0,0,0,12"
+                                        IsVisible="{Binding IsApiKeyProvider}">
+                                    <StackPanel Spacing="16">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                                            <!-- Provider Icon -->
+                                            <Grid Grid.Column="0" Width="48" Height="48">
+                                                <Border Width="48" Height="48"
+                                                        CornerRadius="12"
+                                                        Opacity="0.15"
+                                                        IsVisible="{Binding IsConnected}"
+                                                        Background="{StaticResource StatusSuccessBrush}" />
+                                                <Border Width="48" Height="48"
+                                                        CornerRadius="12"
+                                                        IsVisible="{Binding IsConnected, Converter={x:Static conv:BoolConverters.Not}}"
+                                                        Background="{StaticResource Surface2Brush}" />
+                                                <mi:MaterialIcon Kind="KeyVariant"
+                                                                 Width="24" Height="24"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Foreground="{StaticResource StatusSuccessBrush}"
+                                                                 IsVisible="{Binding IsConnected}" />
+                                                <mi:MaterialIcon Kind="KeyOutline"
+                                                                 Width="24" Height="24"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Foreground="{StaticResource TextSecondaryBrush}"
+                                                                 IsVisible="{Binding IsConnected, Converter={x:Static conv:BoolConverters.Not}}" />
+                                            </Grid>
+                                            
+                                            <!-- Provider Info -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                                <TextBlock Text="{Binding ProviderName}"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                                <TextBlock Text="{Binding Description}"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource TextTertiaryBrush}"
+                                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsConnected}">
+                                                    <Ellipse Width="8" Height="8"
+                                                             VerticalAlignment="Center"
+                                                             Fill="{StaticResource StatusSuccessBrush}" />
+                                                    <TextBlock Text="Enabled"
+                                                               FontSize="12"
+                                                               Foreground="{StaticResource StatusSuccessBrush}"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                            
+                                            <!-- Status Badge (Connected) -->
+                                            <Border Grid.Column="2"
+                                                    Padding="8,4"
+                                                    CornerRadius="4"
+                                                    Background="{StaticResource StatusSuccessBgBrush}"
+                                                    IsVisible="{Binding IsConnected}"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="Enabled"
+                                                           FontSize="11"
+                                                           FontWeight="Medium"
+                                                           Foreground="{StaticResource StatusSuccessBrush}" />
+                                            </Border>
+                                        </Grid>
+                                        
+                                        <!-- API Key Input (when not connected) -->
+                                        <StackPanel Spacing="8"
+                                                    IsVisible="{Binding IsConnected, Converter={x:Static conv:BoolConverters.Not}}">
+                                            <TextBlock Text="API Key"
+                                                       FontSize="13"
+                                                       FontWeight="Medium"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                            <TextBox Text="{Binding ApiKeyInput}"
+                                                     Watermark="Enter your API key"
+                                                     PasswordChar="•" />
+                                            <Button Command="{Binding SaveApiKeyCommand}"
+                                                    CommandParameter="{Binding ApiKeyInput}"
+                                                    Padding="16,10"
+                                                    HorizontalAlignment="Left"
+                                                    IsEnabled="{Binding IsSaving, Converter={x:Static conv:BoolConverters.Not}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <mi:MaterialIcon Kind="Check" Width="16" Height="16" />
+                                                    <TextBlock Text="Enable" />
+                                                </StackPanel>
+                                            </Button>
                                         </StackPanel>
-                                        <!-- Status with colored dot - Not Connected (gray) -->
-                                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !IsConnected}">
-                                            <Ellipse Width="8" Height="8"
-                                                     VerticalAlignment="Center"
-                                                     Fill="{StaticResource TextTertiaryBrush}" />
-                                            <TextBlock Text="{Binding StatusText}"
-                                                       FontSize="12"
-                                                       Foreground="{StaticResource TextTertiaryBrush}"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
+                                        
+                                        <!-- Disable Button (when connected) -->
+                                        <Button Command="{Binding DisconnectCommand}"
+                                                IsVisible="{Binding IsConnected}"
+                                                Padding="16,10"
+                                                HorizontalAlignment="Left"
+                                                IsEnabled="{Binding IsSaving, Converter={x:Static conv:BoolConverters.Not}}">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <mi:MaterialIcon Kind="Close" Width="16" Height="16" />
+                                                <TextBlock Text="Disable" />
+                                            </StackPanel>
+                                        </Button>
                                     </StackPanel>
-                                    
-                                    <!-- Actions -->
-                                    <Button Grid.Column="2"
-                                            Content="Connect"
-                                            Command="{Binding ConnectCommand}"
-                                            IsVisible="{Binding !IsConnected}"
-                                            VerticalAlignment="Center"
-                                            Padding="16,10" />
-                                    <Button Grid.Column="2"
-                                            Content="Disconnect"
-                                            Command="{Binding DisconnectCommand}"
-                                            IsVisible="{Binding IsConnected}"
-                                            VerticalAlignment="Center"
-                                            Padding="16,10" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
                 
             </StackPanel>
         </ScrollViewer>

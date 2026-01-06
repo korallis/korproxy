@@ -20,6 +20,7 @@ import type * as lib_rbac from "../lib/rbac.js";
 import type * as members from "../members.js";
 import type * as stripe from "../stripe.js";
 import type * as subscriptions from "../subscriptions.js";
+import type * as supportTickets from "../supportTickets.js";
 import type * as teams from "../teams.js";
 import type * as users from "../users.js";
 
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   members: typeof members;
   stripe: typeof stripe;
   subscriptions: typeof subscriptions;
+  supportTickets: typeof supportTickets;
   teams: typeof teams;
   users: typeof users;
 }>;

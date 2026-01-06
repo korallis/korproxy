@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:KorProxy.ViewModels"
+        xmlns:conv="using:KorProxy.Converters"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
         x:Class="KorProxy.Views.FirstRunWizardWindow"
         x:DataType="vm:FirstRunWizardViewModel"
@@ -51,7 +52,7 @@
                         <Button Command="{Binding InstallViaBrewCommand}" 
                                 Content="Install via Homebrew" 
                                 HorizontalAlignment="Center"
-                                IsEnabled="{Binding !IsInstalling}"/>
+                                IsEnabled="{Binding IsInstalling, Converter={x:Static conv:BoolConverters.Not}}"/>
                         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsInstalling}"/>
                         <TextBlock Text="{Binding InstallStatus}" HorizontalAlignment="Center"/>
                     </StackPanel>

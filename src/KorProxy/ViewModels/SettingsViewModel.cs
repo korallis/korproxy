@@ -1,7 +1,9 @@
+using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using KorProxy.Core.Models;
 using KorProxy.Core.Services;
+using KorProxy.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -12,8 +14,15 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly IManagementApiClient _apiClient;
     private readonly IAppPaths _appPaths;
     private readonly IUpdateService _updateService;
+    private readonly IStartupLaunchService? _startupLaunchService;
+    private readonly INavigationService? _navigationService;
     private readonly ProxyOptions _options;
 
+    // Settings page navigation
+    [ObservableProperty]
+    private int _selectedPageIndex;
+    
+    // Proxy settings
     [ObservableProperty]
     private int _port = 8317;
 
@@ -29,6 +38,11 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _apiKeys = "";
 
+    // App settings
+    [ObservableProperty]
+    private bool _openAtStartup;
+    
+    // Paths
     [ObservableProperty]
     private string _configFilePath = "";
 
@@ -44,6 +58,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string? _statusMessage;
 
+    // Updates
     [ObservableProperty]
     private string _updateStatus = "";
 
@@ -55,19 +70,35 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isPortableBuild;
+    
+    // Version info
+    [ObservableProperty]
+    private string _appVersion = "";
+    
+    [ObservableProperty]
+    private string _lastUpdatedDate = "";
+    
+    [ObservableProperty]
+    private string _buildInfo = "";
 
     private const string DefaultHost = "127.0.0.1";
+    private const string BillingPortalUrl = "https://korproxy.com/dashboard/billing";
+    private const string DocsUrl = "https://korproxy.com/docs";
 
     [ActivatorUtilitiesConstructor]
     public SettingsViewModel(
         IManagementApiClient apiClient, 
         IAppPaths appPaths,
         IUpdateService updateService,
+        IStartupLaunchService startupLaunchService,
+        INavigationService navigationService,
         IOptions<ProxyOptions> options)
     {
         _apiClient = apiClient;
         _appPaths = appPaths;
         _updateService = updateService;
+        _startupLaunchService = startupLaunchService;
+        _navigationService = navigationService;
         _options = options.Value;
         
         ConfigFilePath = _appPaths.ConfigFilePath;
@@ -76,6 +107,8 @@ public partial class SettingsViewModel : ViewModelBase
 
         _updateService.StateChanged += OnUpdateStateChanged;
         UpdateFromState(_updateService.State);
+        
+        LoadVersionInfo();
     }
 
     // Design-time constructor
@@ -84,17 +117,102 @@ public partial class SettingsViewModel : ViewModelBase
         _apiClient = null!;
         _appPaths = null!;
         _updateService = null!;
+        _startupLaunchService = null;
+        _navigationService = null;
         _options = new ProxyOptions();
         
         Port = 8317;
         AutoStart = true;
         ConfigFilePath = "~/.config/KorProxy/config.yaml";
         DataDirectory = "~/.config/KorProxy";
+        AppVersion = "1.0.0";
+        LastUpdatedDate = "January 2026";
+        BuildInfo = ".NET 8.0 / Avalonia 11";
+    }
+    
+    private void LoadVersionInfo()
+    {
+        try
+        {
+            var assembly = Assembly.GetEntryAssembly();
+            var version = assembly?.GetName().Version;
+            AppVersion = version?.ToString(3) ?? "0.0.0";
+            
+            // Try to get informational version (includes git hash for release builds)
+            var infoVersion = assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(infoVersion) && infoVersion != AppVersion)
+            {
+                // Extract just the version part if it includes +commitHash
+                var plusIndex = infoVersion.IndexOf('+');
+                if (plusIndex > 0)
+                {
+                    AppVersion = infoVersion[..plusIndex];
+                }
+            }
+            
+            // Get executable last write time as "installed date"
+            var exePath = Environment.ProcessPath;
+            if (!string.IsNullOrWhiteSpace(exePath) && File.Exists(exePath))
+            {
+                var lastWrite = File.GetLastWriteTime(exePath);
+                LastUpdatedDate = lastWrite.ToString("MMMM d, yyyy");
+            }
+            else
+            {
+                LastUpdatedDate = "Unknown";
+            }
+            
+            // Build info
+            var runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
+            BuildInfo = $"{runtime} / Avalonia 11";
+        }
+        catch
+        {
+            AppVersion = "0.0.0";
+            LastUpdatedDate = "Unknown";
+            BuildInfo = ".NET 8.0 / Avalonia 11";
+        }
     }
 
     public override async Task ActivateAsync(CancellationToken ct = default)
     {
         await LoadSettingsAsync();
+        await LoadStartupSettingAsync();
+    }
+    
+    private async Task LoadStartupSettingAsync()
+    {
+        if (_startupLaunchService == null) return;
+        
+        try
+        {
+            OpenAtStartup = await _startupLaunchService.IsEnabledAsync();
+        }
+        catch
+        {
+            OpenAtStartup = false;
+        }
+    }
+    
+    partial void OnOpenAtStartupChanged(bool value)
+    {
+        if (_startupLaunchService == null) return;
+        
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _startupLaunchService.SetEnabledAsync(value);
+            }
+            catch
+            {
+                // Revert on failure
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    StatusMessage = "Failed to update startup setting";
+                });
+            }
+        });
     }
 
     [RelayCommand]
@@ -383,6 +501,49 @@ public partial class SettingsViewModel : ViewModelBase
         catch
         {
             StatusMessage = "Could not open folder";
+        }
+    }
+    
+    [RelayCommand]
+    private void OpenBilling()
+    {
+        OpenUrl(BillingPortalUrl);
+    }
+    
+    [RelayCommand]
+    private void OpenSupport()
+    {
+        // Navigate to the in-app Support page
+        _navigationService?.NavigateTo("support");
+    }
+    
+    [RelayCommand]
+    private void OpenDocs()
+    {
+        OpenUrl(DocsUrl);
+    }
+    
+    [RelayCommand]
+    private void ReportIssue()
+    {
+        // Navigate to the in-app Support page for issue reporting
+        _navigationService?.NavigateTo("support");
+    }
+    
+    private static void OpenUrl(string url)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch
+        {
+            // Ignore errors
         }
     }
 

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
@@ -7,7 +8,7 @@ using MsBox.Avalonia.Enums;
 namespace KorProxy.Services;
 
 /// <summary>
-/// Dialog service implementation using MessageBox.Avalonia.
+/// Dialog service implementation using MessageBox.Avalonia and Avalonia storage APIs.
 /// </summary>
 public sealed class DialogService : IDialogService
 {
@@ -121,5 +122,22 @@ public sealed class DialogService : IDialogService
             : await box.ShowAsync();
 
         return result == ButtonResult.Ok ? DialogResult.Confirm : DialogResult.Cancel;
+    }
+    
+    public async Task<IReadOnlyList<IStorageFile>> OpenFilePickerAsync(FilePickerOpenOptions options)
+    {
+        var window = GetMainWindow();
+        if (window == null)
+        {
+            return [];
+        }
+
+        var storageProvider = window.StorageProvider;
+        if (storageProvider == null || !storageProvider.CanOpen)
+        {
+            return [];
+        }
+
+        return await storageProvider.OpenFilePickerAsync(options);
     }
 }

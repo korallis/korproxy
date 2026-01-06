@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:KorProxy.ViewModels"
              xmlns:mi="using:Material.Icons.Avalonia"
+             xmlns:converters="using:KorProxy.Converters"
              x:Class="KorProxy.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
@@ -12,182 +13,505 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
         </Style>
+        <Style Selector="Border.section-header">
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
+            <Setter Property="LetterSpacing" Value="1" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+        </Style>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
     </UserControl.Styles>
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24">
-        <StackPanel Spacing="24" MaxWidth="640">
-            
-            <!-- Page Header -->
+    <Grid ColumnDefinitions="200,*">
+        
+        <!-- Settings Navigation Sidebar -->
+        <Border Grid.Column="0" 
+                Background="{StaticResource Surface1Brush}"
+                BorderBrush="{StaticResource BorderSubtleBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="12">
             <StackPanel Spacing="4">
                 <TextBlock Text="Settings"
-                           FontSize="28"
+                           FontSize="18"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}" />
-                <TextBlock Text="Configure your proxy and application preferences"
-                           FontSize="14"
-                           Foreground="{StaticResource TextSecondaryBrush}" />
-            </StackPanel>
-
-            <!-- Status Message -->
-            <Border Classes="card"
-                    IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                    Padding="16">
-                <Grid ColumnDefinitions="Auto,*">
-                    <mi:MaterialIcon Grid.Column="0"
-                                     Kind="CheckCircle"
-                                     Width="20" Height="20"
-                                     Foreground="{StaticResource StatusSuccessBrush}"
-                                     Margin="0,0,12,0"
-                                     VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding StatusMessage}"
-                               FontSize="13"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               VerticalAlignment="Center" />
-                </Grid>
-            </Border>
-
-            <!-- Proxy Settings -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="PROXY"
-                           FontSize="11"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextTertiaryBrush}"
-                           LetterSpacing="1"
-                           Margin="4,0,0,0" />
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Margin="8,8,8,16" />
                 
-                <Border Classes="card" Padding="0">
-                    <StackPanel>
-                        <Border Padding="16" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock Text="Auto-start proxy" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
-                                    <TextBlock Text="Start proxy when app launches" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
-                                </StackPanel>
-                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoStart}" OnContent="" OffContent="" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-                        
-                        <Border Padding="16" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
-                            <Grid ColumnDefinitions="*,120">
-                                <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock Text="Port" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
-                                    <TextBlock Text="Local port for proxy server" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
-                                </StackPanel>
-                                <TextBox Grid.Column="1" Text="{Binding Port}" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-                        
-                        <Border Padding="16">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock Text="Debug mode" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
-                                    <TextBlock Text="Enable verbose logging" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
-                                </StackPanel>
-                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding DebugMode}" OnContent="" OffContent="" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                <ListBox SelectedIndex="{Binding SelectedPageIndex}"
+                         Background="Transparent">
+                    <ListBoxItem>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <mi:MaterialIcon Kind="ServerNetwork" Width="18" Height="18" />
+                            <TextBlock Text="Proxy" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <mi:MaterialIcon Kind="Application" Width="18" Height="18" />
+                            <TextBlock Text="Application" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <mi:MaterialIcon Kind="Update" Width="18" Height="18" />
+                            <TextBlock Text="Updates" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <mi:MaterialIcon Kind="InformationOutline" Width="18" Height="18" />
+                            <TextBlock Text="About" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                </ListBox>
+            </StackPanel>
+        </Border>
+        
+        <!-- Settings Content -->
+        <ScrollViewer Grid.Column="1" 
+                      HorizontalScrollBarVisibility="Disabled" 
+                      VerticalScrollBarVisibility="Auto" 
+                      Padding="24">
+            
+            <!-- Page Container -->
+            <Panel>
+                
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <!-- PROXY SETTINGS PAGE -->
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <StackPanel Spacing="24" MaxWidth="640"
+                            IsVisible="{Binding SelectedPageIndex, Converter={x:Static converters:IsEqualConverter.Instance}, ConverterParameter=0}">
+                    
+                    <!-- Page Header -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Proxy Settings"
+                                   FontSize="24"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="Configure proxy server behavior and connection settings"
+                                   FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
                     </StackPanel>
-                </Border>
-            </StackPanel>
 
-            <!-- Paths -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="PATHS"
-                           FontSize="11"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextTertiaryBrush}"
-                           LetterSpacing="1"
-                           Margin="4,0,0,0" />
-                
-                <Border Classes="card" Padding="0">
-                    <StackPanel>
-                        <Border Padding="16" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Configuration file" FontSize="14" Foreground="{StaticResource TextPrimaryBrush}" />
-                                <Border Background="{StaticResource Surface2Brush}" CornerRadius="6" Padding="10,8">
-                                    <TextBlock Text="{Binding ConfigFilePath}"
-                                               FontSize="12"
-                                               FontFamily="{StaticResource FontFamilyMono}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               TextWrapping="Wrap" />
-                                </Border>
-                            </StackPanel>
-                        </Border>
-                        
-                        <Border Padding="16">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Data directory" FontSize="14" Foreground="{StaticResource TextPrimaryBrush}" />
-                                <Border Background="{StaticResource Surface2Brush}" CornerRadius="6" Padding="10,8">
-                                    <TextBlock Text="{Binding DataDirectory}"
-                                               FontSize="12"
-                                               FontFamily="{StaticResource FontFamilyMono}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               TextWrapping="Wrap" />
-                                </Border>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-
-            <!-- Updates -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="UPDATES"
-                           FontSize="11"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextTertiaryBrush}"
-                           LetterSpacing="1"
-                           Margin="4,0,0,0" />
-                
-                <Border Classes="card" Padding="16">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel Grid.Column="0" Spacing="4">
-                            <TextBlock Text="{Binding UpdateStatus}"
-                                       FontSize="14"
+                    <!-- Status Message -->
+                    <Border Classes="card"
+                            IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Padding="16">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <mi:MaterialIcon Grid.Column="0"
+                                             Kind="CheckCircle"
+                                             Width="20" Height="20"
+                                             Foreground="{StaticResource StatusSuccessBrush}"
+                                             Margin="0,0,12,0"
+                                             VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding StatusMessage}"
+                                       FontSize="13"
                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                       IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                            <TextBlock Text="{Binding UpdateMessage}"
-                                       FontSize="12"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Server Settings -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="SERVER" Classes="section-title" />
+                        
+                        <Border Classes="card" Padding="0">
+                            <StackPanel>
+                                <Border Padding="16" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="Auto-start proxy" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="Start proxy server when app launches" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoStart}" OnContent="" OffContent="" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                
+                                <Border Padding="16" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
+                                    <Grid ColumnDefinitions="*,120">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="Port" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="Local port for proxy server" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" Text="{Binding Port}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                
+                                <Border Padding="16">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="Debug mode" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="Enable verbose logging for troubleshooting" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding DebugMode}" OnContent="" OffContent="" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    
+                    <!-- Privacy -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="PRIVACY" Classes="section-title" />
+                        
+                        <Border Classes="card" Padding="16">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Usage statistics" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="Share anonymous usage data to help improve KorProxy" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding UsageStatisticsEnabled}" OnContent="" OffContent="" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Save Button -->
+                    <Button Command="{Binding SaveSettingsCommand}"
+                            HorizontalAlignment="Left"
+                            Padding="20,12"
+                            IsEnabled="{Binding HasChanges}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <mi:MaterialIcon Kind="ContentSave" Width="18" Height="18" />
+                            <TextBlock Text="Save Changes" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <!-- APPLICATION SETTINGS PAGE -->
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <StackPanel Spacing="24" MaxWidth="640"
+                            IsVisible="{Binding SelectedPageIndex, Converter={x:Static converters:IsEqualConverter.Instance}, ConverterParameter=1}">
+                    
+                    <!-- Page Header -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Application"
+                                   FontSize="24"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="Configure application behavior and startup options"
+                                   FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- Startup -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="STARTUP" Classes="section-title" />
+                        
+                        <Border Classes="card" Padding="16">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Open at login" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="Launch KorProxy automatically when you log in to your computer" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding OpenAtStartup}" OnContent="" OffContent="" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Paths -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="DATA LOCATIONS" Classes="section-title" />
+                        
+                        <Border Classes="card" Padding="0">
+                            <StackPanel>
+                                <Border Padding="16" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Configuration file" FontSize="14" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <Border Background="{StaticResource Surface2Brush}" CornerRadius="6" Padding="10,8">
+                                            <TextBlock Text="{Binding ConfigFilePath}"
+                                                       FontSize="12"
+                                                       FontFamily="{StaticResource FontFamilyMono}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap" />
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <Border Padding="16">
+                                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Spacing="8" Margin="0,0,0,12">
+                                            <TextBlock Text="Data directory" FontSize="14" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <Border Background="{StaticResource Surface2Brush}" CornerRadius="6" Padding="10,8">
+                                                <TextBlock Text="{Binding DataDirectory}"
+                                                           FontSize="12"
+                                                           FontFamily="{StaticResource FontFamilyMono}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap" />
+                                            </Border>
+                                        </StackPanel>
+                                        <Button Grid.Row="1" Grid.Column="1" 
+                                                Command="{Binding OpenConfigFolderCommand}"
+                                                Padding="12,8">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <mi:MaterialIcon Kind="FolderOpen" Width="16" Height="16" />
+                                                <TextBlock Text="Open Folder" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+                
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <!-- UPDATES PAGE -->
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <StackPanel Spacing="24" MaxWidth="640"
+                            IsVisible="{Binding SelectedPageIndex, Converter={x:Static converters:IsEqualConverter.Instance}, ConverterParameter=2}">
+                    
+                    <!-- Page Header -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Updates"
+                                   FontSize="24"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="Check for updates and manage application versions"
+                                   FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- Current Version -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="CURRENT VERSION" Classes="section-title" />
+                        
+                        <Border Classes="card" Padding="20">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="8">
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <TextBlock Text="{Binding AppVersion}"
+                                                   FontSize="24"
+                                                   FontWeight="Bold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <Border Padding="8,4" 
+                                                CornerRadius="4" 
+                                                Background="{StaticResource StatusSuccessBgBrush}" 
+                                                VerticalAlignment="Center"
+                                                IsVisible="{Binding IsPortableBuild, Converter={x:Static converters:BoolConverters.Not}}">
+                                            <TextBlock Text="Installed" 
+                                                       FontSize="11" 
+                                                       FontWeight="Medium" 
+                                                       Foreground="{StaticResource StatusSuccessBrush}" />
+                                        </Border>
+                                        <Border Padding="8,4" 
+                                                CornerRadius="4" 
+                                                Background="{StaticResource StatusInfoBgBrush}" 
+                                                VerticalAlignment="Center"
+                                                IsVisible="{Binding IsPortableBuild}">
+                                            <TextBlock Text="Portable" 
+                                                       FontSize="11" 
+                                                       FontWeight="Medium" 
+                                                       Foreground="{StaticResource StatusInfoBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding LastUpdatedDate, StringFormat='Last updated: {0}'}"
+                                               FontSize="13"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Command="{Binding CheckUpdatesCommand}"
+                                        Padding="16,10"
+                                        VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <mi:MaterialIcon Kind="Refresh" Width="18" Height="18" />
+                                        <TextBlock Text="Check for Updates" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                    
+                    <!-- Update Status -->
+                    <StackPanel Spacing="8"
+                                IsVisible="{Binding UpdateMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="UPDATE STATUS" Classes="section-title" />
+                        
+                        <Border Classes="card" Padding="16">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding UpdateStatus}"
+                                               FontSize="14"
+                                               FontWeight="Medium"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+                                </Grid>
+                                <TextBlock Text="{Binding UpdateMessage}"
+                                           FontSize="13"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                                <ProgressBar Value="{Binding UpdateProgress}"
+                                             Maximum="100"
+                                             Height="4"
+                                             IsVisible="{Binding UpdateProgress, Converter={x:Static converters:GreaterThanZeroConverter.Instance}}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+                
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <!-- ABOUT PAGE -->
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <StackPanel Spacing="24" MaxWidth="640"
+                            IsVisible="{Binding SelectedPageIndex, Converter={x:Static converters:IsEqualConverter.Instance}, ConverterParameter=3}">
+                    
+                    <!-- Page Header -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="About KorProxy"
+                                   FontSize="24"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="Your local AI gateway for coding tools"
+                                   FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- App Info Card -->
+                    <Border Classes="card" Padding="24">
+                        <StackPanel Spacing="16">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="KorProxy" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding AppVersion, StringFormat='Version {0}'}"
+                                           FontSize="14"
+                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                            </StackPanel>
+                            
+                            <TextBlock Text="KorProxy routes your AI coding tool requests through your existing provider subscriptions. Connect once and use your Claude Pro, ChatGPT Plus, or Google AI subscription with any compatible coding tool."
+                                       FontSize="13"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        TextWrapping="Wrap"
-                                       IsVisible="{Binding UpdateMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                       LineHeight="20" />
+                            
+                            <Border Background="{StaticResource Surface2Brush}" 
+                                    CornerRadius="8" 
+                                    Padding="16">
+                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                                               Text="Version:" 
+                                               FontSize="12" 
+                                               Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="0,0,16,4" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" 
+                                               Text="{Binding AppVersion}" 
+                                               FontSize="12"
+                                               FontFamily="{StaticResource FontFamilyMono}"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                    
+                                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                                               Text="Updated:" 
+                                               FontSize="12" 
+                                               Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="0,0,16,4" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                                               Text="{Binding LastUpdatedDate}" 
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                    
+                                    <TextBlock Grid.Row="2" Grid.Column="0" 
+                                               Text="Runtime:" 
+                                               FontSize="12" 
+                                               Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="0,0,16,0" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" 
+                                               Text="{Binding BuildInfo}" 
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                </Grid>
+                            </Border>
                         </StackPanel>
-                        <Border Grid.Column="1" Padding="8,4" CornerRadius="4" Background="{StaticResource StatusSuccessBgBrush}" VerticalAlignment="Center">
-                            <TextBlock Text="Up to date" FontSize="11" FontWeight="Medium" Foreground="{StaticResource StatusSuccessBrush}" />
+                    </Border>
+                    
+                    <!-- Quick Actions -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="QUICK ACTIONS" Classes="section-title" />
+                        
+                        <Border Classes="card" Padding="0">
+                            <StackPanel>
+                                <Button Padding="16" 
+                                        Background="Transparent"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding OpenBillingCommand}"
+                                        CornerRadius="12,12,0,0">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <mi:MaterialIcon Grid.Column="0" Kind="CreditCard" Width="20" Height="20" Margin="0,0,12,0" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Manage Billing" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="View invoices and manage subscription" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <mi:MaterialIcon Grid.Column="2" Kind="ChevronRight" Width="18" Height="18" Foreground="{StaticResource TextTertiaryBrush}" />
+                                    </Grid>
+                                </Button>
+                                
+                                <Border Height="1" Background="{StaticResource BorderSubtleBrush}" />
+                                
+                                <Button Padding="16" 
+                                        Background="Transparent"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding OpenDocsCommand}">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <mi:MaterialIcon Grid.Column="0" Kind="BookOpenPageVariant" Width="20" Height="20" Margin="0,0,12,0" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Documentation" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="Setup guides and API reference" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <mi:MaterialIcon Grid.Column="2" Kind="ChevronRight" Width="18" Height="18" Foreground="{StaticResource TextTertiaryBrush}" />
+                                    </Grid>
+                                </Button>
+                                
+                                <Border Height="1" Background="{StaticResource BorderSubtleBrush}" />
+                                
+                                <Button Padding="16" 
+                                        Background="Transparent"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding OpenSupportCommand}">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <mi:MaterialIcon Grid.Column="0" Kind="Lifebuoy" Width="20" Height="20" Margin="0,0,12,0" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Get Support" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="Contact our support team" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <mi:MaterialIcon Grid.Column="2" Kind="ChevronRight" Width="18" Height="18" Foreground="{StaticResource TextTertiaryBrush}" />
+                                    </Grid>
+                                </Button>
+                                
+                                <Border Height="1" Background="{StaticResource BorderSubtleBrush}" />
+                                
+                                <Button Padding="16" 
+                                        Background="Transparent"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding ReportIssueCommand}"
+                                        CornerRadius="0,0,12,12">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <mi:MaterialIcon Grid.Column="0" Kind="BugOutline" Width="20" Height="20" Margin="0,0,12,0" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Report Issue" FontSize="14" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="Report bugs on GitHub" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <mi:MaterialIcon Grid.Column="2" Kind="ChevronRight" Width="18" Height="18" Foreground="{StaticResource TextTertiaryBrush}" />
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
                         </Border>
-                    </Grid>
-                </Border>
-            </StackPanel>
-
-            <!-- About -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="ABOUT"
-                           FontSize="11"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextTertiaryBrush}"
-                           LetterSpacing="1"
-                           Margin="4,0,0,0" />
-                
-                <Border Classes="card" Padding="20">
-                    <StackPanel Spacing="12">
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="KorProxy" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock Text="Your local AI gateway for coding tools" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
-                        </StackPanel>
-                        <TextBlock Text="KorProxy routes your AI coding tool requests through your existing provider subscriptions."
-                                   FontSize="13"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   TextWrapping="Wrap"
-                                   LineHeight="20" />
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                            <Button Content="Documentation" Padding="12,8" />
-                            <Button Content="Report Issue" Padding="12,8" />
-                        </StackPanel>
                     </StackPanel>
-                </Border>
-            </StackPanel>
-            
-        </StackPanel>
-    </ScrollViewer>
+                    
+                    <!-- Legal -->
+                    <TextBlock Text="© 2024-2026 KorProxy. All rights reserved."
+                               FontSize="12"
+                               Foreground="{StaticResource TextTertiaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,12,0,0" />
+                </StackPanel>
+                
+            </Panel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

@@ -64,8 +64,8 @@ public sealed class DeviceService : IDeviceService
             ParseDeviceType(d.DeviceType),
             ParsePlatform(d.Platform),
             d.AppVersion,
-            d.LastSeenAt,
-            d.CreatedAt)).ToList();
+            (long)d.LastSeenAt,
+            (long)d.CreatedAt)).ToList();
     }
 
     public async Task<DeviceActionResult> RemoveAsync(string token, string deviceId, CancellationToken ct = default)
@@ -112,6 +112,6 @@ public sealed class DeviceService : IDeviceService
         string DeviceType,
         string Platform,
         string AppVersion,
-        long LastSeenAt,
-        long CreatedAt);
+        double LastSeenAt,
+        double CreatedAt);
 }

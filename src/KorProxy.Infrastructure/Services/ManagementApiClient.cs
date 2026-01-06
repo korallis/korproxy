@@ -699,4 +699,152 @@ public sealed class ManagementApiClient : IManagementApiClient
         [JsonPropertyName("api-keys")]
         public List<string>? ApiKeys { get; set; }
     }
+
+    public async Task<List<OpenAiCompatProvider>> GetOpenAiCompatProvidersAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/v0/management/openai-compatibility", ct);
+            response.EnsureSuccessStatusCode();
+
+            // CLIProxyAPI has returned multiple shapes across versions:
+            // - A raw array: [ { ...provider... }, ... ]
+            // - An object wrapper: { "openai-compatibility": [...] } or { "openai-compatibility": null }
+            // Be tolerant.
+            var root = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions, ct);
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                var providers = root.Deserialize<List<OpenAiCompatProviderDto>>(JsonOptions) ?? [];
+                return providers.Select(MapProvider).ToList();
+            }
+
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("openai-compatibility", out var wrapped))
+                {
+                    if (wrapped.ValueKind == JsonValueKind.Null || wrapped.ValueKind == JsonValueKind.Undefined)
+                        return [];
+
+                    if (wrapped.ValueKind == JsonValueKind.Array)
+                    {
+                        var providers = wrapped.Deserialize<List<OpenAiCompatProviderDto>>(JsonOptions) ?? [];
+                        return providers.Select(MapProvider).ToList();
+                    }
+                }
+            }
+
+            return [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get OpenAI-compatible providers");
+            return [];
+        }
+    }
+
+    public async Task<bool> UpsertOpenAiCompatProviderAsync(OpenAiCompatProvider provider, CancellationToken ct = default)
+    {
+        try
+        {
+            var dto = new OpenAiCompatProviderDto
+            {
+                Name = provider.Name,
+                BaseUrl = provider.BaseUrl,
+                ApiKeyEntries = provider.ApiKeyEntries.Select(e => new OpenAiCompatApiKeyEntryDto
+                {
+                    ApiKey = e.ApiKey,
+                    ProxyUrl = e.ProxyUrl
+                }).ToList(),
+                Models = provider.Models.Select(m => new OpenAiCompatModelDto
+                {
+                    Name = m.Name,
+                    Alias = m.Alias
+                }).ToList(),
+                Headers = provider.Headers
+            };
+            
+            var response = await _httpClient.PatchAsJsonAsync(
+                "/v0/management/openai-compatibility", 
+                dto, 
+                JsonOptions, 
+                ct);
+                
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upsert OpenAI-compatible provider {Name}", provider.Name);
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteOpenAiCompatProviderAsync(string name, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync(
+                $"/v0/management/openai-compatibility?name={Uri.EscapeDataString(name)}", 
+                ct);
+                
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete OpenAI-compatible provider {Name}", name);
+            return false;
+        }
+    }
+
+    private static OpenAiCompatProvider MapProvider(OpenAiCompatProviderDto dto) => new()
+    {
+        Name = dto.Name ?? "",
+        BaseUrl = dto.BaseUrl ?? "",
+        ApiKeyEntries = dto.ApiKeyEntries?.Select(e => new OpenAiCompatApiKeyEntry
+        {
+            ApiKey = e.ApiKey ?? "",
+            ProxyUrl = e.ProxyUrl
+        }).ToList() ?? [],
+        Models = dto.Models?.Select(m => new OpenAiCompatModel
+        {
+            Name = m.Name ?? "",
+            Alias = m.Alias
+        }).ToList() ?? [],
+        Headers = dto.Headers
+    };
+
+    private sealed class OpenAiCompatProviderDto
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+        
+        [JsonPropertyName("base-url")]
+        public string? BaseUrl { get; set; }
+        
+        [JsonPropertyName("api-key-entries")]
+        public List<OpenAiCompatApiKeyEntryDto>? ApiKeyEntries { get; set; }
+        
+        [JsonPropertyName("models")]
+        public List<OpenAiCompatModelDto>? Models { get; set; }
+        
+        [JsonPropertyName("headers")]
+        public Dictionary<string, string>? Headers { get; set; }
+    }
+
+    private sealed class OpenAiCompatApiKeyEntryDto
+    {
+        [JsonPropertyName("api-key")]
+        public string? ApiKey { get; set; }
+        
+        [JsonPropertyName("proxy-url")]
+        public string? ProxyUrl { get; set; }
+    }
+
+    private sealed class OpenAiCompatModelDto
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+        
+        [JsonPropertyName("alias")]
+        public string? Alias { get; set; }
+    }
 }

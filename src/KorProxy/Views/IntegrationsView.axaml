@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:KorProxy.ViewModels"
              xmlns:mi="using:Material.Icons.Avalonia"
+             xmlns:conv="using:KorProxy.Converters"
              x:Class="KorProxy.Views.IntegrationsView"
              x:DataType="vm:IntegrationsViewModel">
 
@@ -14,8 +15,9 @@
         </Style>
     </UserControl.Styles>
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24">
-        <StackPanel Spacing="24" MaxWidth="800">
+    <!-- Extra bottom padding prevents bottom cards from being clipped -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="24,24,24,56">
+        <StackPanel Spacing="24" MaxWidth="900" HorizontalAlignment="Center">
             
             <!-- Page Header -->
             <StackPanel Spacing="4">
@@ -105,6 +107,8 @@
                                     Background="{StaticResource Surface2Brush}">
                                 <mi:MaterialIcon Kind="LightningBolt"
                                                  Width="26" Height="26"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center"
                                                  Foreground="{StaticResource StatusInfoBrush}" />
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
@@ -118,52 +122,51 @@
                             </StackPanel>
                         </Grid>
                         
-                        <!-- How it works explanation -->
-                        <Border Background="{StaticResource Surface2Brush}"
-                                CornerRadius="8"
-                                Padding="16">
-                            <StackPanel Spacing="12">
-                                <TextBlock Text="How it works"
-                                           FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" />
-                                <TextBlock TextWrapping="Wrap"
-                                           FontSize="12"
-                                           LineHeight="18"
-                                           Foreground="{StaticResource TextSecondaryBrush}">
-                                    <Run Text="KorProxy acts as a bridge between your local Amp CLI and the Amp servers. When you save this configuration:" />
-                                </TextBlock>
-                                <StackPanel Spacing="8" Margin="8,0,0,0">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="1."
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource BrandPrimaryBrush}" />
-                                        <TextBlock Text="Your Amp CLI will route requests through KorProxy"
-                                                   FontSize="12"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" />
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="2."
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource BrandPrimaryBrush}" />
-                                        <TextBlock Text="KorProxy forwards requests to Amp's servers using your API key"
-                                                   FontSize="12"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" />
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="3."
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource BrandPrimaryBrush}" />
-                                        <TextBlock Text="Your connected AI providers (Claude, Codex, etc.) become available in Amp"
-                                                   FontSize="12"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <!-- How it works (collapsed by default to keep the page responsive) -->
+                        <Expander Header="How it works" IsExpanded="False" Padding="0">
+                            <Border Background="{StaticResource Surface2Brush}"
+                                    CornerRadius="8"
+                                    Padding="16"
+                                    Margin="0,10,0,0">
+                                <StackPanel Spacing="12">
+                                    <TextBlock TextWrapping="Wrap"
+                                               FontSize="12"
+                                               LineHeight="18"
+                                               Foreground="{StaticResource TextSecondaryBrush}">
+                                        <Run Text="KorProxy bridges your local Amp CLI and Amp servers. When you save this configuration:" />
+                                    </TextBlock>
+                                    <StackPanel Spacing="8" Margin="8,0,0,0">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="1."
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BrandPrimaryBrush}" />
+                                            <TextBlock Text="Your Amp CLI will route requests through KorProxy"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="2."
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BrandPrimaryBrush}" />
+                                            <TextBlock Text="KorProxy forwards requests to Amp's servers using your API key"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="3."
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BrandPrimaryBrush}" />
+                                            <TextBlock Text="Your connected AI providers become available in Amp"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
-                        </Border>
+                            </Border>
+                        </Expander>
                         
                         <!-- API Key Input -->
                         <StackPanel Spacing="8">
@@ -247,9 +250,11 @@
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 Padding="16,12"
-                                IsEnabled="{Binding !IsLoading}">
+                                IsEnabled="{Binding IsLoading, Converter={x:Static conv:BoolConverters.Not}}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <mi:MaterialIcon Kind="ContentSave" Width="18" Height="18" />
+                                <mi:MaterialIcon Kind="ContentSave" Width="18" Height="18"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center" />
                                 <TextBlock Text="Save &amp; Configure Amp CLI"
                                            FontWeight="SemiBold" />
                             </StackPanel>
@@ -284,8 +289,10 @@
                            LetterSpacing="1"
                            Margin="4,0,0,0" />
                 
+                <!-- Wrap quick setup cards into multiple columns on wide windows -->
+                <WrapPanel Orientation="Horizontal">
                 <!-- Claude Code -->
-                <Border Classes="card" Padding="20">
+                <Border Classes="card" Padding="20" Width="420" Margin="0,0,16,16">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                         <Border Grid.Column="0"
                                 Width="44" Height="44"
@@ -293,6 +300,8 @@
                                 Background="{StaticResource Surface2Brush}">
                             <mi:MaterialIcon Kind="Console"
                                              Width="22" Height="22"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
                                              Foreground="{StaticResource BrandPrimaryBrush}" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
@@ -317,7 +326,7 @@
                 </Border>
 
                 <!-- Codex -->
-                <Border Classes="card" Padding="20">
+                <Border Classes="card" Padding="20" Width="420" Margin="0,0,16,16">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                         <Border Grid.Column="0"
                                 Width="44" Height="44"
@@ -325,6 +334,8 @@
                                 Background="{StaticResource Surface2Brush}">
                             <mi:MaterialIcon Kind="RobotOutline"
                                              Width="22" Height="22"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
                                              Foreground="{StaticResource BrandSecondaryBrush}" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
@@ -349,7 +360,7 @@
                 </Border>
 
                 <!-- Gemini CLI -->
-                <Border Classes="card" Padding="20">
+                <Border Classes="card" Padding="20" Width="420" Margin="0,0,16,16">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                         <Border Grid.Column="0"
                                 Width="44" Height="44"
@@ -357,6 +368,8 @@
                                 Background="{StaticResource Surface2Brush}">
                             <mi:MaterialIcon Kind="StarFourPoints"
                                              Width="22" Height="22"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
                                              Foreground="{StaticResource StatusWarningBrush}" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
@@ -381,7 +394,7 @@
                 </Border>
 
                 <!-- Amp CLI (Copy Only) -->
-                <Border Classes="card" Padding="20">
+                <Border Classes="card" Padding="20" Width="420" Margin="0,0,16,16">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                         <Border Grid.Column="0"
                                 Width="44" Height="44"
@@ -389,6 +402,8 @@
                                 Background="{StaticResource Surface2Brush}">
                             <mi:MaterialIcon Kind="LightningBolt"
                                              Width="22" Height="22"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
                                              Foreground="{StaticResource StatusInfoBrush}" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
@@ -413,7 +428,7 @@
                 </Border>
 
                 <!-- Factory -->
-                <Border Classes="card" Padding="20">
+                <Border Classes="card" Padding="20" Width="420" Margin="0,0,16,16">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                         <Border Grid.Column="0"
                                 Width="44" Height="44"
@@ -421,6 +436,8 @@
                                 Background="{StaticResource Surface2Brush}">
                             <mi:MaterialIcon Kind="Factory"
                                              Width="22" Height="22"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
                                              Foreground="{StaticResource StatusSuccessBrush}" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
@@ -443,6 +460,7 @@
                         </Button>
                     </Grid>
                 </Border>
+                </WrapPanel>
             </StackPanel>
             
         </StackPanel>

@@ -48,4 +48,43 @@ public interface IManagementApiClient
     /// <param name="ct">Cancellation token</param>
     /// <returns>True if the request succeeded (token is valid or was refreshed)</returns>
     Task<bool> TestProviderAsync(string provider, CancellationToken ct = default);
+    
+    /// <summary>Get all OpenAI-compatible providers</summary>
+    Task<List<OpenAiCompatProvider>> GetOpenAiCompatProvidersAsync(CancellationToken ct = default);
+    
+    /// <summary>Add or update an OpenAI-compatible provider</summary>
+    Task<bool> UpsertOpenAiCompatProviderAsync(OpenAiCompatProvider provider, CancellationToken ct = default);
+    
+    /// <summary>Delete an OpenAI-compatible provider by name</summary>
+    Task<bool> DeleteOpenAiCompatProviderAsync(string name, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Represents an OpenAI-compatible provider configuration.
+/// </summary>
+public sealed class OpenAiCompatProvider
+{
+    public required string Name { get; init; }
+    public required string BaseUrl { get; init; }
+    public List<OpenAiCompatApiKeyEntry> ApiKeyEntries { get; init; } = [];
+    public List<OpenAiCompatModel> Models { get; init; } = [];
+    public Dictionary<string, string>? Headers { get; init; }
+}
+
+/// <summary>
+/// API key entry for an OpenAI-compatible provider.
+/// </summary>
+public sealed class OpenAiCompatApiKeyEntry
+{
+    public required string ApiKey { get; init; }
+    public string? ProxyUrl { get; init; }
+}
+
+/// <summary>
+/// Model configuration for an OpenAI-compatible provider.
+/// </summary>
+public sealed class OpenAiCompatModel
+{
+    public required string Name { get; init; }
+    public string? Alias { get; init; }
 }

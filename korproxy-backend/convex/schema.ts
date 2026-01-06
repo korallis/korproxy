@@ -195,4 +195,70 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_admin", ["adminId"])
     .index("by_timestamp", ["timestamp"]),
+
+  // Support tickets table - customer support requests from desktop app
+  supportTickets: defineTable({
+    userId: v.id("users"),
+    subject: v.string(),
+    body: v.string(),
+    // Diagnostics context
+    appVersion: v.string(),
+    platform: v.string(),
+    os: v.string(),
+    // Optional diagnostic logs
+    logExcerpt: v.optional(v.array(v.object({
+      level: v.string(),
+      message: v.string(),
+      timestamp: v.number(),
+    }))),
+    // File attachments (base64 encoded with metadata)
+    attachments: v.optional(v.array(v.object({
+      fileName: v.string(),
+      fileSize: v.number(),
+      mimeType: v.string(),
+      data: v.string(), // base64 encoded
+    }))),
+    // GitHub integration
+    githubIssueNumber: v.optional(v.number()),
+    githubIssueUrl: v.optional(v.string()),
+    // Ticket lifecycle
+    status: v.union(
+      v.literal("open"),
+      v.literal("in_progress"),
+      v.literal("awaiting_reply"),
+      v.literal("resolved"),
+      v.literal("closed")
+    ),
+    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
+    // Admin assignment
+    assignedTo: v.optional(v.id("users")),
+    // Response tracking
+    lastResponseAt: v.optional(v.number()),
+    lastResponseBy: v.optional(v.union(v.literal("user"), v.literal("support"))),
+    // Last synced from GitHub
+    lastSyncedAt: v.optional(v.number()),
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_priority", ["priority"])
+    .index("by_date", ["createdAt"])
+    .index("by_github_issue", ["githubIssueNumber"]),
+
+  // Support ticket messages table - conversation thread for tickets
+  supportTicketMessages: defineTable({
+    ticketId: v.id("supportTickets"),
+    authorId: v.id("users"),
+    authorRole: v.union(v.literal("user"), v.literal("support")),
+    message: v.string(),
+    // GitHub comment sync
+    githubCommentId: v.optional(v.number()),
+    githubCommentUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_ticket", ["ticketId"])
+    .index("by_date", ["createdAt"])
+    .index("by_github_comment", ["githubCommentId"]),
 });

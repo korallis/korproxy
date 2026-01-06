@@ -409,7 +409,7 @@
                             </ItemsControl>
                             
                             <!-- Empty State -->
-                            <Border IsVisible="{Binding !Devices.Count}"
+                            <Border IsVisible="{Binding Devices.Count, Converter={x:Static conv:IsEqualConverter.Instance}, ConverterParameter=0}"
                                     Background="{StaticResource MidnightElevatedBrush}"
                                     CornerRadius="12"
                                     Padding="40,30"

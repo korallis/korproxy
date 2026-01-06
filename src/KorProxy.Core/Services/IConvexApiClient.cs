@@ -4,4 +4,5 @@ public interface IConvexApiClient
 {
     Task<T?> QueryAsync<T>(string path, object args, CancellationToken ct = default);
     Task<T?> MutationAsync<T>(string path, object args, CancellationToken ct = default);
+    Task<T?> ActionAsync<T>(string path, object args, CancellationToken ct = default);
 }

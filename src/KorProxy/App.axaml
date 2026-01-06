@@ -3,6 +3,7 @@
              xmlns:local="using:KorProxy"
              xmlns:vm="using:KorProxy.ViewModels"
              xmlns:views="using:KorProxy.Views"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="KorProxy.App"
              RequestedThemeVariant="Dark">
 
@@ -109,6 +110,8 @@
     <Application.Styles>
         <!-- Avalonia Fluent Theme -->
         <FluentTheme />
+        <!-- Material.Icons.Avalonia glyph/styles -->
+        <materialIcons:MaterialIconStyles />
     </Application.Styles>
 
     <Application.DataTemplates>
@@ -144,6 +147,9 @@
         </DataTemplate>
         <DataTemplate DataType="vm:IntegrationsViewModel">
             <views:IntegrationsView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:SupportViewModel">
+            <views:SupportView />
         </DataTemplate>
     </Application.DataTemplates>
 

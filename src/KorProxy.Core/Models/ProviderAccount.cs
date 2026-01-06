@@ -32,10 +32,11 @@ public sealed class ProviderAccount
 }
 
 /// <summary>
-/// Supported OAuth providers
+/// Supported providers (both OAuth and API-key based)
 /// </summary>
 public static class Providers
 {
+    // OAuth-based providers
     public const string Gemini = "gemini";
     public const string Claude = "claude";
     public const string Codex = "codex";
@@ -43,7 +44,32 @@ public static class Providers
     public const string IFlow = "iflow";
     public const string Antigravity = "antigravity";
     
-    public static readonly string[] All = [Gemini, Claude, Codex, Qwen, IFlow, Antigravity];
+    // API-key based providers
+    public const string BigModel = "bigmodel";
+    
+    /// <summary>
+    /// All OAuth-based providers that use browser authentication.
+    /// </summary>
+    public static readonly string[] OAuthProviders = [Gemini, Claude, Codex, Qwen, IFlow, Antigravity];
+    
+    /// <summary>
+    /// All API-key based providers that use manual API key entry.
+    /// </summary>
+    public static readonly string[] ApiKeyProviders = [BigModel];
+    
+    /// <summary>
+    /// All providers.
+    /// </summary>
+    public static readonly string[] All = [Gemini, Claude, Codex, Qwen, IFlow, Antigravity, BigModel];
+    
+    /// <summary>
+    /// Returns true if the provider uses API key authentication instead of OAuth.
+    /// </summary>
+    public static bool IsApiKeyProvider(string provider) => provider switch
+    {
+        BigModel => true,
+        _ => false
+    };
     
     public static string GetDisplayName(string provider) => provider switch
     {
@@ -53,6 +79,19 @@ public static class Providers
         Qwen => "Qwen Code",
         IFlow => "iFlow",
         Antigravity => "Antigravity",
+        BigModel => "BigModel (GLM-4)",
         _ => provider
+    };
+    
+    public static string GetDescription(string provider) => provider switch
+    {
+        Gemini => "Google AI models",
+        Claude => "Anthropic Claude",
+        Codex => "OpenAI models",
+        Qwen => "Alibaba Qwen",
+        IFlow => "iFlow AI",
+        Antigravity => "Antigravity AI",
+        BigModel => "Zhipu AI GLM-4 series",
+        _ => ""
     };
 }

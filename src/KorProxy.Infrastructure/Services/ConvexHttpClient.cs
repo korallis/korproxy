@@ -26,6 +26,9 @@ public sealed class ConvexHttpClient : IConvexApiClient
 
     public Task<T?> MutationAsync<T>(string path, object args, CancellationToken ct = default)
         => SendAsync<T>("/api/mutation", path, args, ct);
+    
+    public Task<T?> ActionAsync<T>(string path, object args, CancellationToken ct = default)
+        => SendAsync<T>("/api/action", path, args, ct);
 
     private async Task<T?> SendAsync<T>(string endpoint, string path, object args, CancellationToken ct)
     {

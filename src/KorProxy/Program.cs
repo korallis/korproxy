@@ -240,6 +240,15 @@ internal static class Program
                 services.AddHostedService<DeviceHeartbeatHostedService>();
                 services.AddHostedService<ProviderTokenRefreshHostedService>();
 
+                // Startup launch service (open at login)
+                services.AddSingleton<IStartupLaunchService, StartupLaunchService>();
+                
+                // Support ticket service
+                services.AddSingleton<ISupportTicketService, SupportTicketService>();
+                
+                // Support ticket background sync (syncs with GitHub every 30 minutes)
+                services.AddHostedService<SupportTicketSyncHostedService>();
+
                 // ViewModels - App Shell (root)
                 services.AddSingleton<AppShellViewModel>();
                 
@@ -262,6 +271,7 @@ internal static class Program
                 services.AddTransient<IntegrationsViewModel>();
                 services.AddTransient<SettingsViewModel>();
                 services.AddTransient<LogsViewModel>();
+                services.AddTransient<SupportViewModel>();
             })
             .Build();
     }

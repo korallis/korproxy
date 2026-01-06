@@ -38,7 +38,8 @@ public partial class AccountsViewModel : ViewModelBase
         [
             new AccountCardViewModel { ProviderName = "Google Gemini", Provider = "gemini", IsConnected = true, Email = "user@gmail.com" },
             new AccountCardViewModel { ProviderName = "Claude Code", Provider = "claude", IsConnected = false },
-            new AccountCardViewModel { ProviderName = "ChatGPT Codex", Provider = "codex", IsConnected = true, Email = "user@example.com" }
+            new AccountCardViewModel { ProviderName = "ChatGPT Codex", Provider = "codex", IsConnected = true, Email = "user@example.com" },
+            new AccountCardViewModel { ProviderName = "BigModel (GLM-4)", Provider = "bigmodel", IsApiKeyProvider = true, IsConnected = false, Description = "Zhipu AI GLM-4 series" }
         ];
     }
 
@@ -67,22 +68,43 @@ public partial class AccountsViewModel : ViewModelBase
         {
             var providerAccounts = await _apiClient.GetAccountsAsync();
             
+            // Load API-key provider status
+            var apiKeyProviderStatus = await LoadApiKeyProviderStatusAsync();
+            
             Accounts.Clear();
             foreach (var provider in Providers.All)
             {
+                var isApiKeyProvider = Providers.IsApiKeyProvider(provider);
                 var account = providerAccounts?.FirstOrDefault(a => a.Provider == provider);
-                Accounts.Add(new AccountCardViewModel
+                
+                var cardVm = new AccountCardViewModel
                 {
                     ProviderName = Providers.GetDisplayName(provider),
                     Provider = provider,
-                    IsConnected = account?.IsConnected ?? false,
+                    Description = Providers.GetDescription(provider),
+                    IsApiKeyProvider = isApiKeyProvider,
+                    IsConnected = isApiKeyProvider 
+                        ? apiKeyProviderStatus.GetValueOrDefault(provider, false)
+                        : account?.IsConnected ?? false,
                     Email = account?.Email,
                     TokenExpiry = account?.TokenExpiry,
                     NeedsRefresh = account?.NeedsRefresh ?? false,
                     ErrorMessage = account?.ErrorMessage,
-                    ConnectCommand = new AsyncRelayCommand(() => ConnectProviderAsync(provider)),
-                    DisconnectCommand = new AsyncRelayCommand(() => DisconnectProviderAsync(provider))
-                });
+                };
+                
+                // Set up commands based on provider type
+                if (isApiKeyProvider)
+                {
+                    cardVm.SaveApiKeyCommand = new AsyncRelayCommand<string>(apiKey => SaveApiKeyProviderAsync(provider, apiKey));
+                    cardVm.DisconnectCommand = new AsyncRelayCommand(() => DisableApiKeyProviderAsync(provider));
+                }
+                else
+                {
+                    cardVm.ConnectCommand = new AsyncRelayCommand(() => ConnectProviderAsync(provider));
+                    cardVm.DisconnectCommand = new AsyncRelayCommand(() => DisconnectProviderAsync(provider));
+                }
+                
+                Accounts.Add(cardVm);
             }
         }
         catch (Exception ex)
@@ -92,6 +114,106 @@ public partial class AccountsViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+        }
+    }
+    
+    private async Task<Dictionary<string, bool>> LoadApiKeyProviderStatusAsync()
+    {
+        var result = new Dictionary<string, bool>();
+        
+        try
+        {
+            var providers = await _apiClient.GetOpenAiCompatProvidersAsync();
+            
+            // Check BigModel
+            var bigModel = providers.FirstOrDefault(p => 
+                p.Name.Equals("bigmodel", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Equals("zhipu", StringComparison.OrdinalIgnoreCase));
+            result[Providers.BigModel] = bigModel != null;
+        }
+        catch
+        {
+            // Ignore errors, default to not connected
+        }
+        
+        return result;
+    }
+    
+    private async Task SaveApiKeyProviderAsync(string provider, string? apiKey)
+    {
+        if (_apiClient == null || string.IsNullOrWhiteSpace(apiKey)) return;
+        
+        StatusMessage = $"Saving {Providers.GetDisplayName(provider)}...";
+        
+        try
+        {
+            if (provider == Providers.BigModel)
+            {
+                var providerConfig = new OpenAiCompatProvider
+                {
+                    Name = "bigmodel",
+                    BaseUrl = "https://open.bigmodel.cn/api/paas/v4",
+                    ApiKeyEntries = [new OpenAiCompatApiKeyEntry { ApiKey = apiKey }],
+                    Models =
+                    [
+                        new OpenAiCompatModel { Name = "glm-4", Alias = "GLM-4" },
+                        new OpenAiCompatModel { Name = "glm-4-plus", Alias = "GLM-4-Plus" },
+                        new OpenAiCompatModel { Name = "glm-4-flash", Alias = "GLM-4-Flash" },
+                        new OpenAiCompatModel { Name = "glm-4-air", Alias = "GLM-4-Air" },
+                        new OpenAiCompatModel { Name = "glm-4-airx", Alias = "GLM-4-AirX" },
+                        new OpenAiCompatModel { Name = "glm-4-long", Alias = "GLM-4-Long" },
+                        new OpenAiCompatModel { Name = "glm-4-flashx", Alias = "GLM-4-FlashX" },
+                        new OpenAiCompatModel { Name = "glm-4v", Alias = "GLM-4V" },
+                        new OpenAiCompatModel { Name = "glm-4v-plus", Alias = "GLM-4V-Plus" },
+                        new OpenAiCompatModel { Name = "glm-4v-flash", Alias = "GLM-4V-Flash" }
+                    ]
+                };
+                
+                var success = await _apiClient.UpsertOpenAiCompatProviderAsync(providerConfig);
+                
+                if (success)
+                {
+                    StatusMessage = $"{Providers.GetDisplayName(provider)} enabled! Restart the proxy to use GLM models.";
+                    await RefreshAccountsAsync();
+                }
+                else
+                {
+                    StatusMessage = $"Failed to save {Providers.GetDisplayName(provider)} configuration";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to save: {ex.Message}";
+        }
+    }
+    
+    private async Task DisableApiKeyProviderAsync(string provider)
+    {
+        if (_apiClient == null) return;
+        
+        StatusMessage = $"Disabling {Providers.GetDisplayName(provider)}...";
+        
+        try
+        {
+            if (provider == Providers.BigModel)
+            {
+                var success = await _apiClient.DeleteOpenAiCompatProviderAsync("bigmodel");
+                
+                if (success)
+                {
+                    StatusMessage = $"{Providers.GetDisplayName(provider)} disabled. Restart the proxy to apply changes.";
+                    await RefreshAccountsAsync();
+                }
+                else
+                {
+                    StatusMessage = $"Failed to disable {Providers.GetDisplayName(provider)}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to disable: {ex.Message}";
         }
     }
 
@@ -227,17 +349,33 @@ public partial class AccountCardViewModel : ObservableObject
 {
     public required string ProviderName { get; init; }
     public required string Provider { get; init; }
+    public string? Description { get; init; }
+    
+    /// <summary>
+    /// True if this provider uses API key authentication instead of OAuth.
+    /// </summary>
+    public bool IsApiKeyProvider { get; init; }
     
     [ObservableProperty]
     private bool _isConnected;
+    
+    [ObservableProperty]
+    private string _apiKeyInput = "";
+    
+    [ObservableProperty]
+    private bool _isSaving;
     
     public string? Email { get; init; }
     public DateTimeOffset? TokenExpiry { get; init; }
     public bool NeedsRefresh { get; init; }
     public string? ErrorMessage { get; init; }
     
-    public IAsyncRelayCommand? ConnectCommand { get; init; }
-    public IAsyncRelayCommand? DisconnectCommand { get; init; }
+    // OAuth provider commands
+    public IAsyncRelayCommand? ConnectCommand { get; set; }
+    public IAsyncRelayCommand? DisconnectCommand { get; set; }
+    
+    // API-key provider commands
+    public IAsyncRelayCommand<string>? SaveApiKeyCommand { get; set; }
     
     public string StatusText => IsConnected 
         ? NeedsRefresh ? "Needs refresh" : "Connected" 
