@@ -8,6 +8,23 @@ interface DownloadSectionWrapperProps {
   hasAccess: boolean;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isReleaseAsset(value: unknown): value is { browser_download_url: string } {
+  if (!isRecord(value)) return false;
+  return typeof value["browser_download_url"] === "string";
+}
+
+function isReleaseInfo(value: unknown): value is ReleaseInfo {
+  if (!isRecord(value)) return false;
+  if (typeof value["tag_name"] !== "string") return false;
+  if (typeof value["published_at"] !== "string") return false;
+  if (!isRecord(value["assets"])) return false;
+  return true;
+}
+
 export function DownloadSectionWrapper({ hasAccess }: DownloadSectionWrapperProps) {
   const [release, setRelease] = useState<ReleaseInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,8 +34,10 @@ export function DownloadSectionWrapper({ hasAccess }: DownloadSectionWrapperProp
       try {
         const response = await fetch("/api/releases/latest");
         if (response.ok) {
-          const data = await response.json();
-          setRelease(data);
+          const data: unknown = await response.json();
+          if (isReleaseInfo(data)) {
+            setRelease(data);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch release:", error);
@@ -62,6 +81,8 @@ export function DownloadSectionWrapper({ hasAccess }: DownloadSectionWrapperProp
   }
 
   const version = release?.tag_name || "v1.0.0";
+  const linuxAsset =
+    release?.assets.linuxTarGz ?? release?.assets.linuxAppImage ?? release?.assets.linuxDeb ?? null;
 
   return (
     <div className="bg-card border border-border rounded-2xl p-8">
@@ -110,9 +131,9 @@ export function DownloadSectionWrapper({ hasAccess }: DownloadSectionWrapperProp
           </span>
         )}
         
-        {release?.assets.windows ? (
+        {release?.assets.windowsInstaller ? (
           <a
-            href={release.assets.windows.browser_download_url}
+            href={release.assets.windowsInstaller.browser_download_url}
             className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Download size={20} />
@@ -128,9 +149,9 @@ export function DownloadSectionWrapper({ hasAccess }: DownloadSectionWrapperProp
           </span>
         )}
         
-        {release?.assets.linuxAppImage ? (
+        {linuxAsset && isReleaseAsset(linuxAsset) ? (
           <a
-            href={release.assets.linuxAppImage.browser_download_url}
+            href={linuxAsset.browser_download_url}
             className="px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Download size={20} />

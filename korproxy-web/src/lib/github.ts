@@ -11,7 +11,9 @@ export interface ReleaseInfo {
   assets: {
     macArm64?: ReleaseAsset;
     macX64?: ReleaseAsset;
-    windows?: ReleaseAsset;
+    windowsInstaller?: ReleaseAsset;
+    windowsPortableZip?: ReleaseAsset;
+    linuxTarGz?: ReleaseAsset;
     linuxAppImage?: ReleaseAsset;
     linuxDeb?: ReleaseAsset;
   };
@@ -20,6 +22,57 @@ export interface ReleaseInfo {
 let cachedRelease: ReleaseInfo | null = null;
 let cacheTime = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseReleaseAsset(raw: unknown): ReleaseAsset | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+
+  const name = raw["name"];
+  const url = raw["browser_download_url"];
+  if (typeof name !== "string" || typeof url !== "string") {
+    return null;
+  }
+
+  return {
+    name,
+    browser_download_url: url,
+  };
+}
+
+function isMacArm64Dmg(name: string): boolean {
+  if (!name.endsWith(".dmg")) return false;
+  return name.includes("mac-arm64") || name.includes("osx-arm64") || name.endsWith("-arm64.dmg");
+}
+
+function isMacX64Dmg(name: string): boolean {
+  if (!name.endsWith(".dmg")) return false;
+  return (
+    name.includes("mac-x64") ||
+    name.includes("osx-x64") ||
+    name.endsWith("-x64.dmg") ||
+    name.includes("x86_64")
+  );
+}
+
+function isWindowsInstaller(name: string): boolean {
+  return name.endsWith("-setup.exe");
+}
+
+function isWindowsPortableZip(name: string): boolean {
+  if (!name.endsWith(".zip")) return false;
+  if (name.endsWith(".zip.blockmap")) return false;
+  return name.includes("win-x64") && !name.includes("-mac-");
+}
+
+function isLinuxTarGz(name: string): boolean {
+  if (!name.endsWith(".tar.gz")) return false;
+  return name.includes("linux");
+}
 
 export async function getLatestRelease(): Promise<ReleaseInfo | null> {
   const now = Date.now();
@@ -45,33 +98,63 @@ export async function getLatestRelease(): Promise<ReleaseInfo | null> {
       return null;
     }
 
-    const data = await response.json();
+    const data: unknown = await response.json();
+    if (!isRecord(data)) {
+      console.error("GitHub release response was not an object");
+      return null;
+    }
     
     const assets: ReleaseInfo["assets"] = {};
     
-    for (const asset of data.assets || []) {
-      const name = asset.name as string;
-      const assetInfo: ReleaseAsset = {
-        name,
-        browser_download_url: asset.browser_download_url,
-      };
-      
-      if (name.includes("mac-arm64") && name.endsWith(".dmg")) {
+    const rawAssets = data["assets"];
+    const assetList: unknown[] = Array.isArray(rawAssets) ? rawAssets : [];
+
+    for (const rawAsset of assetList) {
+      const assetInfo = parseReleaseAsset(rawAsset);
+      if (!assetInfo) continue;
+
+      const name = assetInfo.name;
+
+      if (!assets.macArm64 && isMacArm64Dmg(name)) {
         assets.macArm64 = assetInfo;
-      } else if (name.includes("mac-x64") && name.endsWith(".dmg")) {
+        continue;
+      }
+      if (!assets.macX64 && isMacX64Dmg(name)) {
         assets.macX64 = assetInfo;
-      } else if (name.endsWith("-setup.exe")) {
-        assets.windows = assetInfo;
-      } else if (name.endsWith(".AppImage")) {
+        continue;
+      }
+      if (!assets.windowsInstaller && isWindowsInstaller(name)) {
+        assets.windowsInstaller = assetInfo;
+        continue;
+      }
+      if (!assets.windowsPortableZip && isWindowsPortableZip(name)) {
+        assets.windowsPortableZip = assetInfo;
+        continue;
+      }
+      if (!assets.linuxTarGz && isLinuxTarGz(name)) {
+        assets.linuxTarGz = assetInfo;
+        continue;
+      }
+      if (!assets.linuxAppImage && name.endsWith(".AppImage")) {
         assets.linuxAppImage = assetInfo;
-      } else if (name.endsWith(".deb")) {
+        continue;
+      }
+      if (!assets.linuxDeb && name.endsWith(".deb")) {
         assets.linuxDeb = assetInfo;
+        continue;
       }
     }
 
+    const tagName = data["tag_name"];
+    const publishedAt = data["published_at"];
+    if (typeof tagName !== "string" || typeof publishedAt !== "string") {
+      console.error("GitHub release response missing tag_name/published_at");
+      return null;
+    }
+
     cachedRelease = {
-      tag_name: data.tag_name,
-      published_at: data.published_at,
+      tag_name: tagName,
+      published_at: publishedAt,
       assets,
     };
     cacheTime = now;
