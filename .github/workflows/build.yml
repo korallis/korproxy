@@ -114,7 +114,13 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          DMG_PATH=$(ls dist/KorProxy-*-${{ matrix.arch }}.dmg | head -1)
+          DMG_PATH="dist/KorProxy-${{ steps.version.outputs.VERSION }}-${{ matrix.arch }}.dmg"
+          if [ ! -f "$DMG_PATH" ]; then
+            echo "Error: DMG not found at $DMG_PATH"
+            echo "dist contents:"
+            ls -la dist || true
+            exit 1
+          fi
           xcrun notarytool submit "$DMG_PATH" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \

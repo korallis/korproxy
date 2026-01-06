@@ -102,8 +102,19 @@ EOF
         -imagekey zlib-level=9 \
         -o "$dmg_path"
     
+    # Some hdiutil versions append ".dmg" even if the output already has it.
+    # Normalize to the expected name so CI notarization scripts can find it.
+    if [[ ! -f "$dmg_path" && -f "$dmg_path.dmg" ]]; then
+        mv -f "$dmg_path.dmg" "$dmg_path"
+    fi
+
     # Clean up temp
     rm -f "$temp_dmg"
+
+    if [[ ! -f "$dmg_path" ]]; then
+        echo "Error: DMG was not created at $dmg_path"
+        return 1
+    fi
     
     # Show result
     local final_size=$(du -h "$dmg_path" | cut -f1)
