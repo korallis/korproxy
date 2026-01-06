@@ -92,13 +92,9 @@ export const remove = mutation({
     const isSelfRemove = targetMember.userId === user._id;
 
     if (!isSelfRemove) {
-      const callerMembership = await requireTeamRole(ctx, targetMember.teamId, user._id, "admin");
+      const callerMembership = await requireTeamRole(ctx, targetMember.teamId, user._id, "owner");
       if (!callerMembership) {
-        return { success: false, error: "Must be admin or owner to remove members" };
-      }
-
-      if (callerMembership.role !== "owner" && targetMember.role === "admin") {
-        return { success: false, error: "Only owner can remove admins" };
+        return { success: false, error: "Only the team owner can remove members" };
       }
     }
 

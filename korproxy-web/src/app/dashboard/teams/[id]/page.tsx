@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useConvex } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -68,13 +68,47 @@ const roleConfig = {
   member: { icon: User, label: "Member", color: "text-muted-foreground", bgColor: "bg-muted/50" },
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseUrlOrError(result: unknown): { url: string } | { error: string } {
+  if (isRecord(result)) {
+    const url = result.url;
+    if (typeof url === "string" && url.trim().length > 0) {
+      return { url };
+    }
+    const error = result.error;
+    if (typeof error === "string" && error.trim().length > 0) {
+      return { error };
+    }
+  }
+  return { error: "Unexpected response from server" };
+}
+
+function parseSuccessOrError(result: unknown): { success: boolean } | { error: string } {
+  if (isRecord(result)) {
+    const success = result.success;
+    if (typeof success === "boolean") {
+      return { success };
+    }
+    const error = result.error;
+    if (typeof error === "string" && error.trim().length > 0) {
+      return { error };
+    }
+  }
+  return { error: "Unexpected response from server" };
+}
+
 export default function TeamDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { token } = useAuth();
+  const searchParams = useSearchParams();
+  const { token, user } = useAuth();
   const convex = useConvex();
   
   const teamId = params.id as string;
+  const stripeReturn = searchParams.get("stripe");
   
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -114,6 +148,14 @@ export default function TeamDetailPage() {
     fetchTeamData();
   }, [token, teamId, convex]);
 
+  useEffect(() => {
+    if (stripeReturn !== "success") return;
+    const timer = window.setTimeout(() => {
+      fetchTeamData();
+    }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [stripeReturn]);
+
   const handleUpdateRole = async (memberId: Id<"teamMembers">, newRole: "admin" | "member") => {
     if (!token) return;
     setActionLoading(memberId);
@@ -137,8 +179,11 @@ export default function TeamDetailPage() {
     }
   };
 
-  const handleRemoveMember = async (memberId: Id<"teamMembers">) => {
-    if (!token || !confirm("Are you sure you want to remove this member?")) return;
+  const handleRemoveMember = async (memberId: Id<"teamMembers">, isSelfRemove: boolean) => {
+    const confirmText = isSelfRemove
+      ? "Are you sure you want to leave this team?"
+      : "Are you sure you want to remove this member?";
+    if (!token || !confirm(confirmText)) return;
     setActionLoading(memberId);
     
     try {
@@ -154,6 +199,107 @@ export default function TeamDetailPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove member");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpsertDiscountedSeats = async (discountedSeats: number): Promise<void> => {
+    if (!token || !team) return;
+    if (team.userRole !== "owner") return;
+
+    if (!Number.isInteger(discountedSeats)) {
+      setError("Seat count must be a whole number");
+      return;
+    }
+
+    if (discountedSeats < 5) {
+      setError("Minimum discounted seats is 5");
+      return;
+    }
+
+    if (discountedSeats + 1 < team.seatsUsed) {
+      setError(`Cannot reduce total seats below seats in use (${team.seatsUsed})`);
+      return;
+    }
+
+    const hasSeatSubscription = team.subscriptionStatus !== "none" && team.subscriptionStatus !== "expired";
+
+    setActionLoading("seats-billing");
+    setError(null);
+    try {
+      if (!hasSeatSubscription) {
+        const successUrl = new URL(window.location.href);
+        successUrl.searchParams.set("stripe", "success");
+
+        const cancelUrl = new URL(window.location.href);
+        cancelUrl.searchParams.set("stripe", "cancel");
+
+        const result: unknown = await convex.action(api.stripe.createTeamCheckoutSession, {
+          token,
+          teamId: team.id,
+          seats: discountedSeats,
+          successUrl: successUrl.toString(),
+          cancelUrl: cancelUrl.toString(),
+        });
+
+        const parsed = parseUrlOrError(result);
+        if ("error" in parsed) {
+          setError(parsed.error);
+          return;
+        }
+
+        window.location.assign(parsed.url);
+        return;
+      }
+
+      const result: unknown = await convex.action(api.stripe.updateTeamSeats, {
+        token,
+        teamId: team.id,
+        newSeatCount: discountedSeats,
+      });
+
+      const parsed = parseSuccessOrError(result);
+      if ("error" in parsed) {
+        setError(parsed.error);
+        return;
+      }
+
+      if (!parsed.success) {
+        setError("Failed to update seats");
+        return;
+      }
+
+      await fetchTeamData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update seats");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleManageSeatsInStripe = async (): Promise<void> => {
+    if (!token || !team) return;
+    if (team.userRole !== "owner") return;
+
+    setActionLoading("seats-portal");
+    setError(null);
+    try {
+      const result: unknown = await convex.action(api.stripe.createTeamPortalSession, {
+        token,
+        teamId: team.id,
+        returnUrl: window.location.href,
+      });
+
+      const parsed = parseUrlOrError(result);
+      if ("error" in parsed) {
+        setError(parsed.error);
+        return;
+      }
+
+      window.location.assign(parsed.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open Stripe portal");
     } finally {
       setActionLoading(null);
     }
@@ -272,8 +418,8 @@ export default function TeamDetailPage() {
 
   if (!team) return null;
 
-  const canManage = team.userRole === "owner" || team.userRole === "admin";
   const isOwner = team.userRole === "owner";
+  const canAccessSettings = team.userRole === "owner" || team.userRole === "admin";
 
   return (
     <div className="space-y-8">
@@ -299,7 +445,7 @@ export default function TeamDetailPage() {
               </div>
             </div>
           </div>
-          {canManage && (
+          {isOwner && (
             <button
               onClick={() => setShowInviteModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all"
@@ -313,7 +459,7 @@ export default function TeamDetailPage() {
 
       {error && (
         <div className="bg-[oklch(0.65_0.24_25/0.1)] border border-[oklch(0.65_0.24_25/0.3)] rounded-xl p-4 flex items-center gap-3">
-          <AlertCircle className="text-[oklch(0.65_0.24_25)] flex-shrink-0" size={20} />
+          <AlertCircle className="text-[oklch(0.65_0.24_25)] shrink-0" size={20} />
           <p className="text-[oklch(0.65_0.24_25)]">{error}</p>
           <button onClick={() => setError(null)} className="ml-auto text-[oklch(0.65_0.24_25)] hover:text-[oklch(0.55_0.24_25)]">
             <XCircle size={18} />
@@ -325,8 +471,8 @@ export default function TeamDetailPage() {
       <div className="flex gap-2 border-b border-border/50 pb-px">
         {[
           { id: "members" as const, label: "Members", icon: Users },
-          { id: "invites" as const, label: "Invites", icon: Mail, badge: invites.length || undefined },
-          ...(canManage ? [{ id: "settings" as const, label: "Settings", icon: Settings }] : []),
+          ...(isOwner ? [{ id: "invites" as const, label: "Invites", icon: Mail, badge: invites.length || undefined }] : []),
+          ...(canAccessSettings ? [{ id: "settings" as const, label: "Settings", icon: Settings }] : []),
         ].map((tab) => (
           <button
             key={tab.id}
@@ -353,41 +499,45 @@ export default function TeamDetailPage() {
         <MembersTab
           members={members}
           currentUserRole={team.userRole}
+          currentUserId={user?.id ?? null}
           actionLoading={actionLoading}
           onUpdateRole={handleUpdateRole}
           onRemoveMember={handleRemoveMember}
         />
       )}
 
-      {activeTab === "invites" && (
+      {activeTab === "invites" && isOwner && (
         <InvitesTab
           invites={invites}
-          canManage={canManage}
+          canManage={isOwner}
           actionLoading={actionLoading}
           onRevoke={handleRevokeInvite}
           onResend={handleResendInvite}
         />
       )}
 
-      {activeTab === "settings" && canManage && (
+      {activeTab === "settings" && canAccessSettings && (
         <SettingsTab
+          key={`${String(team.id)}:${team.name}:${team.seatsPurchased}:${team.seatsUsed}:${team.subscriptionStatus}`}
           team={team}
           isOwner={isOwner}
           actionLoading={actionLoading}
           onUpdateName={handleUpdateTeamName}
+          onSubmitDiscountedSeats={handleUpsertDiscountedSeats}
+          onManageSeatsInStripe={handleManageSeatsInStripe}
           onDelete={handleDeleteTeam}
         />
       )}
 
       <InviteMemberModal
-        isOpen={showInviteModal}
+        isOpen={showInviteModal && isOwner}
         onClose={() => setShowInviteModal(false)}
         onSuccess={() => {
           setShowInviteModal(false);
           fetchTeamData();
         }}
         teamId={team.id}
-        seatsAvailable={team.seatsPurchased - team.seatsUsed}
+        seatsAvailable={Math.max(0, team.seatsPurchased - team.seatsUsed)}
       />
     </div>
   );
@@ -412,26 +562,30 @@ function StatusBadge({ status }: { status: string }) {
 function MembersTab({
   members,
   currentUserRole,
+  currentUserId,
   actionLoading,
   onUpdateRole,
   onRemoveMember,
 }: {
   members: Member[];
   currentUserRole: "owner" | "admin" | "member";
+  currentUserId: string | null;
   actionLoading: string | null;
   onUpdateRole: (memberId: Id<"teamMembers">, role: "admin" | "member") => void;
-  onRemoveMember: (memberId: Id<"teamMembers">) => void;
+  onRemoveMember: (memberId: Id<"teamMembers">, isSelfRemove: boolean) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const canManageRoles = currentUserRole === "owner";
-  const canManageMembers = currentUserRole === "owner" || currentUserRole === "admin";
+  const canManageMembers = currentUserRole === "owner";
 
   return (
     <div className="space-y-3">
       {members.map((member) => {
         const RoleIcon = roleConfig[member.role].icon;
-        const isCurrentUser = false; // Would need to compare with current user ID
-        const canManageThis = canManageMembers && member.role !== "owner" && !isCurrentUser;
+        const isCurrentUser = currentUserId !== null && String(member.userId) === currentUserId;
+        const canManageThis =
+          (canManageMembers && member.role !== "owner" && !isCurrentUser) ||
+          (isCurrentUser && member.role !== "owner");
         
         return (
           <div key={member.memberId} className="glass-card p-4 flex items-center justify-between">
@@ -466,7 +620,7 @@ function MembersTab({
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
                       <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-xl shadow-xl z-20 overflow-hidden">
-                        {canManageRoles && member.role === "member" && (
+                        {canManageRoles && !isCurrentUser && member.role === "member" && (
                           <button
                             onClick={() => {
                               onUpdateRole(member.memberId, "admin");
@@ -478,7 +632,7 @@ function MembersTab({
                             Promote to Admin
                           </button>
                         )}
-                        {canManageRoles && member.role === "admin" && (
+                        {canManageRoles && !isCurrentUser && member.role === "admin" && (
                           <button
                             onClick={() => {
                               onUpdateRole(member.memberId, "member");
@@ -492,13 +646,13 @@ function MembersTab({
                         )}
                         <button
                           onClick={() => {
-                            onRemoveMember(member.memberId);
+                            onRemoveMember(member.memberId, isCurrentUser);
                             setMenuOpen(null);
                           }}
                           className="w-full px-4 py-2.5 text-left text-sm hover:bg-[oklch(0.65_0.24_25/0.1)] text-[oklch(0.65_0.24_25)] flex items-center gap-2"
                         >
                           <Trash2 size={16} />
-                          Remove
+                          {isCurrentUser ? "Leave team" : "Remove"}
                         </button>
                       </div>
                     </>
@@ -603,16 +757,24 @@ function SettingsTab({
   isOwner,
   actionLoading,
   onUpdateName,
+  onSubmitDiscountedSeats,
+  onManageSeatsInStripe,
   onDelete,
 }: {
   team: Team;
   isOwner: boolean;
   actionLoading: string | null;
   onUpdateName: (name: string) => void;
+  onSubmitDiscountedSeats: (discountedSeats: number) => Promise<void>;
+  onManageSeatsInStripe: () => Promise<void>;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(team.name);
   const [isEditing, setIsEditing] = useState(false);
+  const [discountedSeatsInput, setDiscountedSeatsInput] = useState<string>(() => {
+    const currentDiscounted = Math.max(0, team.seatsPurchased - 1);
+    return String(Math.max(5, currentDiscounted));
+  });
 
   const handleSaveName = () => {
     if (name.trim() && name !== team.name) {
@@ -620,6 +782,18 @@ function SettingsTab({
     }
     setIsEditing(false);
   };
+
+  const hasSeatSubscription = team.subscriptionStatus !== "none" && team.subscriptionStatus !== "expired";
+  const currentDiscountedSeats = Math.max(0, team.seatsPurchased - 1);
+  const parsedDesiredDiscountedSeats =
+    discountedSeatsInput.trim().length > 0 ? Number.parseInt(discountedSeatsInput, 10) : null;
+  const desiredDiscountedSeats =
+    parsedDesiredDiscountedSeats !== null && Number.isFinite(parsedDesiredDiscountedSeats)
+      ? parsedDesiredDiscountedSeats
+      : null;
+  const minDiscountedSeatsForUsage = Math.max(5, team.seatsUsed - 1);
+  const canSubmitSeats = desiredDiscountedSeats !== null && desiredDiscountedSeats >= minDiscountedSeatsForUsage;
+  const desiredTotalSeats = desiredDiscountedSeats !== null ? desiredDiscountedSeats + 1 : null;
 
   return (
     <div className="space-y-6">
@@ -669,6 +843,82 @@ function SettingsTab({
           </div>
         </div>
       </div>
+
+      {isOwner && (
+        <div className="glass-card p-6">
+          <h3 className="text-lg font-semibold mb-2">Seats</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Discounted seats are billed at £5.00 per seat per month. Minimum purchase is 5 discounted seats (6 total including you).
+          </p>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Current usage</span>
+              <span className="text-sm font-medium">
+                {team.seatsUsed} / {team.seatsPurchased} total seats used
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-muted-foreground">
+                Discounted seats (billed)
+              </label>
+              <input
+                type="number"
+                min={minDiscountedSeatsForUsage}
+                step={1}
+                inputMode="numeric"
+                value={discountedSeatsInput}
+                onChange={(e) => setDiscountedSeatsInput(e.target.value)}
+                className="w-full px-4 py-2 bg-muted/50 border border-border/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Minimum discounted seats right now:</span>
+                <span className="font-medium text-foreground">{minDiscountedSeatsForUsage}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Total seats (including you):</span>
+                <span className="font-medium text-foreground">
+                  {desiredTotalSeats ?? "--"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Currently billed discounted seats:</span>
+                <span className="font-medium text-foreground">{currentDiscountedSeats}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={async () => {
+                  if (desiredDiscountedSeats === null) return;
+                  await onSubmitDiscountedSeats(desiredDiscountedSeats);
+                }}
+                disabled={!canSubmitSeats || actionLoading === "seats-billing"}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-all disabled:opacity-50"
+              >
+                {actionLoading === "seats-billing" ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : null}
+                {hasSeatSubscription ? "Update Seats" : "Purchase Seats"}
+              </button>
+
+              {hasSeatSubscription && (
+                <button
+                  onClick={onManageSeatsInStripe}
+                  disabled={actionLoading === "seats-portal"}
+                  className="flex items-center gap-2 px-4 py-2 bg-muted rounded-xl font-medium hover:bg-muted/80 transition-all disabled:opacity-50"
+                >
+                  {actionLoading === "seats-portal" ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : null}
+                  Manage in Stripe
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isOwner && (
         <div className="glass-card p-6 border-[oklch(0.65_0.24_25/0.3)]">

@@ -14,6 +14,15 @@ const PRICE_IDS = {
 // Trial period in days
 const TRIAL_DAYS = 7;
 
+// Team seats: Stripe quantity tracks discounted seats (excludes owner).
+// In Convex, `teams.seatsPurchased` tracks total seats (includes owner).
+const TEAM_OWNER_SEAT_COUNT = 1;
+const MIN_DISCOUNTED_TEAM_SEATS = 5;
+
+function isNonNegativeInteger(value: number): boolean {
+  return Number.isInteger(value) && value >= 0;
+}
+
 function getStripeClient(): Stripe {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecretKey) {
@@ -129,6 +138,10 @@ export const createTeamCheckoutSession = action({
         return { error: "Invalid session" };
       }
 
+      if (!isNonNegativeInteger(args.seats)) {
+        return { error: "Seat count must be a whole number" };
+      }
+
       // Get team and validate ownership
       const team = await ctx.runQuery(internal.stripe.getTeamById, { teamId: args.teamId });
       if (!team) {
@@ -144,8 +157,19 @@ export const createTeamCheckoutSession = action({
         return { error: "Team price not configured" };
       }
 
-      if (args.seats < 1) {
-        return { error: "Must purchase at least 1 seat" };
+      // args.seats is discounted seats (excludes owner)
+      if (args.seats < MIN_DISCOUNTED_TEAM_SEATS) {
+        return { error: `Must purchase at least ${MIN_DISCOUNTED_TEAM_SEATS} discounted seats` };
+      }
+
+      // Recommended: only allow discounted-seat add-on for users with an active main subscription
+      const user = await ctx.runQuery(internal.stripe.getUserById, { userId: userSession.userId });
+      if (!user) {
+        return { error: "User not found" };
+      }
+      const allowedStatuses = new Set(["active", "trialing", "lifetime"]);
+      if (!allowedStatuses.has(user.subscriptionStatus)) {
+        return { error: "You must have an active KorProxy subscription to purchase discounted seats" };
       }
 
       // Create or get Stripe customer for team
@@ -185,6 +209,8 @@ export const createTeamCheckoutSession = action({
             teamId: args.teamId,
             convexUserId: userSession.userId,
             type: "team",
+            discountedSeats: String(args.seats),
+            totalSeats: String(args.seats + TEAM_OWNER_SEAT_COUNT),
           },
         },
         success_url: args.successUrl,
@@ -193,6 +219,8 @@ export const createTeamCheckoutSession = action({
           teamId: args.teamId,
           convexUserId: userSession.userId,
           type: "team",
+          discountedSeats: String(args.seats),
+          totalSeats: String(args.seats + TEAM_OWNER_SEAT_COUNT),
         },
       });
 
@@ -227,6 +255,10 @@ export const updateTeamSeats = action({
         return { error: "Invalid session" };
       }
 
+      if (!isNonNegativeInteger(args.newSeatCount)) {
+        return { error: "Seat count must be a whole number" };
+      }
+
       // Get team and validate ownership
       const team = await ctx.runQuery(internal.stripe.getTeamById, { teamId: args.teamId });
       if (!team) {
@@ -241,17 +273,23 @@ export const updateTeamSeats = action({
         return { error: "No active subscription found" };
       }
 
-      if (args.newSeatCount < team.seatsUsed) {
-        return { error: `Cannot reduce seats below current usage (${team.seatsUsed} seats in use)` };
+      // args.newSeatCount is discounted seats (excludes owner)
+      if (args.newSeatCount < MIN_DISCOUNTED_TEAM_SEATS) {
+        return { error: `Discounted seats must be at least ${MIN_DISCOUNTED_TEAM_SEATS}` };
       }
 
-      if (args.newSeatCount < 1) {
-        return { error: "Must have at least 1 seat" };
+      if (args.newSeatCount + TEAM_OWNER_SEAT_COUNT < team.seatsUsed) {
+        return {
+          error: `Cannot reduce total seats below current usage (${team.seatsUsed} seats in use)`,
+        };
       }
 
       // Get the subscription
       const subscription = await stripe.subscriptions.retrieve(team.stripeSubscriptionId);
-      const subscriptionItem = subscription.items.data[0];
+      const subscriptionItem =
+        PRICE_IDS.team
+          ? subscription.items.data.find((item) => item.price.id === PRICE_IDS.team)
+          : subscription.items.data[0];
 
       if (!subscriptionItem) {
         return { error: "Subscription item not found" };
@@ -271,7 +309,7 @@ export const updateTeamSeats = action({
       // Update local record
       await ctx.runMutation(internal.stripe.updateTeamSubscription, {
         teamId: args.teamId,
-        seatsPurchased: args.newSeatCount,
+        seatsPurchased: args.newSeatCount + TEAM_OWNER_SEAT_COUNT,
       });
 
       return { success: true };
@@ -311,6 +349,54 @@ export const createPortalSession = action({
       return { url: portalSession.url };
     } catch (error) {
       console.error("Portal session error:", error);
+      return { error: error instanceof Error ? error.message : "Failed to create portal session" };
+    }
+  },
+});
+
+/**
+ * Create a Stripe Customer Portal session for managing a team's seat add-on subscription
+ */
+export const createTeamPortalSession = action({
+  args: {
+    token: v.string(),
+    teamId: v.id("teams"),
+    returnUrl: v.string(),
+  },
+  returns: v.union(
+    v.object({ url: v.string() }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args): Promise<{ url: string } | { error: string }> => {
+    try {
+      const stripe = getStripeClient();
+
+      const userSession = await ctx.runQuery(internal.stripe.getSessionUser, { token: args.token });
+      if (!userSession) {
+        return { error: "Invalid session" };
+      }
+
+      const team = await ctx.runQuery(internal.stripe.getTeamById, { teamId: args.teamId });
+      if (!team) {
+        return { error: "Team not found" };
+      }
+
+      if (team.ownerUserId !== userSession.userId) {
+        return { error: "Only the team owner can manage billing" };
+      }
+
+      if (!team.stripeCustomerId) {
+        return { error: "No team Stripe customer found" };
+      }
+
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: team.stripeCustomerId,
+        return_url: args.returnUrl,
+      });
+
+      return { url: portalSession.url };
+    } catch (error) {
+      console.error("Team portal session error:", error);
       return { error: error instanceof Error ? error.message : "Failed to create portal session" };
     }
   },
@@ -730,8 +816,17 @@ async function updateTeamFromSubscription(
       status = "expired";
   }
 
-  // Get quantity (seats purchased)
-  const seatsPurchased = subscription.items.data[0]?.quantity || 1;
+  // Stripe quantity is discounted seats (excludes owner). Convex stores total seats.
+  const subscriptionItem =
+    PRICE_IDS.team
+      ? subscription.items.data.find((item) => item.price.id === PRICE_IDS.team)
+      : subscription.items.data[0];
+  const rawQuantity = subscriptionItem?.quantity;
+  const discountedSeats =
+    typeof rawQuantity === "number" && Number.isFinite(rawQuantity) && rawQuantity >= 0
+      ? Math.trunc(rawQuantity)
+      : 0;
+  const seatsPurchased = discountedSeats + TEAM_OWNER_SEAT_COUNT;
 
   await ctx.runMutation(internal.stripe.updateTeamSubscription, {
     teamId,
@@ -768,7 +863,7 @@ async function handleTeamSubscriptionDeleted(
     teamId: targetTeamId,
     status: "expired",
     stripeSubscriptionId: undefined,
-    seatsPurchased: 0,
+    seatsPurchased: TEAM_OWNER_SEAT_COUNT,
     currentPeriodEnd: undefined,
     cancelAtPeriodEnd: undefined,
   });

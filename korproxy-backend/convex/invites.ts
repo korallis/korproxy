@@ -35,9 +35,9 @@ export const create = mutation({
       return { success: false, error: "Team not found" };
     }
 
-    const membership = await requireTeamRole(ctx, args.teamId, user._id, "admin");
+    const membership = await requireTeamRole(ctx, args.teamId, user._id, "owner");
     if (!membership) {
-      return { success: false, error: "Must be admin or owner to invite members" };
+      return { success: false, error: "Only the team owner can invite members" };
     }
 
     const email = args.email.toLowerCase().trim();
@@ -145,6 +145,10 @@ export const accept = mutation({
       return { success: false, error: "You are already a member of this team" };
     }
 
+    if (team.seatsUsed >= team.seatsPurchased) {
+      return { success: false, error: "No available seats. Please ask the team owner to purchase more seats." };
+    }
+
     if (existingMembership && existingMembership.status === "removed") {
       await ctx.db.patch(existingMembership._id, {
         role: invite.role,
@@ -200,9 +204,9 @@ export const revoke = mutation({
       return { success: false, error: "Can only revoke pending invites" };
     }
 
-    const membership = await requireTeamRole(ctx, invite.teamId, user._id, "admin");
+    const membership = await requireTeamRole(ctx, invite.teamId, user._id, "owner");
     if (!membership) {
-      return { success: false, error: "Must be admin or owner to revoke invites" };
+      return { success: false, error: "Only the team owner can revoke invites" };
     }
 
     await ctx.db.patch(args.inviteId, { status: "revoked" });
@@ -239,9 +243,9 @@ export const resend = mutation({
       return { success: false, error: "Can only resend pending or expired invites" };
     }
 
-    const membership = await requireTeamRole(ctx, invite.teamId, user._id, "admin");
+    const membership = await requireTeamRole(ctx, invite.teamId, user._id, "owner");
     if (!membership) {
-      return { success: false, error: "Must be admin or owner to resend invites" };
+      return { success: false, error: "Only the team owner can resend invites" };
     }
 
     const newToken = generateSecureToken();
@@ -278,7 +282,7 @@ export const listForTeam = query({
     const user = await getUserFromToken(ctx, args.token);
     if (!user) return [];
 
-    const membership = await requireTeamRole(ctx, args.teamId, user._id, "admin");
+    const membership = await requireTeamRole(ctx, args.teamId, user._id, "owner");
     if (!membership) return [];
 
     const invites = await ctx.db
