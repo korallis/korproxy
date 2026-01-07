@@ -52,7 +52,7 @@ public partial class LogsViewModel : ViewModelBase
         // Sample data
         Logs =
         [
-            new LogEntryViewModel(new LogEntry(DateTimeOffset.Now.AddMinutes(-5), "INFO", "proxy", "Server started on port 8317")),
+            new LogEntryViewModel(new LogEntry(DateTimeOffset.Now.AddMinutes(-5), "INFO", "proxy", "Server started on port 1337")),
             new LogEntryViewModel(new LogEntry(DateTimeOffset.Now.AddMinutes(-4), "INFO", "gemini", "Connected to Gemini API")),
             new LogEntryViewModel(new LogEntry(DateTimeOffset.Now.AddMinutes(-3), "DEBUG", "proxy", "Received request for /v1/chat/completions")),
             new LogEntryViewModel(new LogEntry(DateTimeOffset.Now.AddMinutes(-2), "WARN", "claude", "Rate limit approaching")),
