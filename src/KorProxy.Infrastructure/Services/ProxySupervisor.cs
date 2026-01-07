@@ -58,7 +58,7 @@ public sealed class ProxySupervisor : IProxySupervisor, IDisposable
                 _state,
                 _process?.Id,
                 _startedAt,
-                _state == ProxyState.Running ? $"http://127.0.0.1:{_options.Port}" : null,
+                _state == ProxyState.Running ? $"http://localhost:{_options.ProxyPort}" : null,
                 _consecutiveFailures,
                 _lastError);
         }

@@ -40,7 +40,7 @@ public class ProxyLifecycleTests
             ProxyState.Running,
             12345,
             startedAt,
-            "http://127.0.0.1:8317",
+            "http://localhost:1337",
             0,
             null);
 
@@ -48,7 +48,7 @@ public class ProxyLifecycleTests
         Assert.Equal(ProxyState.Running, status.State);
         Assert.Equal(12345, status.ProcessId);
         Assert.Equal(startedAt, status.StartedAt);
-        Assert.Equal("http://127.0.0.1:8317", status.EndpointUrl);
+        Assert.Equal("http://localhost:1337", status.EndpointUrl);
         Assert.Equal(0, status.ConsecutiveFailures);
         Assert.Null(status.LastError);
     }

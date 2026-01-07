@@ -43,6 +43,7 @@ public sealed class ProxyOptions
     
     public string ApiBaseUrl { get; set; } = "http://127.0.0.1:8317";
     public int Port { get; set; } = 8317;
+    public int ProxyPort { get; set; } = 1337;
     public bool AutoStart { get; set; } = true;
     public int HttpTimeoutSeconds { get; set; } = 10;
     public int StartupTimeoutSeconds { get; set; } = 30;
