@@ -194,7 +194,7 @@ public class ViewModelTests
         
         Assert.Equal(ProxyState.Running, runningStatus.State);
         Assert.Equal(1234, runningStatus.ProcessId);
-        Assert.Equal("http://localhost:1337", runningStatus.EndpointUrl);
+        Assert.Equal("http://localhost:8317", runningStatus.EndpointUrl);
         
         Assert.Equal(ProxyState.Error, errorStatus.State);
         Assert.Equal(3, errorStatus.ConsecutiveFailures);

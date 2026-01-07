@@ -81,7 +81,7 @@
                                 Padding="10,6"
                                 HorizontalAlignment="Left"
                                 Margin="0,4,0,0">
-                            <TextBlock Text="localhost:1337"
+                            <TextBlock Text="{Binding EndpointUrl}"
                                        FontFamily="{StaticResource FontFamilyMono}"
                                        FontSize="12"
                                        Foreground="{StaticResource BrandPrimaryBrush}" />

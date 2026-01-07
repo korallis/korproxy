@@ -37,6 +37,9 @@ public partial class DashboardViewModel : ViewModelBase
     private string _uptimeText = "—";
 
     [ObservableProperty]
+    private string _endpointUrl = "localhost:8317";
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SuccessRateText))]
     private int _totalRequests;
 
@@ -197,6 +200,12 @@ public partial class DashboardViewModel : ViewModelBase
             {
                 StateText = stateText;
                 UptimeText = uptimeText;
+                
+                // Update endpoint URL from proxy status
+                if (status?.EndpointUrl != null)
+                {
+                    EndpointUrl = status.EndpointUrl.Replace("http://", "");
+                }
 
                 if (usage != null)
                 {
