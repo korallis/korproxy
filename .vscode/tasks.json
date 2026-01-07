@@ -1,0 +1,162 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build dist (macOS arm64)",
+			"type": "shell",
+			"command": "bash ./scripts/build-dist.sh arm64 --dmg",
+			"isBackground": false
+		},
+		{
+			"label": "Install KorProxy to /Applications",
+			"type": "shell",
+			"command": "bash ./scripts/install-macos.sh --clear-quarantine",
+			"isBackground": false
+		},
+		{
+			"label": "Kill KorProxy processes",
+			"type": "shell",
+			"command": "pkill -f \"dotnet run -c Release --project src/KorProxy/KorProxy.csproj\" || true; pkill -f CLIProxyAPI || true; echo \"killed\"",
+			"isBackground": false
+		},
+		{
+			"label": "Show KorProxy config.yaml (redacted)",
+			"type": "shell",
+			"command": "python3 - <<'PY'\nfrom pathlib import Path\nimport re\np = Path.home() / 'Library/Application Support/KorProxy/config.yaml'\ntext = p.read_text('utf-8', errors='replace')\n# Redact obvious secrets / long tokens\nout=[]\nfor line in text.splitlines():\n    l=line\n    l=re.sub(r'^(\\s*(?:upstream-api-key|anthropic-auth-token|openai-api-key|gemini-api-key)\\s*:\\s*).*$','\\\\1\"***\"', l, flags=re.I)\n    # redact list items that look like tokens\n    if re.match(r'^\\s*-\\s*(sk|rk|pk|tok)_[A-Za-z0-9._-]{12,}\\s*$', l):\n        l=re.sub(r'([A-Za-z]{2,4})_[A-Za-z0-9._-]{12,}', r'\\1_***', l)\n    out.append(l)\nprint(str(p))\nprint('\\n'.join(out))\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "Repair KorProxy config.yaml",
+			"type": "shell",
+			"command": "python3 - <<'PY'\nfrom pathlib import Path\nfrom datetime import datetime\nimport os\np = Path.home() / 'Library/Application Support/KorProxy/config.yaml'\nauth_dir = Path.home() / 'Library/Application Support/KorProxy/auth'\nauth_dir.mkdir(parents=True, exist_ok=True)\nif p.exists():\n    backup = p.with_name(f\"config.yaml.bak.{datetime.now().strftime('%Y%m%d-%H%M%S')}\")\n    backup.write_text(p.read_text('utf-8', errors='replace'), 'utf-8')\n\ndef_cfg = f'''host: \"127.0.0.1\"\nport: 8317\nauth-dir: \"{auth_dir.as_posix()}\"\napi-keys:\n  - \"korproxy-local-key\"\nremote-management:\n  secret-key: \"korproxy-mgmt-key\"\ndebug: false\nlogging-to-file: false\nusage-statistics-enabled: true\nrequest-retry: 3\nmax-retry-interval: 30\n'''\np.write_text(def_cfg, 'utf-8')\nprint('Rewrote', p)\nprint('Auth dir', auth_dir)\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "Sanity: models + config endpoints",
+			"type": "shell",
+			"command": "curl -s http://127.0.0.1:8317/v1/models | python3 - <<'PY'\nimport json,sys\nobj=json.load(sys.stdin)\nitems=obj.get('data') or []\nprint('models:', len(items))\nfor m in items[:15]:\n  print('-', m.get('id'), '(owned_by:', m.get('owned_by'), ')')\nPY\n\necho \"--- ampcode in config.yaml (key redacted) ---\"\ncurl -s http://127.0.0.1:8317/v0/management/config.yaml | python3 - <<'PY'\nimport re,sys\ntext=sys.stdin.read()\n# print just ampcode block\nm=re.search(r'(?m)^ampcode:\\n(?:^[ \\t].*\\n)*', text)\nblock=m.group(0) if m else '(no ampcode section found)\\n'\nblock=re.sub(r'(?m)^(\\s*upstream-api-key:\\s*).*$','\\\\1\"***\"', block)\nprint(block.rstrip())\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "Sanity: /v1/models",
+			"type": "shell",
+			"command": "curl -s http://127.0.0.1:8317/v1/models | python3 -c 'import json,sys; o=json.load(sys.stdin); d=o.get(\"data\") or []; print(\"models:\", len(d));\nfor m in d[:12]:\n  print(\"-\", m.get(\"id\"), \"(owned_by:\", m.get(\"owned_by\"), \")\")'",
+			"isBackground": false
+		},
+		{
+			"label": "Sanity: ampcode section",
+			"type": "shell",
+			"command": "curl -s http://127.0.0.1:8317/v0/management/config.yaml | python3 -c 'import re,sys; t=sys.stdin.read(); m=re.search(r\"(?m)^ampcode:\\\\n(?:^[ \\\\t].*\\\\n)*\", t); blk=(m.group(0) if m else \"(no ampcode section found)\\\\n\"); blk=re.sub(r\"(?m)^(\\\\s*upstream-api-key:\\\\s*).*$\", r\"\\\\1\\\"***\\\"\", blk); print(blk.rstrip())'",
+			"isBackground": false
+		},
+		{
+			"label": "Sanity: proxy ping",
+			"type": "shell",
+			"command": "curl -s -o /dev/null -w \"%{http_code}\\n\" http://127.0.0.1:8317/",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: dump /v0/management/usage raw",
+			"type": "shell",
+			"command": "set -euo pipefail\ncurl -s http://127.0.0.1:8317/v0/management/usage | python3 - <<'PY'\nimport json,sys\nobj=json.load(sys.stdin)\nprint('keys:', sorted(obj.keys()))\nprint(json.dumps(obj, indent=2))\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: usage before/after request",
+			"type": "shell",
+			"command": "set -euo pipefail\nKEY=\"korproxy-mgmt-key\"\n\necho \"--- usage BEFORE ---\"\ncurl -s -H \"Authorization: Bearer $KEY\" http://127.0.0.1:8317/v0/management/usage | python3 - <<'PY'\nimport json,sys\nobj=json.load(sys.stdin)\nprint('keys:', sorted(obj.keys()))\nprint(json.dumps(obj, indent=2))\nPY\n\necho \"--- make a request (GET /v1/models) ---\"\ncode=$(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8317/v1/models)\necho \"status: $code\"\n\nsleep 0.3\n\necho \"--- usage AFTER ---\"\ncurl -s -H \"Authorization: Bearer $KEY\" http://127.0.0.1:8317/v0/management/usage | python3 - <<'PY'\nimport json,sys\nobj=json.load(sys.stdin)\nprint(json.dumps(obj, indent=2))\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: usage before/after request (fixed parser)",
+			"type": "shell",
+			"command": "set -euo pipefail\nKEY=\"korproxy-mgmt-key\"\n\necho \"--- usage BEFORE (raw) ---\"\ncurl -s -H \"Authorization: Bearer $KEY\" http://127.0.0.1:8317/v0/management/usage | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))'\n\necho \"--- make a request (GET /v1/models) ---\"\ncode=$(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8317/v1/models)\necho \"status: $code\"\n\nsleep 0.3\n\necho \"--- usage AFTER (raw) ---\"\ncurl -s -H \"Authorization: Bearer $KEY\" http://127.0.0.1:8317/v0/management/usage | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))'",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: usage before/after AUTHENTICATED request",
+			"type": "shell",
+			"command": "set -euo pipefail\nMGMT=\"korproxy-mgmt-key\"\nAPI=\"korproxy-local-key\"\n\necho \"--- usage BEFORE (raw) ---\"\ncurl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))'\n\necho \"--- request (GET /v1/models) with proxy api key ---\"\ncode=$(curl -s -H \"Authorization: Bearer $API\" -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8317/v1/models)\necho \"status: $code\"\n\nsleep 0.3\n\necho \"--- usage AFTER (raw) ---\"\ncurl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))'",
+			"isBackground": false
+		},
+		{
+			"label": "Sanity: /v1/models (with proxy api key)",
+			"type": "shell",
+			"command": "curl -s -H \"Authorization: Bearer korproxy-local-key\" http://127.0.0.1:8317/v1/models | python3 -c 'import json,sys; o=json.load(sys.stdin); d=o.get(\"data\") or []; print(\"models:\", len(d))'",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: usage after chat completion",
+			"type": "shell",
+			"command": "set -euo pipefail\nMGMT=\"korproxy-mgmt-key\"\nAPI=\"korproxy-local-key\"\n\nmodel=$(curl -s -H \"Authorization: Bearer $API\" http://127.0.0.1:8317/v1/models | python3 -c 'import json,sys; o=json.load(sys.stdin); d=o.get(\"data\") or []; print((d[0] or {}).get(\"id\",\"\"))')\necho \"picked model: $model\"\n\nif [[ -z \"$model\" ]]; then\n  echo \"No models returned; cannot test completion\"\n  exit 1\nfi\n\necho \"--- usage BEFORE (raw) ---\"\ncurl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))'\n\necho \"--- chat completion ---\"\nresp=$(curl -s -w \"\\n__HTTP__=%{http_code}\\n\" \\\n  -H \"Authorization: Bearer $API\" \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\\\"model\\\":\\\"$model\\\",\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"ping\\\"}],\\\"max_tokens\\\":1}\" \\\n  http://127.0.0.1:8317/v1/chat/completions)\n\necho \"$resp\" | sed -n '1,30p'\n\nsleep 0.5\n\necho \"--- usage AFTER (raw) ---\"\ncurl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))'\n",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: dump usage (raw + key fields)",
+			"type": "shell",
+			"command": "set -euo pipefail\nMGMT=\"korproxy-mgmt-key\"\n\ncurl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage | python3 - <<'PY'\nimport json,sys\nobj=json.load(sys.stdin)\nusage=obj.get('usage') or obj\nprint('top keys:', sorted(obj.keys()))\nprint('usage keys:', sorted(usage.keys()) if isinstance(usage, dict) else type(usage))\nprint('total_requests:', usage.get('total_requests'))\nprint('success_count:', usage.get('success_count'))\nprint('failure_count:', usage.get('failure_count'))\nprint('failed_requests (top):', obj.get('failed_requests'))\napis=usage.get('apis') or {}\nprint('apis keys:', sorted(apis.keys()))\nprint('apis:', apis)\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: dump usage key fields (safe)",
+			"type": "shell",
+			"command": "set -euo pipefail\nMGMT=\"korproxy-mgmt-key\"\n\ncurl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage | python3 -c 'import json,sys; obj=json.load(sys.stdin); usage=obj.get(\"usage\") or obj; print(\"top keys:\", sorted(obj.keys())); print(\"total_requests:\", usage.get(\"total_requests\")); print(\"success_count:\", usage.get(\"success_count\")); print(\"failure_count:\", usage.get(\"failure_count\")); print(\"failed_requests(top):\", obj.get(\"failed_requests\")); apis=usage.get(\"apis\") or {}; print(\"apis keys:\", sorted(apis.keys())); print(\"apis:\", apis)'",
+			"isBackground": false
+		},
+		{
+			"label": "Wait for proxy health",
+			"type": "shell",
+			"command": "set -euo pipefail\nfor i in $(seq 1 30); do\n  code=$(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8317/ || true)\n  if [[ \"$code\" == \"200\" ]]; then\n    echo \"healthy\"\n    exit 0\n  fi\n  sleep 0.2\ndone\necho \"not healthy\"\nexit 1\n",
+			"isBackground": false
+		},
+		{
+			"label": "Validate: usage increments on completion",
+			"type": "shell",
+			"command": "set -euo pipefail\nMGMT=\"korproxy-mgmt-key\"\nAPI=\"korproxy-local-key\"\n\nbefore=$(curl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage)\n\nmodel=$(curl -s -H \"Authorization: Bearer $API\" http://127.0.0.1:8317/v1/models | python3 -c 'import json,sys; o=json.load(sys.stdin); d=o.get(\"data\") or []; print((d[0] or {}).get(\"id\",\"\"))')\n\nif [[ -z \"$model\" ]]; then\n  echo \"No models returned; cannot test completion\"\n  echo \"$before\" | python3 -c 'import json,sys; o=json.load(sys.stdin); u=o.get(\"usage\") or o; print(\"before total_requests:\", u.get(\"total_requests\"))'\n  exit 1\nfi\n\n# Send a small completion (should be counted if usage tracking is working)\ncode=$(curl -s -o /dev/null -w \"%{http_code}\" \\\n  -H \"Authorization: Bearer $API\" \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\\\"model\\\":\\\"$model\\\",\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"ping\\\"}],\\\"max_tokens\\\":1}\" \\\n  http://127.0.0.1:8317/v1/chat/completions)\n\nafter=$(curl -s -H \"Authorization: Bearer $MGMT\" http://127.0.0.1:8317/v0/management/usage)\n\necho \"chat status: $code\"\n\necho \"$before\" | python3 -c 'import json,sys; o=json.load(sys.stdin); u=o.get(\"usage\") or o; print(\"before total_requests:\", u.get(\"total_requests\"), \"success:\", u.get(\"success_count\"), \"failure:\", u.get(\"failure_count\"))'\n\necho \"$after\" | python3 -c 'import json,sys; o=json.load(sys.stdin); u=o.get(\"usage\") or o; print(\"after total_requests:\", u.get(\"total_requests\"), \"success:\", u.get(\"success_count\"), \"failure:\", u.get(\"failure_count\"))'\n",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: who listens on 8317",
+			"type": "shell",
+			"command": "lsof -nP -iTCP:8317 -sTCP:LISTEN || true; echo '---'; ps aux | egrep -i 'KorProxy|CLIProxyAPI|dotnet' | grep -v egrep || true",
+			"isBackground": false
+		},
+		{
+			"label": "Bring KorProxy to front",
+			"type": "shell",
+			"command": "osascript -e 'tell application \"System Events\" to set frontmost of process \"KorProxy\" to true' || osascript -e 'tell application \"KorProxy\" to activate' || true",
+			"isBackground": false
+		},
+		{
+			"label": "Debug: KorProxy window count",
+			"type": "shell",
+			"command": "osascript -e 'tell application \"System Events\" to tell process \"KorProxy\" to count windows' || true",
+			"isBackground": false
+		},
+		{
+			"label": "Build KorProxy (Release)",
+			"type": "shell",
+			"command": "dotnet build KorProxy.sln -c Release -v minimal",
+			"isBackground": false
+		},
+		{
+			"label": "Run KorProxy (Release)",
+			"type": "shell",
+			"command": "dotnet run -c Release --project src/KorProxy/KorProxy.csproj",
+			"isBackground": true
+		},
+		{
+			"label": "Kill all KorProxy + CLIProxyAPI",
+			"type": "shell",
+			"command": "set -euo pipefail\n# First, kill whatever is holding the proxy port (prevents restart loops)\npids=$(lsof -t -iTCP:8317 -sTCP:LISTEN 2>/dev/null || true)\nif [[ -n \"$pids\" ]]; then\n  echo \"Killing listeners on 8317: $pids\"\n  kill -TERM $pids 2>/dev/null || true\n  sleep 0.3\n  kill -KILL $pids 2>/dev/null || true\nfi\n# Then stop KorProxy / dotnet run (TERM then KILL)\npkill -TERM -f \"dotnet run -c Release --project src/KorProxy/KorProxy.csproj\" 2>/dev/null || true\npkill -TERM -f \"/src/KorProxy/bin/Release/net8.0/KorProxy\" 2>/dev/null || true\npkill -TERM -f \"/publish/osx-arm64/KorProxy\" 2>/dev/null || true\npkill -TERM -f \"CLIProxyAPI\" 2>/dev/null || true\nsleep 0.3\npkill -KILL -f \"dotnet run -c Release --project src/KorProxy/KorProxy.csproj\" 2>/dev/null || true\npkill -KILL -f \"/src/KorProxy/bin/Release/net8.0/KorProxy\" 2>/dev/null || true\npkill -KILL -f \"/publish/osx-arm64/KorProxy\" 2>/dev/null || true\npkill -KILL -f \"CLIProxyAPI\" 2>/dev/null || true\n# Verify\nlsof -nP -iTCP:8317 -sTCP:LISTEN || true\necho killed",
+			"isBackground": false
+		}
+		,
+		{
+			"label": "Force kill anything on 8317",
+			"type": "shell",
+			"command": "set -euo pipefail\npids=$(lsof -t -iTCP:8317 -sTCP:LISTEN 2>/dev/null || true)\nif [[ -z \"$pids\" ]]; then\n  echo \"nothing listening on 8317\"\n  exit 0\nfi\necho \"Killing listeners on 8317: $pids\"\nkill -TERM $pids 2>/dev/null || true\nsleep 0.3\nkill -KILL $pids 2>/dev/null || true\nlsof -nP -iTCP:8317 -sTCP:LISTEN || true\necho done",
+			"isBackground": false
+		}
+	]
+}

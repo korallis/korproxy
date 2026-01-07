@@ -126,7 +126,9 @@ public partial class LoginViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Login error for {Email}", Email);
-            ErrorMessage = "An error occurred. Please try again.";
+            ErrorMessage = ex.Message.Contains("Convex") || ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase)
+                ? "Unable to connect to server. Please check your internet connection."
+                : $"Login failed: {ex.Message}";
             HasError = true;
         }
         finally

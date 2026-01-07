@@ -118,6 +118,11 @@ export const login = mutation({
       return { success: false, error: "Invalid email or password" };
     }
 
+    // Check if user has a password hash (might be missing if created via different auth flow)
+    if (!user.passwordHash) {
+      return { success: false, error: "Account requires password reset. Please use the website to reset your password." };
+    }
+
     // Verify password
     const isValid = await verifyPassword(args.password, user.passwordHash);
     if (!isValid) {
