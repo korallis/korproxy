@@ -264,3 +264,66 @@ export const refreshSession = mutation({
     return { success: true, newToken };
   },
 });
+
+/**
+ * Change password for authenticated user
+ */
+export const changePassword = mutation({
+  args: {
+    token: v.string(),
+    currentPassword: v.string(),
+    newPassword: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getUserFromToken(ctx, args.token);
+    if (!user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    if (!user.passwordHash) {
+      return { success: false, error: "Account requires password reset via email" };
+    }
+
+    const isValid = await verifyPassword(args.currentPassword, user.passwordHash);
+    if (!isValid) {
+      return { success: false, error: "Current password is incorrect" };
+    }
+
+    if (args.newPassword.length < 8) {
+      return { success: false, error: "New password must be at least 8 characters" };
+    }
+
+    if (args.newPassword === args.currentPassword) {
+      return { success: false, error: "New password must be different from current password" };
+    }
+
+    const newHash = await hashPassword(args.newPassword);
+    await ctx.db.patch(user._id, {
+      passwordHash: newHash,
+      updatedAt: Date.now(),
+    });
+
+    // Invalidate all other sessions for security
+    const currentSession = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    const allSessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    for (const session of allSessions) {
+      if (currentSession && session._id !== currentSession._id) {
+        await ctx.db.delete(session._id);
+      }
+    }
+
+    return { success: true };
+  },
+});

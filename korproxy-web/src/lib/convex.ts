@@ -9,7 +9,7 @@ export function getConvexClient(): ConvexReactClient {
     return cachedClient;
   }
 
-  const defaultConvexUrl = "https://warmhearted-warthog-801.convex.cloud";
+  const defaultConvexUrl = "https://content-pig-658.convex.cloud";
   const envConvexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   const convexUrl =
     typeof envConvexUrl === "string" && envConvexUrl.trim().length > 0

@@ -31,6 +31,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   createCheckoutSession: (plan: "monthly" | "yearly", successUrl: string, cancelUrl: string) => Promise<{ url?: string; error?: string }>;
   createPortalSession: (returnUrl: string) => Promise<{ url?: string; error?: string }>;
 }
@@ -130,6 +131,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, [convex, token, saveToken]);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+    try {
+      const result = await convex.mutation(api.auth.changePassword, {
+        token,
+        currentPassword,
+        newPassword,
+      });
+      return result;
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : "Failed to change password" };
+    }
+  }, [convex, token]);
+
   const createCheckoutSession = useCallback(async (plan: "monthly" | "yearly", successUrl: string, cancelUrl: string) => {
     if (!token) {
       return { error: "Not authenticated" };
@@ -172,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        changePassword,
         createCheckoutSession,
         createPortalSession,
       }}

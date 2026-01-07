@@ -15,6 +15,10 @@ import {
   Loader2,
   Apple,
   MonitorSmartphone,
+  Lock,
+  Eye,
+  EyeOff,
+  Check,
 } from "lucide-react";
 
 function formatLastSeen(timestamp: number): string {
@@ -70,11 +74,22 @@ function getDeviceIcon(deviceType: string) {
 }
 
 export default function AccountPage() {
-  const { user, token } = useAuth();
+  const { user, token, changePassword } = useAuth();
   const convex = useConvex();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingDevice, setRemovingDevice] = useState<string | null>(null);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   const fetchDevices = useCallback(async () => {
     if (!token) return;
@@ -107,6 +122,45 @@ export default function AccountPage() {
       console.error("Failed to remove device:", error);
     } finally {
       setRemovingDevice(null);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    // Client-side validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("All fields are required");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const result = await changePassword(currentPassword, newPassword);
+      if (result.success) {
+        setPasswordSuccess("Password updated successfully. Other devices have been signed out.");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setPasswordError(result.error || "Failed to change password");
+      }
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "Failed to change password");
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -164,6 +218,129 @@ export default function AccountPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Security - Password Change */}
+      <div className="glass-card p-8">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
+            <Lock size={20} className="text-red-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold">Security</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Update your password to keep your account secure
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+          {/* Current Password */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Current Password
+            </label>
+            <div className="relative">
+              <input
+                type={showCurrentPassword ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-muted/50 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all pr-12"
+                placeholder="Enter current password"
+                disabled={isChangingPassword}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* New Password */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              New Password
+            </label>
+            <div className="relative">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-muted/50 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all pr-12"
+                placeholder="Enter new password"
+                disabled={isChangingPassword}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Must be at least 8 characters
+            </p>
+          </div>
+
+          {/* Confirm New Password */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-muted/50 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all pr-12"
+                placeholder="Confirm new password"
+                disabled={isChangingPassword}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {passwordError && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-sm text-red-400">{passwordError}</p>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {passwordSuccess && (
+            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2">
+              <Check size={16} className="text-green-400" />
+              <p className="text-sm text-green-400">{passwordSuccess}</p>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isChangingPassword ? (
+              <>
+                <Loader2 className="animate-spin" size={18} />
+                Updating...
+              </>
+            ) : (
+              "Update Password"
+            )}
+          </button>
+        </form>
       </div>
 
       {/* Devices */}
