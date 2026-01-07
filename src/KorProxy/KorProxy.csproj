@@ -15,8 +15,8 @@
     <!-- Assembly info -->
     <AssemblyName>KorProxy</AssemblyName>
     <Product>KorProxy</Product>
-    <Version>2.1.6</Version>
-    <AssemblyVersion>2.1.6.0</AssemblyVersion>
+    <Version>2.1.7</Version>
+    <AssemblyVersion>2.1.7.0</AssemblyVersion>
     <FileVersion>2.1.6.0</FileVersion>
     <Description>Desktop GUI for CLIProxyAPI - AI CLI proxy manager</Description>
     <Copyright>Copyright 2025</Copyright>
