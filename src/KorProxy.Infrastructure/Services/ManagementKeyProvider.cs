@@ -5,52 +5,39 @@ using Microsoft.Extensions.Logging;
 
 namespace KorProxy.Infrastructure.Services;
 
+/// <summary>
+/// Provides the management API secret key by reading/writing directly to the config file.
+/// This matches how CLIProxyAPI handles the key - no Keychain or secure storage needed.
+/// </summary>
 public sealed partial class ManagementKeyProvider : IManagementKeyProvider
 {
-    private const string StorageKey = "management-key";
     private const int KeySizeBytes = 32;
 
-    private readonly ISecureStorage _secureStorage;
     private readonly IAppPaths _appPaths;
     private readonly ILogger<ManagementKeyProvider> _logger;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     private string? _cachedKey;
 
-    public ManagementKeyProvider(
-        ISecureStorage secureStorage,
-        IAppPaths appPaths,
-        ILogger<ManagementKeyProvider> logger)
+    public ManagementKeyProvider(IAppPaths appPaths, ILogger<ManagementKeyProvider> logger)
     {
-        _secureStorage = secureStorage;
         _appPaths = appPaths;
         _logger = logger;
     }
 
-    public async Task<string?> GetKeyAsync(CancellationToken ct = default)
+    public Task<string?> GetKeyAsync(CancellationToken ct = default)
     {
         if (_cachedKey != null)
-            return _cachedKey;
+            return Task.FromResult<string?>(_cachedKey);
 
-        await _lock.WaitAsync(ct);
-        try
+        var key = ReadKeyFromConfig();
+        if (!string.IsNullOrEmpty(key))
         {
-            if (_cachedKey != null)
-                return _cachedKey;
-
-            var key = await _secureStorage.ReadAsync(StorageKey, ct);
-            if (!string.IsNullOrEmpty(key))
-            {
-                _cachedKey = key;
-                return key;
-            }
-
-            return null;
+            _cachedKey = key;
+            return Task.FromResult<string?>(_cachedKey);
         }
-        finally
-        {
-            _lock.Release();
-        }
+
+        return Task.FromResult<string?>(null);
     }
 
     public async Task<string> GetOrCreateKeyAsync(CancellationToken ct = default)
@@ -64,25 +51,16 @@ public sealed partial class ManagementKeyProvider : IManagementKeyProvider
             if (_cachedKey != null)
                 return _cachedKey;
 
-            var key = await _secureStorage.ReadAsync(StorageKey, ct);
-            if (!string.IsNullOrEmpty(key))
+            var existingKey = ReadKeyFromConfig();
+            if (!string.IsNullOrEmpty(existingKey))
             {
-                _cachedKey = key;
-                return key;
+                _logger.LogDebug("Using existing management key from config file");
+                _cachedKey = existingKey;
+                return existingKey;
             }
 
-            var configKey = TryReadKeyFromConfig();
-            if (!string.IsNullOrEmpty(configKey))
-            {
-                _logger.LogInformation("Migrating management key from config file to secure storage");
-                await _secureStorage.SaveAsync(StorageKey, configKey, ct);
-                _cachedKey = configKey;
-                return configKey;
-            }
-
+            _logger.LogInformation("No management key found in config, generating new key");
             var newKey = GenerateSecureKey();
-            _logger.LogInformation("Generated new secure management key");
-            await _secureStorage.SaveAsync(StorageKey, newKey, ct);
             _cachedKey = newKey;
             return newKey;
         }
@@ -92,28 +70,57 @@ public sealed partial class ManagementKeyProvider : IManagementKeyProvider
         }
     }
 
-    private string? TryReadKeyFromConfig()
+    /// <summary>
+    /// Reads the plaintext secret-key from config. Returns null if not found or if it's already hashed.
+    /// </summary>
+    private string? ReadKeyFromConfig()
     {
         try
         {
             var configPath = _appPaths.ConfigFilePath;
             if (!File.Exists(configPath))
+            {
+                _logger.LogDebug("Config file does not exist at {Path}", configPath);
                 return null;
+            }
 
             var content = File.ReadAllText(configPath);
             var match = SecretKeyRegex().Match(content);
-            if (match.Success)
+
+            if (!match.Success)
             {
-                var key = match.Groups[1].Value;
-                // Skip empty, default key, and bcrypt hashes (CLIProxyAPI hashes the key on startup)
-                if (!string.IsNullOrEmpty(key) && 
-                    key != "korproxy-mgmt-key" && 
-                    !key.StartsWith("$2a$") && 
-                    !key.StartsWith("$2b$"))
-                    return key;
+                _logger.LogDebug("No secret-key found in config file");
+                return null;
             }
 
-            return null;
+            var key = match.Groups[1].Value;
+
+            if (string.IsNullOrEmpty(key))
+            {
+                _logger.LogDebug("Secret-key in config is empty");
+                return null;
+            }
+
+            if (key == "korproxy-mgmt-key")
+            {
+                _logger.LogDebug("Config contains default placeholder key");
+                return null;
+            }
+
+            // CLIProxyAPI hashes the key with bcrypt on startup.
+            // If we see a bcrypt hash, it means the proxy already ran and we can't recover the plaintext.
+            // This is fine - we'll generate a new key and update the config.
+            if (key.StartsWith("$2a$") || key.StartsWith("$2b$"))
+            {
+                _logger.LogWarning(
+                    "Config contains bcrypt-hashed key. The plaintext key was lost. " +
+                    "This can happen if the app was updated or reinstalled. " +
+                    "A new key will be generated.");
+                return null;
+            }
+
+            _logger.LogDebug("Found plaintext management key in config");
+            return key;
         }
         catch (Exception ex)
         {
