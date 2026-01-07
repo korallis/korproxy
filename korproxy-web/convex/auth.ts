@@ -8,6 +8,10 @@ const MASTER_ADMIN_EMAIL = "leebarry84@icloud.com";
 // Session duration: 30 days
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
+function optionalFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 /**
  * Get current user from session token
  */
@@ -184,6 +188,9 @@ export const me = query({
     const user = await getUserFromToken(ctx, args.token);
     if (!user) return null;
 
+    const trialEnd = optionalFiniteNumber(user.trialEnd);
+    const currentPeriodEnd = optionalFiniteNumber(user.currentPeriodEnd);
+
     return {
       id: user._id,
       email: user.email,
@@ -191,8 +198,8 @@ export const me = query({
       role: user.role,
       subscriptionStatus: user.subscriptionStatus,
       subscriptionPlan: user.subscriptionPlan,
-      trialEnd: user.trialEnd,
-      currentPeriodEnd: user.currentPeriodEnd,
+      trialEnd,
+      currentPeriodEnd,
       cancelAtPeriodEnd: user.cancelAtPeriodEnd,
     };
   },

@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KorProxy.Core.Services;
+using KorProxy.Infrastructure.Serialization;
 
 namespace KorProxy.Infrastructure.Services;
 
@@ -13,7 +14,11 @@ public sealed class ConvexHttpClient : IConvexApiClient
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters =
+        {
+            new LenientNullableInt64JsonConverter()
+        }
     };
 
     public ConvexHttpClient(HttpClient httpClient)

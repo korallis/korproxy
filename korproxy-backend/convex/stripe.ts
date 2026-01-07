@@ -1073,6 +1073,12 @@ export const updateUserSubscription = internalMutation({
       return null;
     }
 
+    const trialEnd = typeof args.trialEnd === "number" && Number.isFinite(args.trialEnd) ? args.trialEnd : undefined;
+    const currentPeriodEnd =
+      typeof args.currentPeriodEnd === "number" && Number.isFinite(args.currentPeriodEnd)
+        ? args.currentPeriodEnd
+        : undefined;
+
     // Don't modify lifetime users
     if (user.subscriptionStatus === "lifetime") {
       console.log("Skipping update - user has lifetime status");
@@ -1087,8 +1093,8 @@ export const updateUserSubscription = internalMutation({
       subscriptionPlan: args.plan,
       stripeSubscriptionId: args.stripeSubscriptionId,
       stripePriceId: args.stripePriceId,
-      trialEnd: args.trialEnd,
-      currentPeriodEnd: args.currentPeriodEnd,
+      trialEnd,
+      currentPeriodEnd,
       cancelAtPeriodEnd: args.cancelAtPeriodEnd,
       updatedAt: Date.now(),
     });

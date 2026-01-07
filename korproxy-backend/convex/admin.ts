@@ -869,3 +869,85 @@ export const searchUsers = query({
     return { users: matchingUsers };
   },
 });
+
+/**
+ * Repair invalid subscription timestamps (admin only).
+ *
+ * Convex considers NaN/Infinity "numbers", but they aren't representable in JSON and can surface as strings (e.g. "NaN")
+ * over the HTTP API. This mutation clears any non-finite `trialEnd` / `currentPeriodEnd` values.
+ */
+export const repairSubscriptionDates = mutation({
+  args: {
+    token: v.string(),
+    email: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      scanned: v.number(),
+      repaired: v.number(),
+    }),
+    v.object({ error: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const isAdmin = await verifyAdmin(ctx, args.token);
+    if (!isAdmin) {
+      return { error: "Unauthorized - admin access required" };
+    }
+
+    const now = Date.now();
+
+    const repairUser = async (user: { _id: Id<"users">; trialEnd?: unknown; currentPeriodEnd?: unknown }) => {
+      let changed = false;
+      const updates: { trialEnd?: number; currentPeriodEnd?: number; updatedAt: number } = { updatedAt: now };
+
+      const trialEndIsFinite = typeof user.trialEnd === "number" && Number.isFinite(user.trialEnd);
+      const currentPeriodEndIsFinite =
+        typeof user.currentPeriodEnd === "number" && Number.isFinite(user.currentPeriodEnd);
+
+      if (user.trialEnd !== undefined && !trialEndIsFinite) {
+        updates.trialEnd = undefined;
+        changed = true;
+      }
+
+      if (user.currentPeriodEnd !== undefined && !currentPeriodEndIsFinite) {
+        updates.currentPeriodEnd = undefined;
+        changed = true;
+      }
+
+      if (!changed) {
+        return false;
+      }
+
+      await ctx.db.patch(user._id, updates);
+      return true;
+    };
+
+    // Repair a single user by email (most common workflow)
+    if (args.email) {
+      const normalizedEmail = args.email.toLowerCase().trim();
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+        .first();
+
+      if (!user) {
+        return { error: `User ${normalizedEmail} not found` };
+      }
+
+      const repaired = (await repairUser(user)) ? 1 : 0;
+      return { scanned: 1, repaired };
+    }
+
+    // Repair all users (maintenance)
+    const users = await ctx.db.query("users").collect();
+    let repaired = 0;
+
+    for (const user of users) {
+      if (await repairUser(user)) {
+        repaired++;
+      }
+    }
+
+    return { scanned: users.length, repaired };
+  },
+});

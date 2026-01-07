@@ -1,6 +1,10 @@
 import { v } from "convex/values";
 import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
 
+function optionalFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 /**
  * Helper to get user from token
  */
@@ -45,6 +49,9 @@ export const getStatus = query({
     const user = await getUserFromToken(ctx, args.token);
     if (!user) return null;
 
+    const trialEnd = optionalFiniteNumber(user.trialEnd);
+    const currentPeriodEnd = optionalFiniteNumber(user.currentPeriodEnd);
+
     const now = Date.now();
 
     // Normalize subscription status for UI
@@ -59,27 +66,27 @@ export const getStatus = query({
         break;
       case "active":
         // Check if actually expired
-        if (user.currentPeriodEnd && user.currentPeriodEnd < now) {
+        if (currentPeriodEnd && currentPeriodEnd < now) {
           status = "expired";
           isActive = false;
         } else {
           status = "active";
           isActive = true;
-          if (user.currentPeriodEnd) {
-            daysLeft = Math.ceil((user.currentPeriodEnd - now) / (1000 * 60 * 60 * 24));
+          if (currentPeriodEnd) {
+            daysLeft = Math.ceil((currentPeriodEnd - now) / (1000 * 60 * 60 * 24));
           }
         }
         break;
       case "trialing":
         // Check if trial expired
-        if (user.trialEnd && user.trialEnd < now) {
+        if (trialEnd && trialEnd < now) {
           status = "expired";
           isActive = false;
         } else {
           status = "trial";
           isActive = true;
-          if (user.trialEnd) {
-            daysLeft = Math.ceil((user.trialEnd - now) / (1000 * 60 * 60 * 24));
+          if (trialEnd) {
+            daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
           }
         }
         break;
@@ -89,10 +96,10 @@ export const getStatus = query({
         break;
       case "canceled":
         // Canceled but might still have access until period end
-        if (user.currentPeriodEnd && user.currentPeriodEnd > now) {
+        if (currentPeriodEnd && currentPeriodEnd > now) {
           status = "canceled";
           isActive = true;
-          daysLeft = Math.ceil((user.currentPeriodEnd - now) / (1000 * 60 * 60 * 24));
+          daysLeft = Math.ceil((currentPeriodEnd - now) / (1000 * 60 * 60 * 24));
         } else {
           status = "expired";
           isActive = false;
@@ -110,8 +117,8 @@ export const getStatus = query({
     return {
       status,
       plan: user.subscriptionPlan,
-      trialEnd: user.trialEnd,
-      currentPeriodEnd: user.currentPeriodEnd,
+      trialEnd,
+      currentPeriodEnd,
       cancelAtPeriodEnd: user.cancelAtPeriodEnd,
       isActive,
       daysLeft,
@@ -145,6 +152,12 @@ export const updateSubscription = mutation({
     const user = await ctx.db.get(args.userId);
     if (!user) return { success: false };
 
+    const trialEnd = typeof args.trialEnd === "number" && Number.isFinite(args.trialEnd) ? args.trialEnd : undefined;
+    const currentPeriodEnd =
+      typeof args.currentPeriodEnd === "number" && Number.isFinite(args.currentPeriodEnd)
+        ? args.currentPeriodEnd
+        : undefined;
+
     // Don't modify lifetime users
     if (user.subscriptionStatus === "lifetime") {
       return { success: true };
@@ -158,8 +171,8 @@ export const updateSubscription = mutation({
       subscriptionPlan: args.plan,
       stripeSubscriptionId: args.stripeSubscriptionId,
       stripePriceId: args.stripePriceId,
-      trialEnd: args.trialEnd,
-      currentPeriodEnd: args.currentPeriodEnd,
+      trialEnd,
+      currentPeriodEnd,
       cancelAtPeriodEnd: args.cancelAtPeriodEnd,
       updatedAt: Date.now(),
     });
