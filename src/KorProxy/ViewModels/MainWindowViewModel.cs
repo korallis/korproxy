@@ -319,7 +319,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         StatusText = state switch
         {
-            ProxyState.Running => $"Proxy running on port {status?.EndpointUrl?.Split(':').LastOrDefault() ?? "1337"}",
+            ProxyState.Running => $"Proxy running on port {status?.EndpointUrl?.Split(':').LastOrDefault() ?? "8317"}",
             ProxyState.Error => status?.LastError?.Message ?? "Proxy error",
             ProxyState.CircuitOpen => status?.LastError?.Message ?? "Circuit breaker is open",
             _ => state.ToString()

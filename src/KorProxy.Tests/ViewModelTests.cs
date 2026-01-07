@@ -185,7 +185,7 @@ public class ViewModelTests
     {
         // Arrange & Act - Test ProxyStatus record correctly stores state
         var stoppedStatus = new ProxyStatus(ProxyState.Stopped, null, null, null, 0, null);
-        var runningStatus = new ProxyStatus(ProxyState.Running, 1234, DateTimeOffset.UtcNow, "http://localhost:1337", 0, null);
+        var runningStatus = new ProxyStatus(ProxyState.Running, 1234, DateTimeOffset.UtcNow, "http://localhost:8317", 0, null);
         var errorStatus = new ProxyStatus(ProxyState.Error, null, null, null, 3, new Exception("Test error"));
 
         // Assert
@@ -194,7 +194,7 @@ public class ViewModelTests
         
         Assert.Equal(ProxyState.Running, runningStatus.State);
         Assert.Equal(1234, runningStatus.ProcessId);
-        Assert.Equal("http://localhost:1337", runningStatus.EndpointUrl);
+        Assert.Equal("http://localhost:8317", runningStatus.EndpointUrl);
         
         Assert.Equal(ProxyState.Error, errorStatus.State);
         Assert.Equal(3, errorStatus.ConsecutiveFailures);

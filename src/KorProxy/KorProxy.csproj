@@ -15,9 +15,9 @@
     <!-- Assembly info -->
     <AssemblyName>KorProxy</AssemblyName>
     <Product>KorProxy</Product>
-    <Version>2.1.4</Version>
-    <AssemblyVersion>2.1.4.0</AssemblyVersion>
-    <FileVersion>2.1.4.0</FileVersion>
+    <Version>2.1.5</Version>
+    <AssemblyVersion>2.1.5.0</AssemblyVersion>
+    <FileVersion>2.1.5.0</FileVersion>
     <Description>Desktop GUI for CLIProxyAPI - AI CLI proxy manager</Description>
     <Copyright>Copyright 2025</Copyright>
     
@@ -25,8 +25,8 @@
     <CFBundleName>KorProxy</CFBundleName>
     <CFBundleDisplayName>KorProxy</CFBundleDisplayName>
     <CFBundleIdentifier>com.korproxy.app</CFBundleIdentifier>
-    <CFBundleVersion>2.1.4</CFBundleVersion>
-    <CFBundleShortVersionString>2.1.4</CFBundleShortVersionString>
+    <CFBundleVersion>2.1.5</CFBundleVersion>
+    <CFBundleShortVersionString>2.1.5</CFBundleShortVersionString>
     <NSHighResolutionCapable>true</NSHighResolutionCapable>
   </PropertyGroup>
 
