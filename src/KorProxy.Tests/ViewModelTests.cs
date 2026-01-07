@@ -206,23 +206,28 @@ public class ViewModelTests
     {
         // Arrange
         var apiClient = new Mock<IManagementApiClient>();
+        var keyProvider = new Mock<IManagementKeyProvider>();
         var appPaths = new Mock<IAppPaths>();
         var updateService = new Mock<IUpdateService>();
         var startupLaunchService = new Mock<IStartupLaunchService>();
         var navigationService = new Mock<INavigationService>();
+        var proxySupervisor = new Mock<IProxySupervisor>();
         var options = Microsoft.Extensions.Options.Options.Create(new ProxyOptions());
 
         appPaths.SetupGet(x => x.ConfigFilePath).Returns("/test/config.yaml");
         appPaths.SetupGet(x => x.DataDirectory).Returns("/test/data");
         updateService.SetupGet(x => x.IsPortableBuild).Returns(false);
         updateService.SetupGet(x => x.State).Returns(new UpdateState(UpdateStatus.Idle, null, null, null));
+        proxySupervisor.SetupGet(x => x.State).Returns(ProxyState.Running);
 
         var viewModel = new SettingsViewModel(
             apiClient.Object,
+            keyProvider.Object,
             appPaths.Object,
             updateService.Object,
             startupLaunchService.Object,
             navigationService.Object,
+            proxySupervisor.Object,
             options);
 
         // Act - Simulate update state change

@@ -57,6 +57,12 @@ public interface IManagementApiClient
     
     /// <summary>Delete an OpenAI-compatible provider by name</summary>
     Task<bool> DeleteOpenAiCompatProviderAsync(string name, CancellationToken ct = default);
+    
+    /// <summary>Check if usage statistics are enabled</summary>
+    Task<bool?> GetUsageStatisticsEnabledAsync(CancellationToken ct = default);
+
+    /// <summary>Enable or disable usage statistics collection</summary>
+    Task<bool> SetUsageStatisticsEnabledAsync(bool enabled, CancellationToken ct = default);
 }
 
 /// <summary>

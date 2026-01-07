@@ -802,6 +802,56 @@ public sealed class ManagementApiClient : IManagementApiClient
         }
     }
 
+    public async Task<bool?> GetUsageStatisticsEnabledAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/v0/management/usage-statistics-enabled", ct);
+            response.EnsureSuccessStatusCode();
+
+            var root = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions, ct);
+            if (root.ValueKind == JsonValueKind.Object && 
+                root.TryGetProperty("usage-statistics-enabled", out var prop) &&
+                (prop.ValueKind == JsonValueKind.True || prop.ValueKind == JsonValueKind.False))
+            {
+                return prop.GetBoolean();
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get usage statistics enabled status");
+            return null;
+        }
+    }
+
+    public async Task<bool> SetUsageStatisticsEnabledAsync(bool enabled, CancellationToken ct = default)
+    {
+        try
+        {
+            var payload = new { value = enabled };
+            var response = await _httpClient.PutAsJsonAsync(
+                "/v0/management/usage-statistics-enabled",
+                payload,
+                JsonOptions,
+                ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await SafeReadBodyAsync(response, ct);
+                _logger.LogError("Failed to set usage statistics enabled: {StatusCode} - {Body}", response.StatusCode, body);
+            }
+
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set usage statistics enabled to {Enabled}", enabled);
+            return false;
+        }
+    }
+
     private static OpenAiCompatProvider MapProvider(OpenAiCompatProviderDto dto) => new()
     {
         Name = dto.Name ?? "",

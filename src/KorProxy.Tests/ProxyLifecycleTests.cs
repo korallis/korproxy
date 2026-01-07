@@ -126,8 +126,7 @@ public class ProxyLifecycleTests
             AutoStart = true,
             HttpTimeoutSeconds = 10,
             StartupTimeoutSeconds = 30,
-            MaxConsecutiveFailures = 5,
-            ManagementKey = "test-key"
+            MaxConsecutiveFailures = 5
         };
 
         // Assert - Default options match expected configuration
@@ -137,7 +136,6 @@ public class ProxyLifecycleTests
         Assert.Equal(10, options.HttpTimeoutSeconds);
         Assert.Equal(30, options.StartupTimeoutSeconds);
         Assert.Equal(5, options.MaxConsecutiveFailures);
-        Assert.Equal("test-key", options.ManagementKey);
     }
 
     [Fact]

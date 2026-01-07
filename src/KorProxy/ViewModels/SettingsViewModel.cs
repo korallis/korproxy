@@ -12,15 +12,23 @@ namespace KorProxy.ViewModels;
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly IManagementApiClient _apiClient;
+    private readonly IManagementKeyProvider _keyProvider;
     private readonly IAppPaths _appPaths;
     private readonly IUpdateService _updateService;
     private readonly IStartupLaunchService? _startupLaunchService;
     private readonly INavigationService? _navigationService;
+    private readonly IProxySupervisor? _proxySupervisor;
     private readonly ProxyOptions _options;
 
     // Settings page navigation
     [ObservableProperty]
     private int _selectedPageIndex;
+    
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSaveSettings))]
+    private bool _isProxyRunning;
+    
+    public bool CanSaveSettings => IsProxyRunning && HasChanges;
     
     // Proxy settings
     [ObservableProperty]
@@ -53,6 +61,7 @@ public partial class SettingsViewModel : ViewModelBase
     private bool _isLoading;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSaveSettings))]
     private bool _hasChanges;
 
     [ObservableProperty]
@@ -87,18 +96,22 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ActivatorUtilitiesConstructor]
     public SettingsViewModel(
-        IManagementApiClient apiClient, 
+        IManagementApiClient apiClient,
+        IManagementKeyProvider keyProvider,
         IAppPaths appPaths,
         IUpdateService updateService,
         IStartupLaunchService startupLaunchService,
         INavigationService navigationService,
+        IProxySupervisor proxySupervisor,
         IOptions<ProxyOptions> options)
     {
         _apiClient = apiClient;
+        _keyProvider = keyProvider;
         _appPaths = appPaths;
         _updateService = updateService;
         _startupLaunchService = startupLaunchService;
         _navigationService = navigationService;
+        _proxySupervisor = proxySupervisor;
         _options = options.Value;
         
         ConfigFilePath = _appPaths.ConfigFilePath;
@@ -108,6 +121,9 @@ public partial class SettingsViewModel : ViewModelBase
         _updateService.StateChanged += OnUpdateStateChanged;
         UpdateFromState(_updateService.State);
         
+        _proxySupervisor.StateChanged += OnProxyStateChanged;
+        IsProxyRunning = _proxySupervisor.State == ProxyState.Running;
+        
         LoadVersionInfo();
     }
 
@@ -115,10 +131,12 @@ public partial class SettingsViewModel : ViewModelBase
     public SettingsViewModel()
     {
         _apiClient = null!;
+        _keyProvider = null!;
         _appPaths = null!;
         _updateService = null!;
         _startupLaunchService = null;
         _navigationService = null;
+        _proxySupervisor = null;
         _options = new ProxyOptions();
         
         Port = 8317;
@@ -128,6 +146,7 @@ public partial class SettingsViewModel : ViewModelBase
         AppVersion = "1.0.0";
         LastUpdatedDate = "January 2026";
         BuildInfo = ".NET 8.0 / Avalonia 11";
+        IsProxyRunning = true;
     }
     
     private void LoadVersionInfo()
@@ -266,6 +285,7 @@ public partial class SettingsViewModel : ViewModelBase
             // IMPORTANT: CLIProxyAPI's config.yaml uses kebab-case keys (e.g. api-keys, auth-dir).
             // Never overwrite the whole file from scratch here; preserve existing sections.
             var yaml = await _apiClient.GetConfigYamlAsync();
+            var managementKey = await _keyProvider.GetOrCreateKeyAsync();
             if (string.IsNullOrWhiteSpace(yaml))
             {
                 // Fall back to a safe default baseline, matching ProxySupervisor.EnsureConfigFileExists().
@@ -276,7 +296,7 @@ public partial class SettingsViewModel : ViewModelBase
                     api-keys:
                       - \"korproxy-local-key\"
                     remote-management:
-                      secret-key: \"{_options.ManagementKey}\"
+                      secret-key: \"{managementKey}\"
                     debug: false
                     logging-to-file: false
                     usage-statistics-enabled: true
@@ -304,7 +324,7 @@ public partial class SettingsViewModel : ViewModelBase
             // Ensure required keys exist for a healthy proxy start.
             yaml = EnsureTopLevelScalar(yaml, "host", $"\"{DefaultHost}\"");
             yaml = EnsureTopLevelScalar(yaml, "auth-dir", $"\"{_appPaths.AuthDirectory.Replace("\\", "/")}\"");
-            yaml = EnsureTopLevelYamlSection(yaml, "remote-management", BuildRemoteManagementYamlSection(_options.ManagementKey));
+            yaml = EnsureTopLevelYamlSection(yaml, "remote-management", BuildRemoteManagementYamlSection(managementKey));
 
             var success = await _apiClient.UpdateConfigAsync(yaml);
             
@@ -413,6 +433,21 @@ public partial class SettingsViewModel : ViewModelBase
     private void OnUpdateStateChanged(object? sender, KorProxy.Core.Models.UpdateState state)
     {
         UpdateFromState(state);
+    }
+    
+    private void OnProxyStateChanged(object? sender, ProxyState state)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            IsProxyRunning = state == ProxyState.Running;
+        });
+    }
+    
+    [RelayCommand]
+    private async Task StartProxyAsync()
+    {
+        if (_proxySupervisor == null) return;
+        await _proxySupervisor.StartAsync();
     }
 
     private void UpdateFromState(KorProxy.Core.Models.UpdateState state)

@@ -48,5 +48,4 @@ public sealed class ProxyOptions
     public int HttpTimeoutSeconds { get; set; } = 10;
     public int StartupTimeoutSeconds { get; set; } = 30;
     public int MaxConsecutiveFailures { get; set; } = 5;
-    public string ManagementKey { get; set; } = "korproxy-mgmt-key";
 }

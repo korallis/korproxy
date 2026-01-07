@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -32,6 +34,9 @@ public partial class LogsViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _autoScroll = true;
+
+    [ObservableProperty]
+    private bool _hasFilters;
 
     public string[] LogLevels { get; } = ["All", "Debug", "Info", "Warning", "Error"];
 
@@ -137,13 +142,33 @@ public partial class LogsViewModel : ViewModelBase
     [RelayCommand]
     private async Task ExportLogsAsync()
     {
-        // Would use file save dialog - simplified for now
         var logsText = string.Join("\n", Logs.Select(l => l.FormattedLine));
         
         var fileName = $"korproxy-logs-{DateTime.Now:yyyyMMdd-HHmmss}.txt";
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
         
         await File.WriteAllTextAsync(path, logsText);
+    }
+
+    [RelayCommand]
+    private async Task CopyLogsAsync()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var clipboard = desktop.MainWindow?.Clipboard;
+            if (clipboard != null)
+            {
+                var logsText = string.Join("\n", Logs.Select(l => l.FormattedLine));
+                await clipboard.SetTextAsync(logsText);
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void ClearFilter()
+    {
+        FilterLevel = "All";
+        SearchText = "";
     }
 
     private bool ShouldShowLog(LogEntry log)
@@ -166,13 +191,19 @@ public partial class LogsViewModel : ViewModelBase
 
     partial void OnFilterLevelChanged(string value)
     {
-        // Refilter existing logs
+        UpdateHasFilters();
         RefreshDisplayedLogs();
     }
 
     partial void OnSearchTextChanged(string value)
     {
+        UpdateHasFilters();
         RefreshDisplayedLogs();
+    }
+
+    private void UpdateHasFilters()
+    {
+        HasFilters = FilterLevel != "All" || !string.IsNullOrWhiteSpace(SearchText);
     }
 
     private void RefreshDisplayedLogs()
@@ -202,13 +233,13 @@ public class LogEntryViewModel
     
     public string FormattedLine => $"[{Timestamp}] [{Level}] [{Source}] {Message}";
     
-    public string LevelColor => Entry.Level.ToUpperInvariant() switch
+    public Avalonia.Media.Color LevelColor => Entry.Level.ToUpperInvariant() switch
     {
-        "ERROR" => "#FF5252",
-        "WARN" or "WARNING" => "#FFB74D",
-        "INFO" => "#4FC3F7",
-        "DEBUG" => "#81C784",
-        _ => "#BDBDBD"
+        "ERROR" => Avalonia.Media.Color.Parse("#FF5252"),
+        "WARN" or "WARNING" => Avalonia.Media.Color.Parse("#FFB74D"),
+        "INFO" => Avalonia.Media.Color.Parse("#4FC3F7"),
+        "DEBUG" => Avalonia.Media.Color.Parse("#81C784"),
+        _ => Avalonia.Media.Color.Parse("#BDBDBD")
     };
 
     public LogEntryViewModel(LogEntry entry)

@@ -15,10 +15,9 @@ public partial class App : Application
 {
     private TrayIcon? _trayIcon;
     private IProxySupervisor? _proxySupervisor;
+    private IAppLifetimeService? _appLifetime;
     private ILogger<App>? _logger;
     private EventHandler<ProxyState>? _stateChangedHandler;
-    private volatile bool _isShuttingDown;
-    private readonly object _shutdownLock = new();
     private CancellationTokenSource? _shutdownCts;
 
     public override void Initialize()
@@ -33,6 +32,7 @@ public partial class App : Application
             var services = Program.AppHost!.Services;
 
             _proxySupervisor = services.GetRequiredService<IProxySupervisor>();
+            _appLifetime = services.GetRequiredService<IAppLifetimeService>();
             _logger = services.GetService<ILogger<App>>();
             _shutdownCts = new CancellationTokenSource();
 
@@ -49,6 +49,16 @@ public partial class App : Application
             // Setup system tray
             SetupTrayIcon(desktop);
 
+            // Subscribe to window restore requests from the lifetime service
+            _appLifetime.WindowRestoreRequested += (_, _) =>
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    desktop.MainWindow?.Show();
+                    desktop.MainWindow?.Activate();
+                });
+            };
+
             // On macOS, clicking the dock icon when the window is hidden triggers ActivationKind.Reopen.
             // Use IActivatableLifetime to restore the main window in that scenario.
             var activatableFeature = Application.Current?.TryGetFeature(typeof(IActivatableLifetime));
@@ -56,16 +66,12 @@ public partial class App : Application
             {
                 activatableLifetime.Activated += (_, args) =>
                 {
-                    if (_isShuttingDown)
+                    if (_appLifetime.IsShuttingDown)
                         return;
 
                     if (args.Kind == ActivationKind.Reopen)
                     {
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            desktop.MainWindow?.Show();
-                            desktop.MainWindow?.Activate();
-                        });
+                        _appLifetime.RequestWindowRestore();
                     }
                 };
             }
@@ -79,9 +85,9 @@ public partial class App : Application
 
     private void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {
-        // Don't flip _isShuttingDown here. Some macOS quit paths can end up cancelled at the OS/window level,
+        // Don't flip IsShuttingDown here. Some macOS quit paths can end up cancelled at the OS/window level,
         // and setting this flag too early makes the app appear "frozen" (dock click won't re-open, etc).
-        // We'll set _isShuttingDown in OnExit once shutdown is actually proceeding.
+        // We'll set IsShuttingDown in OnExit once shutdown is actually proceeding.
         _logger?.LogInformation("ShutdownRequested received");
 
         // IMPORTANT:
@@ -108,10 +114,7 @@ public partial class App : Application
 
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
     {
-        lock (_shutdownLock)
-        {
-            _isShuttingDown = true;
-        }
+        _appLifetime?.RequestShutdown();
 
         _logger?.LogInformation("Exit event received (ApplicationExitCode={ExitCode})", e.ApplicationExitCode);
 
@@ -164,7 +167,7 @@ public partial class App : Application
         var startStopItem = new NativeMenuItem("Stop");
         startStopItem.Click += async (_, _) =>
         {
-            if (_isShuttingDown) return;
+            if (_appLifetime?.IsShuttingDown == true) return;
 
             try
             {
@@ -193,10 +196,8 @@ public partial class App : Application
         var showItem = new NativeMenuItem("Show");
         showItem.Click += (_, _) =>
         {
-            if (_isShuttingDown) return;
-
-            desktop.MainWindow?.Show();
-            desktop.MainWindow?.Activate();
+            if (_appLifetime?.IsShuttingDown == true) return;
+            _appLifetime?.RequestWindowRestore();
         };
 
         var exitItem = new NativeMenuItem("Exit");
@@ -217,21 +218,20 @@ public partial class App : Application
         // Click on tray icon shows the window (macOS behavior)
         _trayIcon.Clicked += (_, _) =>
         {
-            if (_isShuttingDown) return;
-            desktop.MainWindow?.Show();
-            desktop.MainWindow?.Activate();
+            if (_appLifetime?.IsShuttingDown == true) return;
+            _appLifetime?.RequestWindowRestore();
         };
 
         _stateChangedHandler = (_, state) =>
         {
             // Guard against updates during shutdown
-            if (_isShuttingDown || _trayIcon == null) return;
+            if (_appLifetime?.IsShuttingDown == true || _trayIcon == null) return;
 
             // Use InvokeAsync for safer thread marshalling
             Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
                 // Double-check state after marshalling to UI thread
-                if (_isShuttingDown || _trayIcon == null) return;
+                if (_appLifetime?.IsShuttingDown == true || _trayIcon == null) return;
 
                 try
                 {

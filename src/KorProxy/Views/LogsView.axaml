@@ -13,9 +13,12 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
         </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="MinWidth" Value="120" />
+        </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,*" Margin="24">
+    <Grid RowDefinitions="Auto,Auto,*" Margin="24">
         <!-- Header -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
             <StackPanel Grid.Column="0" Spacing="4">
@@ -27,20 +30,93 @@
                            FontSize="14"
                            Foreground="{StaticResource TextSecondaryBrush}" />
             </StackPanel>
-            <Button Grid.Column="1"
-                    Command="{Binding ClearLogsCommand}"
-                    VerticalAlignment="Top"
-                    Padding="12,8">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <mi:MaterialIcon Kind="Delete" Width="16" Height="16" />
-                    <TextBlock Text="Clear" />
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                <Button Command="{Binding CopyLogsCommand}"
+                        ToolTip.Tip="Copy all visible logs to clipboard"
+                        Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                        <TextBlock Text="Copy All" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding ClearLogsCommand}"
+                        Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Delete" Width="16" Height="16" />
+                        <TextBlock Text="Clear" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
+        <!-- Filter Bar -->
+        <Border Grid.Row="1" Classes="card" Padding="16" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12">
+                <!-- Level Filter -->
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock Text="Level"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextTertiaryBrush}" />
+                    <ComboBox ItemsSource="{Binding LogLevels}"
+                              SelectedItem="{Binding FilterLevel}"
+                              MinWidth="120" />
+                </StackPanel>
+
+                <!-- Search Filter -->
+                <StackPanel Grid.Column="1" Spacing="4" MinWidth="300">
+                    <TextBlock Text="Search"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextTertiaryBrush}" />
+                    <Grid>
+                        <TextBox Text="{Binding SearchText}"
+                                 Watermark="Filter by message or source..."
+                                 Padding="32,8,8,8" />
+                        <mi:MaterialIcon Kind="Magnify"
+                                         Width="16" Height="16"
+                                         Margin="10,0,0,0"
+                                         Foreground="{StaticResource TextTertiaryBrush}"
+                                         VerticalAlignment="Center"
+                                         HorizontalAlignment="Left"
+                                         IsHitTestVisible="False" />
+                    </Grid>
+                </StackPanel>
+
+                <!-- Spacer -->
+                <Panel Grid.Column="2" />
+
+                <!-- Clear Filters Button -->
+                <Button Grid.Column="3"
+                        Command="{Binding ClearFilterCommand}"
+                        IsVisible="{Binding HasFilters}"
+                        VerticalAlignment="Bottom"
+                        Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <mi:MaterialIcon Kind="FilterRemove" Width="14" Height="14" />
+                        <TextBlock Text="Clear Filters" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
         <!-- Logs List -->
-        <Border Grid.Row="1" Classes="card" Padding="0">
+        <Border Grid.Row="2" Classes="card" Padding="0">
             <Grid>
+                <!-- Loading indicator -->
+                <StackPanel IsVisible="{Binding IsLoading}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="12">
+                    <mi:MaterialIcon Kind="Loading"
+                                     Width="32" Height="32"
+                                     Foreground="{StaticResource TextTertiaryBrush}"
+                                     Classes="spinning" />
+                    <TextBlock Text="Loading logs..."
+                               FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+
                 <!-- Log entries -->
                 <ListBox ItemsSource="{Binding Logs}"
                          Background="Transparent"
@@ -48,23 +124,49 @@
                          IsVisible="{Binding Logs.Count}">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:LogEntryViewModel">
-                            <Border Padding="16,12" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border Padding="16,10" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSubtleBrush}">
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12">
+                                    <!-- Level indicator dot -->
                                     <Border Grid.Column="0"
-                                            Width="6" Height="6"
-                                            CornerRadius="3"
+                                            Width="8" Height="8"
+                                            CornerRadius="4"
                                             VerticalAlignment="Center"
                                             Background="{Binding LevelColor}" />
-                                    <StackPanel Grid.Column="1" Spacing="2">
+                                    
+                                    <!-- Level badge -->
+                                    <Border Grid.Column="1"
+                                            Padding="6,2"
+                                            CornerRadius="4"
+                                            VerticalAlignment="Center"
+                                            MinWidth="50">
+                                        <Border.Background>
+                                            <SolidColorBrush Color="{Binding LevelColor}" Opacity="0.15" />
+                                        </Border.Background>
+                                        <TextBlock Text="{Binding Level}"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   FontFamily="{StaticResource FontFamilyMono}"
+                                                   HorizontalAlignment="Center">
+                                            <TextBlock.Foreground>
+                                                <SolidColorBrush Color="{Binding LevelColor}" />
+                                            </TextBlock.Foreground>
+                                        </TextBlock>
+                                    </Border>
+
+                                    <!-- Message and source -->
+                                    <StackPanel Grid.Column="2" Spacing="2">
                                         <TextBlock Text="{Binding Message}"
                                                    FontSize="13"
+                                                   FontFamily="{StaticResource FontFamilyMono}"
                                                    Foreground="{StaticResource TextPrimaryBrush}"
                                                    TextWrapping="Wrap" />
                                         <TextBlock Text="{Binding Source}"
                                                    FontSize="11"
                                                    Foreground="{StaticResource TextTertiaryBrush}" />
                                     </StackPanel>
-                                    <TextBlock Grid.Column="2"
+
+                                    <!-- Timestamp -->
+                                    <TextBlock Grid.Column="3"
                                                Text="{Binding Timestamp}"
                                                FontSize="11"
                                                FontFamily="{StaticResource FontFamilyMono}"

@@ -15,9 +15,19 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly IProxySupervisor _proxySupervisor;
     private readonly IManagementApiClient _apiClient;
     private readonly INavigationService? _navigationService;
+    private readonly IClipboardService? _clipboardService;
+    private readonly IUsageAggregator? _usageAggregator;
     private CancellationTokenSource? _refreshCts;
 
     private UsageStats? _latestUsage;
+    
+    private int _consecutiveFailures;
+    private int _pollIntervalMs = FastPollMs;
+    
+    private const int FastPollMs = 2000;
+    private const int MediumPollMs = 5000;
+    private const int SlowPollMs = 15000;
+    private const int MaxConsecutiveFailures = 5;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ProxyStateColor))]
@@ -90,12 +100,17 @@ public partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isLoading;
 
+    [ObservableProperty]
+    private bool _isConnected = true;
+
     [ActivatorUtilitiesConstructor]
-    public DashboardViewModel(IProxySupervisor proxySupervisor, IManagementApiClient apiClient, INavigationService navigationService)
+    public DashboardViewModel(IProxySupervisor proxySupervisor, IManagementApiClient apiClient, INavigationService navigationService, IClipboardService clipboardService, IUsageAggregator usageAggregator)
     {
         _proxySupervisor = proxySupervisor;
         _apiClient = apiClient;
         _navigationService = navigationService;
+        _clipboardService = clipboardService;
+        _usageAggregator = usageAggregator;
     }
 
     // Design-time constructor
@@ -104,6 +119,7 @@ public partial class DashboardViewModel : ViewModelBase
         _proxySupervisor = null!;
         _apiClient = null!;
         _navigationService = null;
+        _clipboardService = null;
         
         // Sample data for designer
         StateText = "Running";
@@ -122,6 +138,14 @@ public partial class DashboardViewModel : ViewModelBase
     private void GoToAccounts()
     {
         _navigationService?.NavigateTo("accounts");
+    }
+
+    [RelayCommand]
+    private async Task CopyEndpointAsync()
+    {
+        if (_clipboardService == null) return;
+        var fullUrl = $"http://{EndpointUrl}";
+        await _clipboardService.CopyWithFeedbackAsync(fullUrl, "Endpoint URL copied!");
     }
 
     public bool IsCustomRangeSelected => SelectedRequestRangePreset == "Custom";
@@ -165,13 +189,39 @@ public partial class DashboardViewModel : ViewModelBase
         {
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                if (_consecutiveFailures >= MaxConsecutiveFailures)
+                {
+                    await Task.Delay(SlowPollMs, ct);
+                    await RefreshAsync();
+                    continue;
+                }
+                
+                await Task.Delay(_pollIntervalMs, ct);
                 await RefreshAsync();
             }
             catch (OperationCanceledException)
             {
                 break;
             }
+        }
+    }
+    
+    private void UpdatePollInterval()
+    {
+        var status = _proxySupervisor?.GetStatus();
+        var isRunning = status?.State == ProxyState.Running;
+        
+        if (_consecutiveFailures > 0)
+        {
+            _pollIntervalMs = SlowPollMs;
+        }
+        else if (isRunning)
+        {
+            _pollIntervalMs = FastPollMs;
+        }
+        else
+        {
+            _pollIntervalMs = MediumPollMs;
         }
     }
 
@@ -195,9 +245,14 @@ public partial class DashboardViewModel : ViewModelBase
             // Fetch accounts
             var accounts = await _apiClient.GetAccountsAsync();
 
+            // API call succeeded - reset failure counter and restore fast polling
+            _consecutiveFailures = 0;
+            UpdatePollInterval();
+
             // Marshal all UI updates to the UI thread
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                IsConnected = true;
                 StateText = stateText;
                 UptimeText = uptimeText;
                 
@@ -237,6 +292,16 @@ public partial class DashboardViewModel : ViewModelBase
                 }
             });
         }
+        catch (Exception) when (_apiClient != null)
+        {
+            _consecutiveFailures++;
+            UpdatePollInterval();
+            
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsConnected = false;
+            });
+        }
         finally
         {
             await Dispatcher.UIThread.InvokeAsync(() => IsLoading = false);
@@ -245,80 +310,33 @@ public partial class DashboardViewModel : ViewModelBase
 
     private void RecalculateRangeStats()
     {
-        if (_latestUsage is null)
+        if (_latestUsage is null || _usageAggregator is null)
         {
             RangeRequests = 0;
             RangeTokens = 0;
             return;
         }
 
-        // Prefer daily aggregates when present; otherwise fall back to lifetime.
-        if (_latestUsage.RequestsByDay.Count == 0)
+        var preset = SelectedRequestRangePreset switch
         {
-            RangeRequests = _latestUsage.TotalRequests;
-            RangeTokens = _latestUsage.TotalTokens;
-            return;
-        }
+            "Today" => DateRangePreset.Today,
+            "Last 7 days" => DateRangePreset.Last7Days,
+            "Last 30 days" => DateRangePreset.Last30Days,
+            "This month" => DateRangePreset.ThisMonth,
+            "Custom" => DateRangePreset.Custom,
+            _ => DateRangePreset.Last7Days
+        };
 
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        DateOnly start;
-        DateOnly end;
+        DateOnly? customStart = CustomRangeStart.HasValue 
+            ? DateOnly.FromDateTime(CustomRangeStart.Value.LocalDateTime) 
+            : null;
+        DateOnly? customEnd = CustomRangeEnd.HasValue 
+            ? DateOnly.FromDateTime(CustomRangeEnd.Value.LocalDateTime) 
+            : null;
 
-        switch (SelectedRequestRangePreset)
-        {
-            case "Today":
-                start = today;
-                end = today;
-                break;
-            case "Last 7 days":
-                start = today.AddDays(-6);
-                end = today;
-                break;
-            case "Last 30 days":
-                start = today.AddDays(-29);
-                end = today;
-                break;
-            case "This month":
-                start = new DateOnly(today.Year, today.Month, 1);
-                end = today;
-                break;
-            case "Custom":
-                {
-                    if (CustomRangeStart is null || CustomRangeEnd is null)
-                    {
-                        RangeRequests = 0;
-                        RangeTokens = 0;
-                        return;
-                    }
-
-                    start = DateOnly.FromDateTime(CustomRangeStart.Value.LocalDateTime);
-                    end = DateOnly.FromDateTime(CustomRangeEnd.Value.LocalDateTime);
-                    if (end < start)
-                        (start, end) = (end, start);
-                    break;
-                }
-            default:
-                start = today.AddDays(-6);
-                end = today;
-                break;
-        }
-
-        var totalReq = 0;
-        foreach (var (day, count) in _latestUsage.RequestsByDay)
-        {
-            if (day >= start && day <= end)
-                totalReq += count;
-        }
-
-        long totalTok = 0;
-        foreach (var (day, count) in _latestUsage.TokensByDay)
-        {
-            if (day >= start && day <= end)
-                totalTok += count;
-        }
-
-        RangeRequests = totalReq;
-        RangeTokens = totalTok;
+        var stats = _usageAggregator.CalculateRangeStats(_latestUsage, preset, customStart, customEnd);
+        RangeRequests = stats.Requests;
+        RangeTokens = stats.Tokens;
     }
 
     private static string FormatUptime(TimeSpan uptime)

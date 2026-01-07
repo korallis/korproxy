@@ -2,6 +2,8 @@ using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Runtime.InteropServices;
 using KorProxy.Core.Models;
 using KorProxy.Core.Services;
@@ -189,7 +191,15 @@ internal static class Program
                     context.Configuration.GetSection(ProxyOptions.SectionName));
 
                 // Core services
+                services.AddSingleton<IAppLifetimeService, AppLifetimeService>();
                 services.AddSingleton<IAppPaths, AppPaths>();
+                services.AddSingleton<IProxyProcessRunner, ProxyProcessRunner>();
+                services.AddSingleton<IProxyCircuitBreaker>(sp =>
+                {
+                    var options = sp.GetRequiredService<IOptions<ProxyOptions>>().Value;
+                    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<ProxyCircuitBreaker>();
+                    return new ProxyCircuitBreaker(options.MaxConsecutiveFailures, logger);
+                });
                 services.AddSingleton<IProxySupervisor, ProxySupervisor>();
 
                 services.Configure<ConvexOptions>(
@@ -204,6 +214,7 @@ internal static class Program
                 });
 
                 services.AddSingleton<ISecureStorage, SecureStorage>();
+                services.AddSingleton<IManagementKeyProvider, ManagementKeyProvider>();
                 services.AddSingleton<ISessionStore, SessionStore>();
                 services.AddSingleton<IAuthService, AuthService>();
                 services.AddSingleton<IEntitlementService, EntitlementService>();
@@ -223,14 +234,17 @@ internal static class Program
                     return new UpdateService(backend, options, appPaths);
                 });
 
-                // HTTP client for Management API
+                // HTTP client for Management API - key is set dynamically per request
                 services.AddHttpClient<IManagementApiClient, ManagementApiClient>((sp, client) =>
                 {
                     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ProxyOptions>>().Value;
                     client.BaseAddress = new Uri(options.ApiBaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(options.HttpTimeoutSeconds);
-                    client.DefaultRequestHeaders.Authorization = 
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.ManagementKey);
+                })
+                .AddHttpMessageHandler(sp =>
+                {
+                    var keyProvider = sp.GetRequiredService<IManagementKeyProvider>();
+                    return new ManagementKeyAuthHandler(keyProvider);
                 });
 
                 // Background service to manage proxy lifecycle
@@ -242,6 +256,8 @@ internal static class Program
 
                 // Startup launch service (open at login)
                 services.AddSingleton<IStartupLaunchService, StartupLaunchService>();
+                services.AddSingleton<IProxyConfigStore, ProxyConfigStore>();
+                services.AddSingleton<IUsageAggregator, UsageAggregator>();
                 
                 // Support ticket service
                 services.AddSingleton<ISupportTicketService, SupportTicketService>();
@@ -262,6 +278,8 @@ internal static class Program
                 services.AddSingleton<INavigationService, NavigationService>();
                 services.AddSingleton<IToastService, ToastService>();
                 services.AddSingleton<IDialogService, DialogService>();
+                services.AddSingleton<IUserNotificationService, UserNotificationService>();
+                services.AddSingleton<IClipboardService, ClipboardService>();
 
                 // ViewModels - Page Views
                 services.AddTransient<DashboardViewModel>();
