@@ -100,6 +100,13 @@ public sealed class ManagementApiClient : IManagementApiClient
         {
             var content = new StringContent(yamlContent, System.Text.Encoding.UTF8, "application/x-yaml");
             var response = await _httpClient.PutAsync("/v0/management/config.yaml", content, ct);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Failed to update config: {StatusCode} - {Body}", response.StatusCode, errorBody);
+            }
+            
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

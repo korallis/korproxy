@@ -168,9 +168,16 @@ public partial class App : Application
 
             try
             {
-                if (_proxySupervisor?.State == ProxyState.Running)
+                var state = _proxySupervisor?.State;
+                if (state == ProxyState.Running)
                 {
-                    await _proxySupervisor.StopAsync();
+                    await _proxySupervisor!.StopAsync();
+                }
+                else if (state == ProxyState.CircuitOpen)
+                {
+                    // Reset circuit breaker first, then start
+                    await _proxySupervisor!.ResetCircuitAsync();
+                    await _proxySupervisor.StartAsync();
                 }
                 else
                 {

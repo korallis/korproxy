@@ -312,10 +312,14 @@ public partial class SettingsViewModel : ViewModelBase
             {
                 StatusMessage = "Settings saved successfully!";
                 HasChanges = false;
+                
+                // Reload settings to confirm they were persisted
+                await Task.Delay(500); // Give the proxy a moment to write to disk
+                await LoadSettingsAsync();
             }
             else
             {
-                StatusMessage = "Failed to save settings";
+                StatusMessage = "Failed to save settings - check that the proxy is running";
             }
         }
         catch (Exception ex)
