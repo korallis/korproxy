@@ -247,6 +247,17 @@ export default defineSchema({
     .index("by_date", ["createdAt"])
     .index("by_github_issue", ["githubIssueNumber"]),
 
+  // Password reset tokens table - for forgot password flow
+  passwordResetTokens: defineTable({
+    email: v.string(),
+    token: v.string(),
+    expiresAt: v.number(),
+    used: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_email", ["email"]),
+
   // Support ticket messages table - conversation thread for tickets
   supportTicketMessages: defineTable({
     ticketId: v.id("supportTickets"),

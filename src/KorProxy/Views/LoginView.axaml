@@ -66,10 +66,23 @@
                     </StackPanel>
 
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Password"
-                                   FontSize="13"
-                                   FontWeight="Medium"
-                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Password"
+                                       Grid.Column="0"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <Button Content="Forgot password?"
+                                    Grid.Column="1"
+                                    Command="{Binding ForgotPasswordCommand}"
+                                    Classes="Hyperlink"
+                                    FontSize="12"
+                                    Padding="0" />
+                        </Grid>
                         <TextBox Text="{Binding Password}"
                                  PasswordChar="•"
                                  Watermark="Enter your password"

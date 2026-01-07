@@ -18,6 +18,7 @@ import type * as invites from "../invites.js";
 import type * as lib_password from "../lib/password.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as members from "../members.js";
+import type * as passwordReset from "../passwordReset.js";
 import type * as stripe from "../stripe.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as supportTickets from "../supportTickets.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "lib/password": typeof lib_password;
   "lib/rbac": typeof lib_rbac;
   members: typeof members;
+  passwordReset: typeof passwordReset;
   stripe: typeof stripe;
   subscriptions: typeof subscriptions;
   supportTickets: typeof supportTickets;
